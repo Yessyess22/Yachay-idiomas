@@ -1,0 +1,23 @@
+services:
+  expo-web:
+    build: .
+    container_name: yachay-expo
+    ports:
+      - "8081:8081"
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/.expo
+    env_file:
+      - .env
+    networks:
+      yachay-net:
+        ipv4_address: 10.10.20.10
+
+networks:
+  yachay-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.10.20.0/24
+          gateway: 10.10.20.1
