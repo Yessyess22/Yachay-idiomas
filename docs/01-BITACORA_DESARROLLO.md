@@ -17,9 +17,9 @@ En esta fase se consolidó la base de datos local en Supabase, el sistema de aut
 
 | Fecha | Autor | Componente / Archivo(s) | Hito alcanzado | Pruebas ejecutadas |
 | :--- | :--- | :--- | :--- | :--- |
-| 2026-09-01 | Shirley | `supabase/config.toml`, `context/AuthContext.tsx`, `app/(auth)/` | Inicialización del backend local de Supabase y flujo completo de autenticación (Login/Signup). | Registro e inicio de sesión validados exitosamente contra el emulador local de Supabase Auth. |
-| 2026-09-03 | Shirley | `app/(tabs)/index.tsx`, `app/course/[id].tsx` | Pantalla Home con listado dinámico de cursos de Quechua y vista detallada de lecciones con recompensas de XP. | Pruebas de navegación fluidas utilizando Expo Router; carga correcta de datos desde la tabla `courses`. |
-| 2026-09-05 | Shirley | `app/lesson/[id].tsx`, `components/themed-*` | Motor de ejercicios interactivos de opción múltiple con barra de progreso dinámica y retroalimentación visual inmediata. | Verificación de flujo: comprobación de respuestas correctas/incorrectas y renderizado de la pantalla de resultados con porcentaje de aciertos. |
+| 2026-09-01 | Yesica | `supabase/config.toml`, `context/AuthContext.tsx`, `app/(auth)/` | Inicialización del backend local de Supabase y flujo completo de autenticación (Login/Signup). | Registro e inicio de sesión validados exitosamente contra el emulador local de Supabase Auth. |
+| 2026-09-03 | Yesica | `app/(tabs)/index.tsx`, `app/course/[id].tsx` | Pantalla Home con listado dinámico de cursos de Quechua y vista detallada de lecciones con recompensas de XP. | Pruebas de navegación fluidas utilizando Expo Router; carga correcta de datos desde la tabla `courses`. |
+| 2026-09-05 | Yesica | `app/lesson/[id].tsx`, `components/themed-*` | Motor de ejercicios interactivos de opción múltiple con barra de progreso dinámica y retroalimentación visual inmediata. | Verificación de flujo: comprobación de respuestas correctas/incorrectas y renderizado de la pantalla de resultados con porcentaje de aciertos. |
 | 2026-09-08 | Equipo | `docs/CONTEXTO_PROYECTO.md` | Escaneo integral de la arquitectura del repositorio inicial y mapeo de dependencias para la migración a Docker. | Análisis estático de dependencias de Expo 57 y Supabase JS completado. |
 
 ---

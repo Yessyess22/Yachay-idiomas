@@ -10,24 +10,24 @@ Este documento es el registro vivo de todas las deficiencias de arquitectura, de
 
 | ID | Título | Severidad | Propietario | Sprint objetivo | Estado |
 | :--- | :--- | :---: | :--- | :---: | :--- |
-| GAP-01 | Ausencia de infraestructura Docker y red estática | 🔴 Crítico | Oscar | Sprint 1 | Abierto |
-| GAP-02 | Acoplamiento de llamadas de BD en las vistas | 🟡 Medio | Shirley + Oscar | Sprint 2 | Abierto |
+| GAP-01 | Ausencia de infraestructura Docker y red estática | 🔴 Crítico | Oscar Segovia | Sprint 1 | Abierto |
+| GAP-02 | Acoplamiento de llamadas de BD en las vistas | 🟡 Medio | Yesica + Oscar Segovia | Sprint 2 | Abierto |
 | GAP-03 | Ausencia de pruebas automatizadas | 🟢 Bajo | Equipo | Sprint 4 | Abierto |
-| GAP-04 | Archivos plantilla de Expo sin personalizar | 🟢 Bajo | Shirley | Sprint 1 | Abierto |
-| GAP-05 | Ausencia de esquema de BD para Niveles y Traductor de Voz | 🔴 Alto | [Tu Nombre] | Sprint 1 | Abierto |
+| GAP-04 | Archivos plantilla de Expo sin personalizar | 🟢 Bajo | Yesica | Sprint 1 | Abierto |
+| GAP-05 | Ausencia de esquema de BD para Niveles y Traductor de Voz | 🔴 Alto | Alejandro Padilla | Sprint 1 | Abierto |
 
 ---
 
 ## GAP-01 — Ausencia de Infraestructura Docker y Red Estática
 
 **Severidad:** 🔴 Crítico
-**Propietario:** Oscar Alejandro Segovia Villarreal
+**Propietario:** Oscar Segovia
 **Sprint objetivo:** Sprint 1
 **Estado:** Abierto
 
 ### Descripción
 
-El repositorio inicial entregado por Shirley no contiene ningún `Dockerfile`, `docker-compose.yml` ni configuración de red Docker. La aplicación Expo y sus dependencias (`node_modules`) se ejecutan directamente sobre el sistema operativo del host, violando la restricción fundamental del proyecto que prohíbe instalar `npm` o `node` de forma global en la máquina local.
+El repositorio inicial entregado por Yesica no contiene ningún `Dockerfile`, `docker-compose.yml` ni configuración de red Docker. La aplicación Expo y sus dependencias (`node_modules`) se ejecutan directamente sobre el sistema operativo del host, violando la restricción fundamental del proyecto que prohíbe instalar `npm` o `node` de forma global en la máquina local.
 
 ### Evidencia
 
@@ -64,7 +64,7 @@ find . -maxdepth 2 -name "Dockerfile" -o -name "docker-compose.yml"
 ## GAP-02 — Acoplamiento de Llamadas de Base de Datos en las Vistas
 
 **Severidad:** 🟡 Medio
-**Propietario:** Shirley Yessica Escobar Gutierrez + Oscar Alejandro Segovia Villarreal
+**Propietario:** Yesica Escobar + Oscar Segovia
 **Sprint objetivo:** Sprint 2
 **Estado:** Abierto
 
@@ -128,7 +128,7 @@ grep -r "jest" package.json
 
 ### Riesgos
 
-- **Riesgo de regresión silenciosa:** Al refactorizar el prototipo de Shirley hacia Clean Architecture, es posible romper flujos sin detectarlo.
+- **Riesgo de regresión silenciosa:** Al refactorizar el prototipo de Yesica hacia Clean Architecture, es posible romper flujos sin detectarlo.
 - **Sin cobertura del motor de gamificación:** La lógica de vidas y XP (núcleo del producto) no tiene validación automatizada.
 
 ### Solución propuesta
@@ -149,13 +149,13 @@ grep -r "jest" package.json
 ## GAP-05 — Ausencia de Esquema de Base de Datos para Niveles y Traductor de Voz
 
 **Severidad:** 🔴 Alto
-**Propietario:** [Tu Nombre] (diseño) + Oscar Alejandro Segovia Villarreal (aplicación de migración)
+**Propietario:** Alejandro Padilla (diseño) + Oscar Segovia (aplicación de migración)
 **Sprint objetivo:** Sprint 1
 **Estado:** Abierto
 
 ### Descripción
 
-El prototipo inicial de Shirley fue diseñado únicamente con las tablas `courses` y `lessons` para el flujo básico de lecciones. El alcance definitivo del proyecto Yachay —aprobado el 2026-09-08— añade tres módulos que requieren entidades de base de datos completamente nuevas:
+El prototipo inicial de Yesica fue diseñado únicamente con las tablas `courses` y `lessons` para el flujo básico de lecciones. El alcance definitivo del proyecto Yachay —aprobado el 2026-09-08— añade tres módulos que requieren entidades de base de datos completamente nuevas:
 
 1. **Niveles con Exámenes de Bloqueo:** Requiere las tablas `levels`, `exams` y `exam_questions` para definir la jerarquía de niveles por categoría, las preguntas de cada examen y la lógica de desbloqueo secuencial. Sin estas tablas, los Sprints 3 y 4 no pueden implementar el CU-05.
 2. **Progreso de Usuario por Nivel:** Requiere la tabla `level_progress` para registrar si un usuario aprobó el examen de cada nivel y el score obtenido. Sin ella, no existe mecanismo de persistencia del estado de desbloqueo entre sesiones.
@@ -170,7 +170,7 @@ SELECT table_name FROM information_schema.tables
 WHERE table_schema = 'public'
 ORDER BY table_name;
 
--- Resultado en el prototipo de Shirley:
+-- Resultado en el prototipo de Yesica:
 -- courses
 -- lessons
 -- (no existe: profiles, categories, levels, exams, exam_questions,
@@ -203,7 +203,7 @@ ORDER BY table_name;
 ## GAP-04 — Archivos Plantilla de Expo Sin Personalizar
 
 **Severidad:** 🟢 Bajo
-**Propietario:** Shirley Yessica Escobar Gutierrez
+**Propietario:** Yesica Escobar
 **Sprint objetivo:** Sprint 1
 **Estado:** Abierto
 

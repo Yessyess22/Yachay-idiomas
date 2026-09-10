@@ -11,9 +11,9 @@ Este archivo es la ancla de contexto obligatoria para que el asistente de IA o c
 | **Fase** | Fase 2 — Infraestructura, Dockerización y Refactorización a Clean Architecture |
 | **Sprint activo** | **Sprint 1 (Fase 2): Diseño de BD, Dockerización, Red Estática y Clean Architecture** |
 | **Fecha de inicio** | 2026-09-08 |
-| **Responsables** | Shirley Yessica Escobar Gutierrez, Oscar Alejandro Segovia Villarreal |
+| **Responsables** | Oscar Segovia, Yesica Escobar, Alejandro Padilla |
 | **Estado del Backend** | 🔵 En modelado — Supabase CLI local corriendo en puertos 54321–54327 con PostgreSQL 17 y Supabase Studio. El esquema relacional definitivo (tablas: `profiles`, `categories`, `lessons`, `questions`, `levels`, `exams`, `lesson_progress`, `level_progress`, `translation_history`) está siendo diseñado para aplicarse como migración versionada en `supabase/migrations/`. |
-| **Estado del Frontend** | ⚠️ En proceso de migración. Shirley completó un prototipo funcional en Expo Go (Auth, Cursos y Lecciones), pero requiere ser dockerizado, asignado a la subred estática `10.10.10.10:8081` y refactorizado bajo Clean Architecture. El alcance definitivo incluye los módulos: Abecedario, Números, Palabras, Niveles con Exámenes y Traductor de Voz con IA. |
+| **Estado del Frontend** | ⚠️ En proceso de migración. Yesica completó un prototipo funcional en Expo Go (Auth, Cursos y Lecciones), pero requiere ser dockerizado, asignado a la subred estática `10.10.10.10:8081` y refactorizado bajo Clean Architecture. El alcance definitivo incluye los módulos: Abecedario, Números, Palabras, Niveles con Exámenes y Traductor de Voz con IA. |
 
 ---
 
@@ -32,7 +32,7 @@ Este archivo es la ancla de contexto obligatoria para que el asistente de IA o c
 
 | Deuda | Descripción | Impacto |
 | :--- | :--- | :--- |
-| **Sin aislamiento Docker** | El prototipo de Shirley corre puramente sobre el host con Expo Go, sin contenedor. | Alto — bloquea la reproducibilidad del entorno. |
+| **Sin aislamiento Docker** | El prototipo de Yesica corre puramente sobre el host con Expo Go, sin contenedor. | Alto — bloquea la reproducibilidad del entorno. |
 | **Acoplamiento de datos** | Las consultas a Supabase están directamente en las vistas (`app/(tabs)/index.tsx`, `app/course/[id].tsx`, etc.) mediante `useEffect`. Viola Clean Architecture. | Alto — impide testear y escalar la lógica de negocio. |
 | **Sin pruebas automatizadas** | No existen suites de tests unitarios ni E2E para los flujos clave de autenticación y lecciones. | Medio — riesgo de regresiones silenciosas al refactorizar. |
 

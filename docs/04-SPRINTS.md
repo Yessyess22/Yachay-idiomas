@@ -150,13 +150,13 @@ CREATE POLICY "translation_history: propietario" ON translation_history
 
 | ID | Tarea | Responsable | Estado |
 | :--- | :--- | :--- | :--- |
-| S1-T01 | Diseñar el esquema relacional completo (DDL) con todas las tablas, relaciones, RLS y restricciones. Revisión y aprobación del equipo. | [Tu Nombre] | Pendiente |
-| S1-T02 | Crear el archivo de migración inicial en `supabase/migrations/` y aplicarlo con `supabase db push`. Verificar en Supabase Studio que todas las tablas se crearon correctamente. | Oscar | Pendiente |
-| S1-T03 | Crear el seed de datos de prueba en `supabase/seed.sql`: poblar `categories`, `lessons`, `questions`, `levels`, `exams` y `exam_questions` con contenido real de quechua (mínimo: 3 categorías, 2 lecciones por categoría, 5 preguntas por lección). | [Tu Nombre] + Shirley | Pendiente |
-| S1-T04 | Escribir `Dockerfile` con imagen `node:20-alpine`, instalación de dependencias y comando `CMD` para arrancar Expo Web. | Oscar | Pendiente |
-| S1-T05 | Escribir `docker-compose.yml` con servicio `expo-web`, red `yachay-net` (`driver: bridge`, subnet `10.10.10.0/24`) e IP estática `10.10.10.10` para el contenedor. | Oscar | Pendiente |
-| S1-T06 | Verificar conectividad: acceder a `http://10.10.10.10:8081` desde el host y confirmar que Expo Web carga la pantalla base. | Oscar | Pendiente |
-| S1-T07 | Crear la estructura de directorios `src/context/`, `src/services/`, `src/utils/`, `src/types/` y `src/features/` en la raíz del proyecto. | Oscar | Pendiente |
+| S1-T01 | Diseñar el esquema relacional completo (DDL) con todas las tablas, relaciones, RLS y restricciones. Revisión y aprobación del equipo. | Alejandro Padilla | Pendiente |
+| S1-T02 | Crear el archivo de migración inicial en `supabase/migrations/` y aplicarlo con `supabase db push`. Verificar en Supabase Studio que todas las tablas se crearon correctamente. | Oscar Segovia | Pendiente |
+| S1-T03 | Crear el seed de datos de prueba en `supabase/seed.sql`: poblar `categories`, `lessons`, `questions`, `levels`, `exams` y `exam_questions` con contenido real de quechua (mínimo: 3 categorías, 2 lecciones por categoría, 5 preguntas por lección). | Alejandro Padilla + Yesica | Pendiente |
+| S1-T04 | Escribir `Dockerfile` con imagen `node:20-alpine`, instalación de dependencias y comando `CMD` para arrancar Expo Web. | Oscar Segovia | Pendiente |
+| S1-T05 | Escribir `docker-compose.yml` con servicio `expo-web`, red `yachay-net` (`driver: bridge`, subnet `10.10.10.0/24`) e IP estática `10.10.10.10` para el contenedor. | Oscar Segovia | Pendiente |
+| S1-T06 | Verificar conectividad: acceder a `http://10.10.10.10:8081` desde el host y confirmar que Expo Web carga la pantalla base. | Oscar Segovia | Pendiente |
+| S1-T07 | Crear la estructura de directorios `src/context/`, `src/services/`, `src/utils/`, `src/types/` y `src/features/` en la raíz del proyecto. | Oscar Segovia | Pendiente |
 | S1-T08 | Crear los documentos de gobernanza del proyecto en `docs/` y actualizar el alcance con los módulos definitivos (Abecedario, Números, Palabras, Niveles/Exámenes, Traductor de Voz). | Equipo | Completado |
 
 ### Criterios de Aceptación
@@ -180,14 +180,14 @@ CREATE POLICY "translation_history: propietario" ON translation_history
 
 | ID | Tarea | Responsable | Estado |
 | :--- | :--- | :--- | :--- |
-| S2-T01 | Crear `src/services/supabase.ts`: instancia única del cliente Supabase configurada con `EXPO_PUBLIC_SUPABASE_URL` y `EXPO_PUBLIC_SUPABASE_ANON_KEY`. | Oscar | Pendiente |
-| S2-T02 | Crear `src/services/authService.ts`: funciones `signIn(email, password)`, `signUp(email, password)`, `signOut()` y `createProfile(userId, username)` que crea el registro en la tabla `profiles` al registrarse. | Oscar | Pendiente |
-| S2-T03 | Refactorizar `src/context/AuthContext.tsx`: eliminar el `import` directo de Supabase; consumir únicamente las funciones de `authService.ts`. | Shirley | Pendiente |
-| S2-T04 | Refactorizar pantallas de auth (`app/(auth)/login.tsx`, `app/(auth)/signup.tsx`): eliminar toda lógica de Supabase; consumir únicamente `AuthContext`. | Shirley | Pendiente |
-| S2-T05 | Crear `src/services/categoryService.ts`: funciones `fetchCategories()` y `fetchLessonsWithProgress(categoryId, userId)` que consultan `categories`, `lessons` y `lesson_progress` en join. | Oscar | Pendiente |
-| S2-T06 | Crear `src/services/questionService.ts`: función `fetchQuestionsByLesson(lessonId)` que obtiene las preguntas de una lección desde la tabla `questions`. | Oscar | Pendiente |
-| S2-T07 | Refactorizar `app/(tabs)/index.tsx`: reemplazar los `useEffect` con llamadas directas por el hook `useCategories()` que consume `categoryService.ts`. | Shirley | Pendiente |
-| S2-T08 | Crear las pantallas de módulo de contenido: `app/category/[slug].tsx` (lista de lecciones con progreso) y `app/lesson/[id].tsx` (carga preguntas desde `questionService`). | Shirley | Pendiente |
+| S2-T01 | Crear `src/services/supabase.ts`: instancia única del cliente Supabase configurada con `EXPO_PUBLIC_SUPABASE_URL` y `EXPO_PUBLIC_SUPABASE_ANON_KEY`. | Oscar Segovia | Pendiente |
+| S2-T02 | Crear `src/services/authService.ts`: funciones `signIn(email, password)`, `signUp(email, password)`, `signOut()` y `createProfile(userId, username)` que crea el registro en la tabla `profiles` al registrarse. | Oscar Segovia | Pendiente |
+| S2-T03 | Refactorizar `src/context/AuthContext.tsx`: eliminar el `import` directo de Supabase; consumir únicamente las funciones de `authService.ts`. | Yesica | Pendiente |
+| S2-T04 | Refactorizar pantallas de auth (`app/(auth)/login.tsx`, `app/(auth)/signup.tsx`): eliminar toda lógica de Supabase; consumir únicamente `AuthContext`. | Yesica | Pendiente |
+| S2-T05 | Crear `src/services/categoryService.ts`: funciones `fetchCategories()` y `fetchLessonsWithProgress(categoryId, userId)` que consultan `categories`, `lessons` y `lesson_progress` en join. | Oscar Segovia | Pendiente |
+| S2-T06 | Crear `src/services/questionService.ts`: función `fetchQuestionsByLesson(lessonId)` que obtiene las preguntas de una lección desde la tabla `questions`. | Oscar Segovia | Pendiente |
+| S2-T07 | Refactorizar `app/(tabs)/index.tsx`: reemplazar los `useEffect` con llamadas directas por el hook `useCategories()` que consume `categoryService.ts`. | Yesica | Pendiente |
+| S2-T08 | Crear las pantallas de módulo de contenido: `app/category/[slug].tsx` (lista de lecciones con progreso) y `app/lesson/[id].tsx` (carga preguntas desde `questionService`). | Yesica | Pendiente |
 
 ### Criterios de Aceptación
 
@@ -207,15 +207,15 @@ CREATE POLICY "translation_history: propietario" ON translation_history
 
 | ID | Tarea | Responsable | Estado |
 | :--- | :--- | :--- | :--- |
-| S3-T01 | Definir tipos TypeScript en `src/types/game.ts`: `Question`, `Lesson`, `Level`, `Exam`, `GameState`, `GameContextType`. Incluir tipos para `ExamResult` y `TranslationRequest`. | [Tu Nombre] | Pendiente |
-| S3-T02 | Crear `src/context/GameContext.tsx`: estado `lives` (init: 5), `xp`, `currentQuestionIndex`, `isBlocked`, `isExamBlocked`. Exponer: `checkAnswer()`, `loseLife()`, `gainXP()`, `resetLesson()`, `resetExam()`. | [Tu Nombre] | Pendiente |
-| S3-T03 | Integrar `GameProvider` en `app/_layout.tsx`. | [Tu Nombre] | Pendiente |
-| S3-T04 | Crear `src/services/progressService.ts`: funciones `saveLessonProgress(userId, lessonId, xp)`, `saveExamResult(userId, levelId, score)` y `unlockLevel(userId, levelId)`. Todas deben usar migraciones; ninguna usa `upsert` directo fuera del servicio. | Oscar | Pendiente |
-| S3-T05 | Crear `src/services/examService.ts`: función `fetchExam(levelId)` que obtiene el examen y sus preguntas mediante join entre `exams` y `exam_questions`. | Oscar | Pendiente |
-| S3-T06 | Crear pantalla de examen `app/level/exam/[levelId].tsx`: carga el examen desde `examService`, conecta al `GameContext`, muestra barra de progreso y bloquea al agotar vidas. | Shirley | Pendiente |
-| S3-T07 | Crear pantalla de bloqueo `app/lesson/blocked.tsx` y `app/level/exam/blocked.tsx`: se muestran cuando `isBlocked` o `isExamBlocked` son `true`. Sin `window.alert`. | Shirley | Pendiente |
-| S3-T08 | Crear `src/services/voiceService.ts`: función `transcribeAndTranslate(audioBlob, direction)` que encapsula la llamada al servicio de IA externo (API REST). Manejar errores de red y de calidad de audio. | Oscar | Pendiente |
-| S3-T09 | Crear pantalla del traductor `app/translator/index.tsx`: captura de audio con `MediaRecorder`, llamada a `voiceService`, visualización de transcripción y traducción, síntesis de voz con `window.speechSynthesis`. Sin `window.alert`. | Shirley | Pendiente |
+| S3-T01 | Definir tipos TypeScript en `src/types/game.ts`: `Question`, `Lesson`, `Level`, `Exam`, `GameState`, `GameContextType`. Incluir tipos para `ExamResult` y `TranslationRequest`. | Alejandro Padilla | Pendiente |
+| S3-T02 | Crear `src/context/GameContext.tsx`: estado `lives` (init: 5), `xp`, `currentQuestionIndex`, `isBlocked`, `isExamBlocked`. Exponer: `checkAnswer()`, `loseLife()`, `gainXP()`, `resetLesson()`, `resetExam()`. | Alejandro Padilla | Pendiente |
+| S3-T03 | Integrar `GameProvider` en `app/_layout.tsx`. | Alejandro Padilla | Pendiente |
+| S3-T04 | Crear `src/services/progressService.ts`: funciones `saveLessonProgress(userId, lessonId, xp)`, `saveExamResult(userId, levelId, score)` y `unlockLevel(userId, levelId)`. Todas deben usar migraciones; ninguna usa `upsert` directo fuera del servicio. | Oscar Segovia | Pendiente |
+| S3-T05 | Crear `src/services/examService.ts`: función `fetchExam(levelId)` que obtiene el examen y sus preguntas mediante join entre `exams` y `exam_questions`. | Oscar Segovia | Pendiente |
+| S3-T06 | Crear pantalla de examen `app/level/exam/[levelId].tsx`: carga el examen desde `examService`, conecta al `GameContext`, muestra barra de progreso y bloquea al agotar vidas. | Yesica | Pendiente |
+| S3-T07 | Crear pantalla de bloqueo `app/lesson/blocked.tsx` y `app/level/exam/blocked.tsx`: se muestran cuando `isBlocked` o `isExamBlocked` son `true`. Sin `window.alert`. | Yesica | Pendiente |
+| S3-T08 | Crear `src/services/voiceService.ts`: función `transcribeAndTranslate(audioBlob, direction)` que encapsula la llamada al servicio de IA externo (API REST). Manejar errores de red y de calidad de audio. | Oscar Segovia | Pendiente |
+| S3-T09 | Crear pantalla del traductor `app/translator/index.tsx`: captura de audio con `MediaRecorder`, llamada a `voiceService`, visualización de transcripción y traducción, síntesis de voz con `window.speechSynthesis`. Sin `window.alert`. | Yesica | Pendiente |
 
 ### Criterios de Aceptación
 
@@ -235,14 +235,14 @@ CREATE POLICY "translation_history: propietario" ON translation_history
 
 | ID | Tarea | Responsable | Estado |
 | :--- | :--- | :--- | :--- |
-| S4-T01 | Crear pantalla de perfil `app/profile/index.tsx`: muestra XP total del usuario (desde `profiles.total_xp`), niveles desbloqueados y progreso por categoría. | Shirley | Pendiente |
-| S4-T02 | Implementar retroalimentación visual verde/rojo en lecciones y exámenes (sin `window.alert` ni `Alert.alert`). | Shirley | Pendiente |
-| S4-T03 | Crear pantalla de resultados `app/lesson/results.tsx` y `app/level/exam/results.tsx`: muestra XP ganado, porcentaje de aciertos y botones de repetir/continuar. | Shirley | Pendiente |
-| S4-T04 | Escribir tests unitarios con Jest para `GameContext`: verificar `loseLife()`, `gainXP()`, `isBlocked`, `isExamBlocked` y `resetExam()`. | [Tu Nombre] | Pendiente |
-| S4-T05 | Escribir test de flujo E2E para el CU-03 (lección completa) y CU-05 (examen de nivel aprobado). | [Tu Nombre] | Pendiente |
-| S4-T06 | Ejecutar auditoria final de arquitectura: `grep -r "window.alert" .`, `grep -r "style={{" app/`, `grep -r "supabase\.from\|supabase\.auth" app/`. Los tres deben retornar vacío. | Oscar | Pendiente |
-| S4-T07 | Verificar que toda modificación de BD se realizó mediante migraciones: `ls supabase/migrations/` debe listar todos los cambios de esquema; ninguno debe haberse aplicado directamente desde Studio. | Oscar | Pendiente |
-| S4-T08 | Ejecutar `tsc --noEmit` y `npm run lint` dentro del contenedor y corregir todos los errores. | Oscar | Pendiente |
+| S4-T01 | Crear pantalla de perfil `app/profile/index.tsx`: muestra XP total del usuario (desde `profiles.total_xp`), niveles desbloqueados y progreso por categoría. | Yesica | Pendiente |
+| S4-T02 | Implementar retroalimentación visual verde/rojo en lecciones y exámenes (sin `window.alert` ni `Alert.alert`). | Yesica | Pendiente |
+| S4-T03 | Crear pantalla de resultados `app/lesson/results.tsx` y `app/level/exam/results.tsx`: muestra XP ganado, porcentaje de aciertos y botones de repetir/continuar. | Yesica | Pendiente |
+| S4-T04 | Escribir tests unitarios con Jest para `GameContext`: verificar `loseLife()`, `gainXP()`, `isBlocked`, `isExamBlocked` y `resetExam()`. | Alejandro Padilla | Pendiente |
+| S4-T05 | Escribir test de flujo E2E para el CU-03 (lección completa) y CU-05 (examen de nivel aprobado). | Alejandro Padilla | Pendiente |
+| S4-T06 | Ejecutar auditoria final de arquitectura: `grep -r "window.alert" .`, `grep -r "style={{" app/`, `grep -r "supabase\.from\|supabase\.auth" app/`. Los tres deben retornar vacío. | Oscar Segovia | Pendiente |
+| S4-T07 | Verificar que toda modificación de BD se realizó mediante migraciones: `ls supabase/migrations/` debe listar todos los cambios de esquema; ninguno debe haberse aplicado directamente desde Studio. | Oscar Segovia | Pendiente |
+| S4-T08 | Ejecutar `tsc --noEmit` y `npm run lint` dentro del contenedor y corregir todos los errores. | Oscar Segovia | Pendiente |
 | S4-T09 | Actualizar `01-BITACORA_DESARROLLO.md` con todas las entradas de la Fase 2. | Equipo | Pendiente |
 
 ### Criterios de Aceptación
