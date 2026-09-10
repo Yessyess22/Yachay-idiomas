@@ -24,8 +24,12 @@ En esta fase se consolidó la base de datos local en Supabase, el sistema de aut
 
 ---
 
-## Fase 2 — Infraestructura, Dockerización y Clean Architecture (En curso)
+## Fase 2 — Infraestructura, Dockerización y Clean Architecture
 
 | Fecha | Autor | Componente / Archivo(s) | Hito alcanzado | Pruebas ejecutadas |
 | :--- | :--- | :--- | :--- | :--- |
-| 2026-09-08 | Equipo | `docs/01-BITACORA_DESARROLLO.md`, `docs/02-SESSION_MEM.md`, `docs/03-REQUERIMIENTOS.md`, `docs/04-SPRINTS.md`, `docs/05-FINDINGS_DEUDA.md`, `docs/06-TASK_PLAN.md`, `docs/07-PROMPT_DESARROLLO.md`, `docs/08-CONTROL_SESION.md` | Definición del alcance definitivo de Yachay Quechua: módulos Abecedario, Números, Palabras, Niveles con Exámenes de bloqueo y Traductor de Voz con IA. Diseño lógico inicial del esquema relacional de la base de datos (tablas `profiles`, `categories`, `lessons`, `questions`, `levels`, `exams`, `exam_questions`, `lesson_progress`, `level_progress`, `translation_history`) con políticas RLS. Actualización integral de los 8 documentos de gobernanza del proyecto. | Revisión cruzada del DDL por el equipo. Validación de cobertura de todos los módulos del producto en los Casos de Uso (CU-01 al CU-06) y Requerimientos Funcionales (RF-01 al RF-14). |
+| 2026-09-08 | Equipo | `docs/01-BITACORA_DESARROLLO.md` al `docs/08-CONTROL_SESION.md` | Definición del alcance definitivo de Yachay Quechua (Abecedario, Números, Palabras, Niveles/Exámenes, Traductor de Voz) y diseño del esquema relacional 3FN. | Revisión cruzada del DDL por el equipo. |
+| 2026-09-10 | Equipo | `supabase/migrations/20260910000000_initial_yachay_schema.sql`, `supabase/seed.sql` | Creación y ejecución del esquema relacional en 3FN en Supabase (11 tablas con RLS y 30 preguntas de Quechua con 120 opciones normalizadas). | `SELECT COUNT(*)` en `questions` (30) y `question_options` (120) verificado en Supabase. |
+| 2026-09-10 | Oscar | `Dockerfile`, `docker-compose.yml` | Dockerización con `node:20-alpine`, red estática `10.10.10.0/24` e IP `10.10.10.10`. | Verificación del archivo docker-compose e instalación de `expo-asset` y `firebase`. |
+| 2026-09-10 | Alejandro / Yesica | `src/services/`, `src/context/`, `src/types/` | Implementación completa de la capa de servicios Clean Architecture (`authService`, `categoryService`, `questionService`, `supabase`) y refactor de `AuthContext`. | Chequeo estático `npx tsc --noEmit` exitoso sin ningún error. Auditoría `grep` confirma 0 llamadas directas a Supabase en `app/`. |
+| 2026-09-10 | Yesica | `app/(tabs)/index.tsx`, `app/category/[slug].tsx`, `app/lesson/[id].tsx`, `app/(tabs)/profile.tsx` | Refactorización total de pantallas UI: Inicio con categorías dinámicas y XP, Detalle de Lecciones por categoría, Motor interactivo Quiz con feedback visual y nueva Pantalla de Perfil de usuario con Cerrar Sesión. | Pruebas de navegación en Expo Go / Web; flujo completo de registro, lección, ganancia de XP y cierre de sesión validado. |

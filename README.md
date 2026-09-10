@@ -1,50 +1,70 @@
-# Welcome to your Expo app 👋
+# Yachay Idiomas — Aprendizaje de Quechua 🇵🇪
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+**Yachay** es una aplicación móvil universal (iOS, Android, Web) desarrollada con Expo y React Native para la enseñanza interactiva del idioma Quechua (Runasimi). Integra Supabase como backend PostgreSQL relacional en 3FN y Clean Architecture en el frontend.
 
-## Get started
+---
 
-1. Install dependencies
+## 🚀 Arquitectura del Proyecto (Clean Architecture Feature-First)
 
-   ```bash
-   npm install
-   ```
-
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
+```
+Yachay/
+├── app/                      # Rutas e interfaz UI (Expo Router)
+│   ├── (auth)/               # Pantallas de Login y Registro
+│   ├── (tabs)/               # Navegación por pestañas (Inicio, Explorar, Perfil)
+│   ├── category/[slug].tsx   # Lecciones de una categoría
+│   └── lesson/[id].tsx       # Motor interactivo de ejercicios Quiz
+├── src/                      # Capa de lógica de negocio y servicios
+│   ├── context/              # Contextos globales (AuthContext, etc.)
+│   ├── services/             # Servicios API (authService, categoryService, questionService, supabase)
+│   ├── types/                # Interfaces TypeScript de dominio
+│   └── utils/                # Funciones utilitarias
+├── supabase/
+│   ├── migrations/           # Migraciones SQL versionadas (DDL en 3FN)
+│   └── seed.sql              # Datos iniciales (Categorías, Lecciones, Preguntas Quechua)
+├── docs/                     # Documentación oficial de gobernanza del proyecto
+├── Dockerfile                # Imagen Docker node:20-alpine
+└── docker-compose.yml        # Configuración de red estática 10.10.10.0/24
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+---
 
-## Learn more
+## 📊 Estado de los Sprints
 
-To learn more about developing your project with Expo, look at the following resources:
+- ✅ **Sprint 1 (100%)**: DDL en 3FN, Migraciones SQL, Seed Quechua (30 preguntas), Docker y Clean Architecture.
+- ✅ **Sprint 2 (100%)**: Capa de Servicios (`src/services/`), AuthContext, Pantallas de Categorías, Lección Quiz interactiva y Perfil de Usuario con Logout.
+- 🔵 **Sprint 3 (Próximo)**: Motor de Gamificación (`GameContext`), Exámenes de Fin de Nivel y Traductor de Voz.
+- ⬜ **Sprint 4 (Pendiente)**: Pruebas unitarias, E2E y certificación final.
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+---
 
-## Join the community
+## 🛠️ Instrucciones de Inicio
 
-Join our community of developers creating universal apps.
+### 1. Instalación de dependencias
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+```bash
+npm install
+```
+
+### 2. Ejecutar servidor de desarrollo local
+
+```bash
+npx expo start -c
+```
+
+### 3. Ejecutar con Docker
+
+```bash
+docker compose up -d
+```
+Acceso web en `http://10.10.10.10:8081` o `http://localhost:8081`.
+
+---
+
+## 📚 Documentación Adicional
+
+Para más detalles sobre la gobernanza y arquitectura del proyecto, consulta la carpeta [/docs](file:///Users/alex/Documents/Yesikita/Yachay/docs/):
+- [01-BITACORA_DESARROLLO.md](file:///Users/alex/Documents/Yesikita/Yachay/docs/01-BITACORA_DESARROLLO.md)
+- [02-SESSION_MEM.md](file:///Users/alex/Documents/Yesikita/Yachay/docs/02-SESSION_MEM.md)
+- [04-SPRINTS.md](file:///Users/alex/Documents/Yesikita/Yachay/docs/04-SPRINTS.md)
+- [06-TASK_PLAN.md](file:///Users/alex/Documents/Yesikita/Yachay/docs/06-TASK_PLAN.md)
+- [09-BD-SPEC.md](file:///Users/alex/Documents/Yesikita/Yachay/docs/09-BD-SPEC.md)
