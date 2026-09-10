@@ -1,9 +1,10 @@
-import { useAuth } from '@/context/AuthContext';
+import { useAuth } from '@/src/context/AuthContext';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 export default function SignupScreen() {
+  const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -13,12 +14,16 @@ export default function SignupScreen() {
 
   async function handleSignup() {
     setError('');
+    if (!username.trim()) {
+      setError('Por favor ingresa un nombre de usuario');
+      return;
+    }
     if (password.length < 6) {
       setError('La contraseña debe tener al menos 6 caracteres');
       return;
     }
     setLoading(true);
-    const { error } = await signUp(email, password);
+    const { error } = await signUp(email, password, username.trim());
     setLoading(false);
 
     if (error) setError(error);
@@ -27,8 +32,16 @@ export default function SignupScreen() {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Crear cuenta</Text>
-      <Text style={styles.subtitle}>Empieza a aprender quechua</Text>
+      <Text style={styles.subtitle}>Empieza a aprender quechua en Yachay</Text>
 
+      <TextInput
+        style={styles.input}
+        placeholder="Nombre de usuario (ej. yachachiq)"
+        placeholderTextColor="#999"
+        autoCapitalize="none"
+        value={username}
+        onChangeText={setUsername}
+      />
       <TextInput
         style={styles.input}
         placeholder="Correo electrónico"

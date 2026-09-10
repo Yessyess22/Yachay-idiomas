@@ -1,36 +1,29 @@
-import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/src/context/AuthContext';
+import { categoryService } from '@/src/services/categoryService';
+import { Category } from '@/src/types';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-type Course = {
-  id: string;
-  title: string;
-  description: string;
-  order_index: number;
-};
-
 export default function HomeScreen() {
-  const [courses, setCourses] = useState<Course[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const { user, profile } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
-    fetchCourses();
+    loadCategories();
   }, []);
 
-  async function fetchCourses() {
+  async function loadCategories() {
     setLoading(true);
-    const { data, error } = await supabase
-      .from('courses')
-      .select('*')
-      .order('order_index', { ascending: true });
-
+    setError('');
+    const { data, error } = await categoryService.fetchCategories();
     if (error) {
-      setError(error.message);
+      setError(error);
     } else {
-      setCourses(data ?? []);
+      setCategories(data ?? []);
     }
     setLoading(false);
   }
@@ -47,32 +40,52 @@ export default function HomeScreen() {
     return (
       <View style={styles.centered}>
         <Text style={styles.errorText}>Error: {error}</Text>
+        <TouchableOpacity style={styles.retryButton} onPress={loadCategories}>
+          <Text style={styles.retryText}>Reintentar</Text>
+        </TouchableOpacity>
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>Yachay</Text>
-      <Text style={styles.subheader}>Aprende quechua</Text>
+      {/* Header con bienvenida e XP */}
+      <View style={styles.headerRow}>
+        <View>
+          <Text style={styles.header}>Yachay</Text>
+          <Text style={styles.subheader}>
+            {profile ? `¡Allinllachu, ${profile.username}!` : 'Aprende quechua paso a paso'}
+          </Text>
+        </View>
+        {profile ? (
+          <View style={styles.xpBadge}>
+            <Text style={styles.xpText}>⚡ {profile.total_xp} XP</Text>
+          </View>
+        ) : null}
+      </View>
+
+      <Text style={styles.sectionTitle}>Categorías de Aprendizaje</Text>
 
       <FlatList
-        data={courses}
-        keyExtractor={(item) => item.id}
+        data={categories}
+        keyExtractor={(item) => item.id.toString()}
         contentContainerStyle={styles.list}
         renderItem={({ item }) => (
           <TouchableOpacity
             style={styles.card}
-            onPress={() => router.push(`/course/${item.id}`)}
+            onPress={() => router.push({ pathname: '/category/[slug]' as any, params: { slug: item.slug } })}
           >
-            <Text style={styles.cardTitle}>{item.title}</Text>
-            {item.description ? (
-              <Text style={styles.cardDescription}>{item.description}</Text>
-            ) : null}
+            <View style={styles.cardHeader}>
+              <Text style={styles.cardIcon}>{item.icon_url || '📚'}</Text>
+              <View style={styles.cardContent}>
+                <Text style={styles.cardTitle}>{item.name}</Text>
+                <Text style={styles.cardSub}>Toca para comenzar las lecciones</Text>
+              </View>
+            </View>
           </TouchableOpacity>
         )}
         ListEmptyComponent={
-          <Text style={styles.emptyText}>Aún no hay cursos disponibles.</Text>
+          <Text style={styles.emptyText}>Aún no hay categorías disponibles.</Text>
         }
       />
     </View>
@@ -92,15 +105,40 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#ffffff',
   },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
   header: {
     fontSize: 28,
     fontWeight: 'bold',
-    color: '#000000',
+    color: '#58cc02',
   },
   subheader: {
-    fontSize: 16,
+    fontSize: 15,
     color: '#666666',
-    marginBottom: 20,
+    marginTop: 2,
+  },
+  xpBadge: {
+    backgroundColor: '#fff3c4',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#ffc107',
+  },
+  xpText: {
+    fontWeight: 'bold',
+    color: '#b58100',
+    fontSize: 14,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333333',
+    marginBottom: 16,
   },
   list: {
     paddingBottom: 40,
@@ -108,26 +146,48 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: '#f7f7f7',
     borderRadius: 16,
-    padding: 20,
-    marginBottom: 12,
+    padding: 16,
+    marginBottom: 14,
     borderWidth: 2,
     borderColor: '#e5e5e5',
   },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  cardIcon: {
+    fontSize: 32,
+    marginRight: 14,
+  },
+  cardContent: {
+    flex: 1,
+  },
   cardTitle: {
     fontSize: 18,
-    fontWeight: '600',
-    color: '#000000',
+    fontWeight: '700',
+    color: '#222222',
   },
-  cardDescription: {
-    fontSize: 14,
-    color: '#666666',
-    marginTop: 4,
+  cardSub: {
+    fontSize: 13,
+    color: '#777777',
+    marginTop: 2,
   },
   errorText: {
-    color: 'red',
-    fontSize: 14,
+    color: '#e53935',
+    fontSize: 15,
     textAlign: 'center',
     paddingHorizontal: 20,
+  },
+  retryButton: {
+    marginTop: 12,
+    backgroundColor: '#58cc02',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  retryText: {
+    color: '#fff',
+    fontWeight: 'bold',
   },
   emptyText: {
     textAlign: 'center',

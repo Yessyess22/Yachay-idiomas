@@ -1,77 +1,64 @@
-import { supabase } from '@/lib/supabase';
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { useAuth } from '@/src/context/AuthContext';
+import { questionService } from '@/src/services/questionService';
+import { QuestionOption, QuestionWithOptions } from '@/src/types';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-type Exercise = {
-  id: string;
-  type: string;
-  question: string;
-  correct_answer: string;
-  options: string[] | null;
-  audio_url: string | null;
-  image_url: string | null;
-  order_index: number;
-};
-
 export default function LessonScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const router = useRouter();
-
-  const [exercises, setExercises] = useState<Exercise[]>([]);
+  const lessonId = parseInt(id as string, 10);
+  const [questions, setQuestions] = useState<QuestionWithOptions[]>([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [selectedOption, setSelectedOption] = useState<QuestionOption | null>(null);
+  const [isAnswered, setIsAnswered] = useState(false);
+  const [isCorrect, setIsCorrect] = useState(false);
+  const [completed, setCompleted] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
-  const [hasAnswered, setHasAnswered] = useState(false);
-  const [correctCount, setCorrectCount] = useState(0);
-  const [finished, setFinished] = useState(false);
+  const { user, refreshProfile } = useAuth();
+  const router = useRouter();
 
   useEffect(() => {
-    if (id) fetchExercises();
-  }, [id]);
+    if (lessonId) loadQuestions();
+  }, [lessonId]);
 
-  async function fetchExercises() {
+  async function loadQuestions() {
     setLoading(true);
-    const { data, error } = await supabase
-      .from('exercises')
-      .select('*')
-      .eq('lesson_id', id)
-      .order('order_index', { ascending: true });
-
+    setError('');
+    const { data, error } = await questionService.fetchQuestionsByLesson(lessonId);
     if (error) {
-      setError(error.message);
+      setError(error);
     } else {
-      setExercises(data ?? []);
+      setQuestions(data ?? []);
     }
     setLoading(false);
   }
 
-  function handleSelectAnswer(option: string) {
-    if (hasAnswered) return; // evita cambiar respuesta después de confirmar
-    setSelectedAnswer(option);
+  function handleSelectOption(option: QuestionOption) {
+    if (isAnswered) return;
+    setSelectedOption(option);
   }
 
   function handleCheckAnswer() {
-    if (!selectedAnswer) return;
-    setHasAnswered(true);
-
-    const current = exercises[currentIndex];
-    if (selectedAnswer === current.correct_answer) {
-      setCorrectCount((prev) => prev + 1);
-    }
+    if (!selectedOption || isAnswered) return;
+    setIsAnswered(true);
+    setIsCorrect(selectedOption.is_correct);
   }
 
-  function handleNext() {
-    const isLast = currentIndex === exercises.length - 1;
-
-    if (isLast) {
-      setFinished(true);
-    } else {
+  async function handleNextQuestion() {
+    if (currentIndex + 1 < questions.length) {
       setCurrentIndex((prev) => prev + 1);
-      setSelectedAnswer(null);
-      setHasAnswered(false);
+      setSelectedOption(null);
+      setIsAnswered(false);
+      setIsCorrect(false);
+    } else {
+      // Lección finalizada
+      setCompleted(true);
+      if (user?.id) {
+        await questionService.recordLessonProgress(lessonId, user.id, 10);
+        await refreshProfile();
+      }
     }
   }
 
@@ -83,96 +70,113 @@ export default function LessonScreen() {
     );
   }
 
-  if (error) {
+  if (error || questions.length === 0) {
     return (
       <View style={styles.centered}>
-        <Text style={styles.errorText}>Error: {error}</Text>
-      </View>
-    );
-  }
-
-  if (exercises.length === 0) {
-    return (
-      <View style={styles.centered}>
-        <Text style={styles.emptyText}>Esta lección aún no tiene ejercicios.</Text>
-      </View>
-    );
-  }
-
-  if (finished) {
-    const percentage = Math.round((correctCount / exercises.length) * 100);
-    return (
-      <View style={styles.centered}>
-        <Text style={styles.resultTitle}>¡Lección completada!</Text>
-        <Text style={styles.resultScore}>
-          {correctCount} de {exercises.length} correctas ({percentage}%)
+        <Text style={styles.errorText}>
+          {error || 'No se encontraron preguntas en esta lección.'}
         </Text>
-        <TouchableOpacity style={styles.primaryButton} onPress={() => router.back()}>
-          <Text style={styles.primaryButtonText}>Volver al curso</Text>
+        <TouchableOpacity style={styles.buttonPrimary} onPress={() => router.back()}>
+          <Text style={styles.buttonText}>Volver a la Lección</Text>
         </TouchableOpacity>
       </View>
     );
   }
 
-  const current = exercises[currentIndex];
-  const isCorrect = selectedAnswer === current.correct_answer;
+  if (completed) {
+    return (
+      <View style={styles.centered}>
+        <Text style={styles.congratsIcon}>🎉</Text>
+        <Text style={styles.congratsTitle}>¡Lección Completada!</Text>
+        <Text style={styles.congratsSub}>Has ganado +10 XP en Quechua</Text>
+        <TouchableOpacity style={styles.buttonPrimary} onPress={() => router.back()}>
+          <Text style={styles.buttonText}>Continuar</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  const currentQuestion = questions[currentIndex];
+  const progressPercent = ((currentIndex + 1) / questions.length) * 100;
 
   return (
     <View style={styles.container}>
-      <Stack.Screen options={{ title: `Ejercicio ${currentIndex + 1} de ${exercises.length}` }} />
-
-      <View style={styles.progressBarContainer}>
-        <View
-          style={[
-            styles.progressBarFill,
-            { width: `${((currentIndex + 1) / exercises.length) * 100}%` },
-          ]}
-        />
+      {/* Top Bar con progreso */}
+      <View style={styles.topBar}>
+        <TouchableOpacity style={styles.closeBtn} onPress={() => router.back()}>
+          <Text style={styles.closeBtnText}>✕</Text>
+        </TouchableOpacity>
+        <View style={styles.progressBarBg}>
+          <View style={[styles.progressBarFill, { width: `${progressPercent}%` }]} />
+        </View>
       </View>
 
-      <Text style={styles.question}>{current.question}</Text>
+      {/* Pregunta */}
+      <View style={styles.questionContainer}>
+        <Text style={styles.questionPrompt}>{currentQuestion.prompt}</Text>
+      </View>
 
-      <View style={styles.optionsContainer}>
-        {(current.options ?? []).map((option) => {
-          const isSelected = selectedAnswer === option;
-          const showAsCorrect = hasAnswered && option === current.correct_answer;
-          const showAsWrong = hasAnswered && isSelected && option !== current.correct_answer;
+      {/* Opciones */}
+      <View style={styles.optionsList}>
+        {currentQuestion.options.map((option) => {
+          const isSelected = selectedOption?.id === option.id;
+          let cardStyle = styles.optionCard;
+
+          if (isSelected) {
+            cardStyle = styles.optionSelected;
+          }
+
+          if (isAnswered && isSelected) {
+            cardStyle = isCorrect ? styles.optionCorrect : styles.optionIncorrect;
+          } else if (isAnswered && option.is_correct) {
+            cardStyle = styles.optionCorrect;
+          }
 
           return (
             <TouchableOpacity
-              key={option}
-              style={[
-                styles.option,
-                isSelected && !hasAnswered && styles.optionSelected,
-                showAsCorrect && styles.optionCorrect,
-                showAsWrong && styles.optionWrong,
-              ]}
-              onPress={() => handleSelectAnswer(option)}
-              disabled={hasAnswered}
+              key={option.id}
+              style={[styles.optionBase, cardStyle]}
+              onPress={() => handleSelectOption(option)}
+              disabled={isAnswered}
             >
-              <Text style={styles.optionText}>{option}</Text>
+              <Text
+                style={[
+                  styles.optionText,
+                  isSelected && styles.optionTextSelected,
+                  isAnswered && option.is_correct && styles.optionTextCorrect,
+                ]}
+              >
+                {option.option_text}
+              </Text>
             </TouchableOpacity>
           );
         })}
       </View>
 
-      {hasAnswered && (
-        <View style={[styles.feedback, isCorrect ? styles.feedbackCorrect : styles.feedbackWrong]}>
-          <Text style={styles.feedbackText}>
-            {isCorrect ? '¡Correcto! 🎉' : `Incorrecto. La respuesta era: ${current.correct_answer}`}
-          </Text>
-        </View>
-      )}
-
-      <TouchableOpacity
-        style={[styles.primaryButton, !selectedAnswer && !hasAnswered && styles.buttonDisabled]}
-        onPress={hasAnswered ? handleNext : handleCheckAnswer}
-        disabled={!selectedAnswer && !hasAnswered}
-      >
-        <Text style={styles.primaryButtonText}>
-          {hasAnswered ? 'Continuar' : 'Comprobar'}
-        </Text>
-      </TouchableOpacity>
+      {/* Footer con botón de acción */}
+      <View style={[styles.footer, isAnswered && (isCorrect ? styles.footerSuccess : styles.footerDanger)]}>
+        {isAnswered ? (
+          <View style={styles.feedbackContainer}>
+            <Text style={[styles.feedbackTitle, isCorrect ? styles.textSuccess : styles.textDanger]}>
+              {isCorrect ? '¡Excelente!' : 'Respuesta incorrecta'}
+            </Text>
+            <TouchableOpacity
+              style={[styles.buttonPrimary, isCorrect ? styles.btnSuccess : styles.btnDanger]}
+              onPress={handleNextQuestion}
+            >
+              <Text style={styles.buttonText}>Siguiente</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <TouchableOpacity
+            style={[styles.buttonPrimary, !selectedOption && styles.buttonDisabled]}
+            onPress={handleCheckAnswer}
+            disabled={!selectedOption}
+          >
+            <Text style={styles.buttonText}>Comprobar</Text>
+          </TouchableOpacity>
+        )}
+      </View>
     </View>
   );
 }
@@ -181,108 +185,154 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#ffffff',
-    padding: 20,
+    paddingTop: 50,
   },
   centered: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    padding: 24,
     backgroundColor: '#ffffff',
-    padding: 20,
   },
-  progressBarContainer: {
-    height: 10,
+  topBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    marginBottom: 20,
+  },
+  closeBtn: {
+    marginRight: 16,
+  },
+  closeBtnText: {
+    fontSize: 22,
+    color: '#aaa',
+    fontWeight: 'bold',
+  },
+  progressBarBg: {
+    flex: 1,
+    height: 14,
     backgroundColor: '#e5e5e5',
-    borderRadius: 5,
-    marginBottom: 30,
-    marginTop: 10,
+    borderRadius: 7,
+    overflow: 'hidden',
   },
   progressBarFill: {
-    height: 10,
+    height: '100%',
     backgroundColor: '#58cc02',
-    borderRadius: 5,
+    borderRadius: 7,
   },
-  question: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#000000',
+  questionContainer: {
+    paddingHorizontal: 24,
     marginBottom: 24,
   },
-  optionsContainer: {
-    gap: 12,
+  questionPrompt: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#333333',
+    lineHeight: 30,
   },
-  option: {
+  optionsList: {
+    flex: 1,
+    paddingHorizontal: 20,
+  },
+  optionBase: {
+    padding: 18,
+    borderRadius: 16,
     borderWidth: 2,
     borderColor: '#e5e5e5',
-    borderRadius: 12,
-    padding: 16,
     backgroundColor: '#f7f7f7',
+    marginBottom: 12,
   },
+  optionCard: {},
   optionSelected: {
-    borderColor: '#1cb0f6',
-    backgroundColor: '#ddf4ff',
+    borderColor: '#84d800',
+    backgroundColor: '#ddf4c5',
   },
   optionCorrect: {
     borderColor: '#58cc02',
     backgroundColor: '#d7ffb8',
   },
-  optionWrong: {
+  optionIncorrect: {
     borderColor: '#ff4b4b',
-    backgroundColor: '#ffdfe0',
+    backgroundColor: '#ffdadc',
   },
   optionText: {
-    fontSize: 16,
-    color: '#000000',
-  },
-  feedback: {
-    marginTop: 20,
-    padding: 14,
-    borderRadius: 12,
-  },
-  feedbackCorrect: {
-    backgroundColor: '#d7ffb8',
-  },
-  feedbackWrong: {
-    backgroundColor: '#ffdfe0',
-  },
-  feedbackText: {
-    fontSize: 15,
+    fontSize: 18,
     fontWeight: '600',
-    color: '#000000',
+    color: '#333',
   },
-  primaryButton: {
-    marginTop: 'auto',
-    backgroundColor: '#58cc02',
-    borderRadius: 12,
-    padding: 16,
-    alignItems: 'center',
+  optionTextSelected: {
+    color: '#4b9400',
   },
-  buttonDisabled: {
-    backgroundColor: '#cccccc',
+  optionTextCorrect: {
+    color: '#2e7d32',
   },
-  primaryButtonText: {
-    color: '#ffffff',
-    fontSize: 16,
+  footer: {
+    padding: 20,
+    borderTopWidth: 2,
+    borderColor: '#f0f0f0',
+    backgroundColor: '#ffffff',
+  },
+  footerSuccess: {
+    backgroundColor: '#d7ffb8',
+    borderColor: '#bbf293',
+  },
+  footerDanger: {
+    backgroundColor: '#ffdadc',
+    borderColor: '#ffc1c4',
+  },
+  feedbackContainer: {
+    alignItems: 'stretch',
+  },
+  feedbackTitle: {
+    fontSize: 20,
     fontWeight: 'bold',
-  },
-  resultTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#000000',
     marginBottom: 12,
   },
-  resultScore: {
+  textSuccess: {
+    color: '#2e7d32',
+  },
+  textDanger: {
+    color: '#d32f2f',
+  },
+  buttonPrimary: {
+    backgroundColor: '#58cc02',
+    paddingVertical: 16,
+    borderRadius: 14,
+    alignItems: 'center',
+  },
+  btnSuccess: {
+    backgroundColor: '#58cc02',
+  },
+  btnDanger: {
+    backgroundColor: '#ff4b4b',
+  },
+  buttonDisabled: {
+    backgroundColor: '#e5e5e5',
+  },
+  buttonText: {
+    color: '#ffffff',
     fontSize: 18,
-    color: '#666666',
-    marginBottom: 30,
+    fontWeight: 'bold',
+  },
+  congratsIcon: {
+    fontSize: 64,
+    marginBottom: 16,
+  },
+  congratsTitle: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#222',
+    marginBottom: 8,
+  },
+  congratsSub: {
+    fontSize: 16,
+    color: '#666',
+    marginBottom: 24,
   },
   errorText: {
-    color: 'red',
-    fontSize: 14,
+    color: '#e53935',
+    fontSize: 16,
     textAlign: 'center',
-  },
-  emptyText: {
-    textAlign: 'center',
-    color: '#999999',
+    marginBottom: 20,
   },
 });
