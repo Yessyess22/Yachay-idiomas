@@ -1,6 +1,8 @@
 import { useAuth } from '@/src/context/AuthContext';
 import { questionService } from '@/src/services/questionService';
 import { QuestionOption, QuestionWithOptions } from '@/src/types';
+import { Illustrations } from '@/constants/illustrations';
+import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
@@ -86,7 +88,7 @@ export default function LessonScreen() {
   if (completed) {
     return (
       <View style={styles.centered}>
-        <Text style={styles.congratsIcon}>🎉</Text>
+        <Image source={Illustrations.llamaSigueAsi} style={styles.congratsLlama} contentFit="contain" />
         <Text style={styles.congratsTitle}>¡Lección Completada!</Text>
         <Text style={styles.congratsSub}>Has ganado +10 XP en Quechua</Text>
         <TouchableOpacity style={styles.buttonPrimary} onPress={() => router.back()}>
@@ -157,9 +159,16 @@ export default function LessonScreen() {
       <View style={[styles.footer, isAnswered && (isCorrect ? styles.footerSuccess : styles.footerDanger)]}>
         {isAnswered ? (
           <View style={styles.feedbackContainer}>
-            <Text style={[styles.feedbackTitle, isCorrect ? styles.textSuccess : styles.textDanger]}>
-              {isCorrect ? '¡Excelente!' : 'Respuesta incorrecta'}
-            </Text>
+            <View style={styles.feedbackRow}>
+              <Image
+                source={isCorrect ? Illustrations.llamaExcelente : Illustrations.llamaPiensa}
+                style={styles.feedbackLlama}
+                contentFit="contain"
+              />
+              <Text style={[styles.feedbackTitle, isCorrect ? styles.textSuccess : styles.textDanger]}>
+                {isCorrect ? '¡Excelente!' : 'Respuesta incorrecta'}
+              </Text>
+            </View>
             <TouchableOpacity
               style={[styles.buttonPrimary, isCorrect ? styles.btnSuccess : styles.btnDanger]}
               onPress={handleNextQuestion}
@@ -283,10 +292,20 @@ const styles = StyleSheet.create({
   feedbackContainer: {
     alignItems: 'stretch',
   },
+  feedbackRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 12,
+  },
+  feedbackLlama: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+  },
   feedbackTitle: {
     fontSize: 20,
     fontWeight: 'bold',
-    marginBottom: 12,
   },
   textSuccess: {
     color: '#2e7d32',
@@ -314,8 +333,9 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
   },
-  congratsIcon: {
-    fontSize: 64,
+  congratsLlama: {
+    width: 140,
+    height: 145,
     marginBottom: 16,
   },
   congratsTitle: {

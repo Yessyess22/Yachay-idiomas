@@ -1,4 +1,6 @@
 import { useAuth } from '@/context/AuthContext';
+import { Illustrations } from '@/constants/illustrations';
+import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
@@ -23,7 +25,7 @@ export default function LoginScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Yachay</Text>
+      <Image source={Illustrations.cardYachayAzul} style={styles.brandImage} contentFit="contain" />
       <Text style={styles.subtitle}>Inicia sesión para continuar</Text>
 
       <TextInput
@@ -59,7 +61,7 @@ export default function LoginScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, justifyContent: 'center', padding: 24, backgroundColor: '#fff' },
-  title: { fontSize: 32, fontWeight: 'bold', color: '#000', textAlign: 'center' },
+  brandImage: { width: 160, height: 164, alignSelf: 'center', marginBottom: 8 },
   subtitle: { fontSize: 16, color: '#666', textAlign: 'center', marginBottom: 30 },
   input: {
     borderWidth: 2, borderColor: '#e5e5e5', borderRadius: 12,

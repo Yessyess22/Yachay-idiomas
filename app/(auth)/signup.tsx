@@ -1,4 +1,6 @@
 import { useAuth } from '@/src/context/AuthContext';
+import { Illustrations } from '@/constants/illustrations';
+import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
@@ -31,6 +33,7 @@ export default function SignupScreen() {
 
   return (
     <View style={styles.container}>
+      <Image source={Illustrations.cardYachayAzul} style={styles.brandImage} contentFit="contain" />
       <Text style={styles.title}>Crear cuenta</Text>
       <Text style={styles.subtitle}>Empieza a aprender quechua en Yachay</Text>
 
@@ -75,6 +78,7 @@ export default function SignupScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, justifyContent: 'center', padding: 24, backgroundColor: '#fff' },
+  brandImage: { width: 110, height: 114, alignSelf: 'center', marginBottom: 4 },
   title: { fontSize: 32, fontWeight: 'bold', color: '#000', textAlign: 'center' },
   subtitle: { fontSize: 16, color: '#666', textAlign: 'center', marginBottom: 30 },
   input: {

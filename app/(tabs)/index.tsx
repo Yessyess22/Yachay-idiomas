@@ -1,15 +1,40 @@
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import { useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
+import type { ComponentProps } from 'react';
+import { ActivityIndicator, FlatList, StyleSheet, Text, TouchableOpacity } from 'react-native';
+import type { ImageSourcePropType } from 'react-native';
+
+import { CategoriaCard } from '@/components/yachay/categoria-card';
+import { MainContainer } from '@/components/yachay/main-container';
+import { YachayHeader } from '@/components/yachay/yachay-header';
+import { Illustrations } from '@/constants/illustrations';
+import { Theme } from '@/constants/yachay-theme';
 import { useAuth } from '@/src/context/AuthContext';
 import { categoryService } from '@/src/services/categoryService';
 import { Category } from '@/src/types';
-import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { ActivityIndicator, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+
+type MaterialIconName = ComponentProps<typeof MaterialIcons>['name'];
+type CategoryVisual = {
+  icon: MaterialIconName;
+  color: string;
+  illustration?: ImageSourcePropType;
+  glyph?: string;
+  cornerLlama?: ImageSourcePropType;
+};
+
+const CATEGORY_VISUALS: Record<string, CategoryVisual> = {
+  abecedario: { icon: 'sort-by-alpha', color: Theme.colors.accentGreen, glyph: 'A', cornerLlama: Illustrations.avatarLlama },
+  numeros: { icon: 'format-list-numbered', color: Theme.colors.accentOrange, glyph: '1,2,3', cornerLlama: Illustrations.avatarLlama },
+  palabras: { icon: 'chat-bubble-outline', color: Theme.colors.primaryDark, illustration: Illustrations.iconoPalabras },
+};
+const DEFAULT_VISUAL: CategoryVisual = { icon: 'menu-book', color: Theme.colors.accentBlue };
 
 export default function HomeScreen() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const { user, profile } = useAuth();
+  const { profile } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
@@ -30,168 +55,94 @@ export default function HomeScreen() {
 
   if (loading) {
     return (
-      <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#58cc02" />
-      </View>
+      <MainContainer style={styles.centered}>
+        <ActivityIndicator size="large" color={Theme.colors.accentGreen} />
+      </MainContainer>
     );
   }
 
   if (error) {
     return (
-      <View style={styles.centered}>
+      <MainContainer style={styles.centered}>
         <Text style={styles.errorText}>Error: {error}</Text>
         <TouchableOpacity style={styles.retryButton} onPress={loadCategories}>
           <Text style={styles.retryText}>Reintentar</Text>
         </TouchableOpacity>
-      </View>
+      </MainContainer>
     );
   }
 
   return (
-    <View style={styles.container}>
-      {/* Header con bienvenida e XP */}
-      <View style={styles.headerRow}>
-        <View>
-          <Text style={styles.header}>Yachay</Text>
-          <Text style={styles.subheader}>
-            {profile ? `¡Allinllachu, ${profile.username}!` : 'Aprende quechua paso a paso'}
-          </Text>
-        </View>
-        {profile ? (
-          <View style={styles.xpBadge}>
-            <Text style={styles.xpText}>⚡ {profile.total_xp} XP</Text>
-          </View>
-        ) : null}
-      </View>
-
-      <Text style={styles.sectionTitle}>Categorías de Aprendizaje</Text>
+    <MainContainer>
+      <YachayHeader
+        subtitle={profile ? `¡Allinllachu, ${profile.username}!` : 'Aprende quechua paso a paso'}
+        xp={profile?.total_xp}
+        logoSource={Illustrations.logoYachayConLlama}
+        onSettingsPress={() => router.push('/(tabs)/profile' as any)}
+      />
 
       <FlatList
         data={categories}
         keyExtractor={(item) => item.id.toString()}
         contentContainerStyle={styles.list}
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={styles.card}
-            onPress={() => router.push({ pathname: '/category/[slug]' as any, params: { slug: item.slug } })}
-          >
-            <View style={styles.cardHeader}>
-              <Text style={styles.cardIcon}>{item.icon_url || '📚'}</Text>
-              <View style={styles.cardContent}>
-                <Text style={styles.cardTitle}>{item.name}</Text>
-                <Text style={styles.cardSub}>Toca para comenzar las lecciones</Text>
-              </View>
-            </View>
-          </TouchableOpacity>
-        )}
-        ListEmptyComponent={
-          <Text style={styles.emptyText}>Aún no hay categorías disponibles.</Text>
-        }
+        ListHeaderComponent={<Text style={styles.sectionTitle}>Categorías de Aprendizaje</Text>}
+        renderItem={({ item, index }) => {
+          const visual = CATEGORY_VISUALS[item.slug] ?? DEFAULT_VISUAL;
+          return (
+            <CategoriaCard
+              index={index}
+              titulo={item.name}
+              imagenSource={visual.illustration}
+              fallbackIcon={visual.icon}
+              fallbackColor={visual.color}
+              glyph={visual.glyph}
+              cornerLlama={visual.cornerLlama}
+              onPress={() => router.push({ pathname: '/category/[slug]' as any, params: { slug: item.slug } })}
+            />
+          );
+        }}
+        ListEmptyComponent={<Text style={styles.emptyText}>Aún no hay categorías disponibles.</Text>}
       />
-    </View>
+    </MainContainer>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#ffffff',
-    paddingTop: 60,
-    paddingHorizontal: 20,
-  },
   centered: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#ffffff',
-  },
-  headerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  header: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#58cc02',
-  },
-  subheader: {
-    fontSize: 15,
-    color: '#666666',
-    marginTop: 2,
-  },
-  xpBadge: {
-    backgroundColor: '#fff3c4',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#ffc107',
-  },
-  xpText: {
-    fontWeight: 'bold',
-    color: '#b58100',
-    fontSize: 14,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333333',
-    marginBottom: 16,
+    ...Theme.fonts.titleSmall,
+    fontWeight: Theme.fontWeight.bold,
+    color: Theme.colors.textTitleGray,
+    marginBottom: Theme.spacing.md,
   },
   list: {
-    paddingBottom: 40,
-  },
-  card: {
-    backgroundColor: '#f7f7f7',
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 14,
-    borderWidth: 2,
-    borderColor: '#e5e5e5',
-  },
-  cardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  cardIcon: {
-    fontSize: 32,
-    marginRight: 14,
-  },
-  cardContent: {
-    flex: 1,
-  },
-  cardTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#222222',
-  },
-  cardSub: {
-    fontSize: 13,
-    color: '#777777',
-    marginTop: 2,
+    paddingHorizontal: Theme.spacing.md,
+    paddingBottom: Theme.spacing.xl,
   },
   errorText: {
-    color: '#e53935',
+    color: Theme.colors.danger,
     fontSize: 15,
     textAlign: 'center',
-    paddingHorizontal: 20,
+    paddingHorizontal: Theme.spacing.md,
   },
   retryButton: {
-    marginTop: 12,
-    backgroundColor: '#58cc02',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 8,
+    marginTop: Theme.spacing.sm,
+    backgroundColor: Theme.colors.accentGreen,
+    paddingHorizontal: Theme.spacing.md,
+    paddingVertical: Theme.spacing.sm,
+    borderRadius: Theme.radius.sm,
   },
   retryText: {
-    color: '#fff',
-    fontWeight: 'bold',
+    color: Theme.colors.white,
+    fontWeight: Theme.fontWeight.bold,
   },
   emptyText: {
     textAlign: 'center',
-    color: '#999999',
-    marginTop: 40,
+    color: Theme.colors.textSubtitleGray,
+    marginTop: Theme.spacing.xl,
   },
 });
