@@ -1,15 +1,55 @@
 import { useAuth } from '@/src/context/AuthContext';
+import { useGame } from '@/src/context/GameContext';
 import { questionService } from '@/src/services/questionService';
 import { QuestionOption, QuestionWithOptions } from '@/src/types';
 import { Illustrations } from '@/constants/illustrations';
+import { BrandColors } from '@/src/constants/theme';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import {
+  ActivityIndicator,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSequence,
+  withSpring,
+  withTiming,
+} from 'react-native-reanimated';
+
+type Phase = 'theory' | 'quiz';
+
+// Deriva tarjetas de teoría a partir de las preguntas de la lección
+function buildTheoryCards(questions: QuestionWithOptions[], lessonTitle: string) {
+  const uniqueTerms = Array.from(
+    new Map(
+      questions
+        .filter((q) => q.prompt.includes('→') || q.prompt.includes('-'))
+        .slice(0, 3)
+        .map((q) => [q.prompt, q.prompt])
+    ).values()
+  );
+
+  return [
+    { title: lessonTitle, body: 'Repasa el vocabulario antes de comenzar el quiz.' },
+    ...uniqueTerms.map((term) => ({ title: 'Vocabulario', body: term })),
+  ];
+}
 
 export default function LessonScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const lessonId = parseInt(id as string, 10);
+
+  const [phase, setPhase] = useState<Phase>('theory');
+  const [theoryIndex, setTheoryIndex] = useState(0);
+  const [theoryCards, setTheoryCards] = useState<{ title: string; body: string }[]>([]);
+
   const [questions, setQuestions] = useState<QuestionWithOptions[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedOption, setSelectedOption] = useState<QuestionOption | null>(null);
@@ -18,8 +58,23 @@ export default function LessonScreen() {
   const [completed, setCompleted] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+
   const { user, refreshProfile } = useAuth();
+  const { lives, xp, checkAnswer } = useGame();
   const router = useRouter();
+
+  // Animación de rebote para Yachi
+  const yachiScale = useSharedValue(1);
+  const yachiAnimStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: yachiScale.value }],
+  }));
+
+  function bounceYachi() {
+    yachiScale.value = withSequence(
+      withSpring(1.25, { damping: 4, stiffness: 300 }),
+      withSpring(1, { damping: 6, stiffness: 200 })
+    );
+  }
 
   useEffect(() => {
     if (lessonId) loadQuestions();
@@ -32,11 +87,23 @@ export default function LessonScreen() {
     if (error) {
       setError(error);
     } else {
-      setQuestions(data ?? []);
+      const qs = data ?? [];
+      setQuestions(qs);
+      setTheoryCards(buildTheoryCards(qs, `Lección ${lessonId}`));
     }
     setLoading(false);
   }
 
+  // ─── Teoría ──────────────────────────────────────────────
+  function handleTheoryNext() {
+    if (theoryIndex + 1 < theoryCards.length) {
+      setTheoryIndex((i) => i + 1);
+    } else {
+      setPhase('quiz');
+    }
+  }
+
+  // ─── Quiz ─────────────────────────────────────────────────
   function handleSelectOption(option: QuestionOption) {
     if (isAnswered) return;
     setSelectedOption(option);
@@ -44,8 +111,11 @@ export default function LessonScreen() {
 
   function handleCheckAnswer() {
     if (!selectedOption || isAnswered) return;
+    const correct = selectedOption.is_correct;
     setIsAnswered(true);
-    setIsCorrect(selectedOption.is_correct);
+    setIsCorrect(correct);
+    checkAnswer(correct);
+    bounceYachi();
   }
 
   async function handleNextQuestion() {
@@ -55,7 +125,6 @@ export default function LessonScreen() {
       setIsAnswered(false);
       setIsCorrect(false);
     } else {
-      // Lección finalizada
       setCompleted(true);
       if (user?.id) {
         await questionService.recordLessonProgress(lessonId, user.id, 10);
@@ -64,10 +133,11 @@ export default function LessonScreen() {
     }
   }
 
+  // ─── Estados globales ─────────────────────────────────────
   if (loading) {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#58cc02" />
+        <ActivityIndicator size="large" color={BrandColors.brandGreen} />
       </View>
     );
   }
@@ -79,7 +149,7 @@ export default function LessonScreen() {
           {error || 'No se encontraron preguntas en esta lección.'}
         </Text>
         <TouchableOpacity style={styles.buttonPrimary} onPress={() => router.back()}>
-          <Text style={styles.buttonText}>Volver a la Lección</Text>
+          <Text style={styles.buttonText}>Volver</Text>
         </TouchableOpacity>
       </View>
     );
@@ -88,9 +158,19 @@ export default function LessonScreen() {
   if (completed) {
     return (
       <View style={styles.centered}>
-        <Image source={Illustrations.llamaSigueAsi} style={styles.congratsLlama} contentFit="contain" />
+        <Animated.View style={yachiAnimStyle}>
+          <Image
+            source={Illustrations.llamaSigueAsi}
+            style={styles.congratsLlama}
+            contentFit="contain"
+          />
+        </Animated.View>
         <Text style={styles.congratsTitle}>¡Lección Completada!</Text>
         <Text style={styles.congratsSub}>Has ganado +10 XP en Quechua</Text>
+        <View style={styles.statRow}>
+          <Text style={styles.statBadge}>❤️ {lives}</Text>
+          <Text style={styles.statBadge}>⚡ {xp} XP</Text>
+        </View>
         <TouchableOpacity style={styles.buttonPrimary} onPress={() => router.back()}>
           <Text style={styles.buttonText}>Continuar</Text>
         </TouchableOpacity>
@@ -98,12 +178,62 @@ export default function LessonScreen() {
     );
   }
 
+  // ─── Fase Teoría ──────────────────────────────────────────
+  if (phase === 'theory') {
+    const card = theoryCards[theoryIndex];
+    const isLast = theoryIndex + 1 >= theoryCards.length;
+    return (
+      <View style={styles.container}>
+        <View style={styles.topBar}>
+          <TouchableOpacity style={styles.closeBtn} onPress={() => router.back()}>
+            <Text style={styles.closeBtnText}>✕</Text>
+          </TouchableOpacity>
+          <View style={styles.progressBarBg}>
+            <View
+              style={[
+                styles.progressBarFill,
+                {
+                  width: `${((theoryIndex + 1) / theoryCards.length) * 100}%`,
+                  backgroundColor: BrandColors.brandNavy,
+                },
+              ]}
+            />
+          </View>
+          <Text style={styles.phaseLabel}>TEORÍA</Text>
+        </View>
+
+        <ScrollView contentContainerStyle={styles.theoryContent}>
+          <Animated.View style={[styles.theoryYachiWrap, yachiAnimStyle]}>
+            <Image
+              source={Illustrations.logoYachayConLlama}
+              style={styles.theoryYachi}
+              contentFit="contain"
+            />
+          </Animated.View>
+          <View style={styles.theoryCard}>
+            <Text style={styles.theoryCardTitle}>{card.title}</Text>
+            <Text style={styles.theoryCardBody}>{card.body}</Text>
+          </View>
+          <Text style={styles.theoryHint}>
+            {theoryIndex + 1} / {theoryCards.length}
+          </Text>
+        </ScrollView>
+
+        <View style={styles.footer}>
+          <TouchableOpacity style={styles.buttonPrimary} onPress={handleTheoryNext}>
+            <Text style={styles.buttonText}>{isLast ? '¡Comenzar Quiz!' : 'Siguiente →'}</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
+
+  // ─── Fase Quiz ────────────────────────────────────────────
   const currentQuestion = questions[currentIndex];
   const progressPercent = ((currentIndex + 1) / questions.length) * 100;
 
   return (
     <View style={styles.container}>
-      {/* Top Bar con progreso */}
       <View style={styles.topBar}>
         <TouchableOpacity style={styles.closeBtn} onPress={() => router.back()}>
           <Text style={styles.closeBtnText}>✕</Text>
@@ -111,29 +241,27 @@ export default function LessonScreen() {
         <View style={styles.progressBarBg}>
           <View style={[styles.progressBarFill, { width: `${progressPercent}%` }]} />
         </View>
+        <View style={styles.livesRow}>
+          {Array.from({ length: lives }).map((_, i) => (
+            <Text key={i} style={styles.heartIcon}>❤️</Text>
+          ))}
+        </View>
       </View>
 
-      {/* Pregunta */}
       <View style={styles.questionContainer}>
         <Text style={styles.questionPrompt}>{currentQuestion.prompt}</Text>
       </View>
 
-      {/* Opciones */}
       <View style={styles.optionsList}>
         {currentQuestion.options.map((option) => {
           const isSelected = selectedOption?.id === option.id;
           let cardStyle = styles.optionCard;
-
-          if (isSelected) {
-            cardStyle = styles.optionSelected;
-          }
-
+          if (isSelected) cardStyle = styles.optionSelected;
           if (isAnswered && isSelected) {
             cardStyle = isCorrect ? styles.optionCorrect : styles.optionIncorrect;
           } else if (isAnswered && option.is_correct) {
             cardStyle = styles.optionCorrect;
           }
-
           return (
             <TouchableOpacity
               key={option.id}
@@ -155,22 +283,36 @@ export default function LessonScreen() {
         })}
       </View>
 
-      {/* Footer con botón de acción */}
-      <View style={[styles.footer, isAnswered && (isCorrect ? styles.footerSuccess : styles.footerDanger)]}>
+      <View
+        style={[
+          styles.footer,
+          isAnswered && (isCorrect ? styles.footerSuccess : styles.footerDanger),
+        ]}
+      >
         {isAnswered ? (
           <View style={styles.feedbackContainer}>
             <View style={styles.feedbackRow}>
-              <Image
-                source={isCorrect ? Illustrations.llamaExcelente : Illustrations.llamaPiensa}
-                style={styles.feedbackLlama}
-                contentFit="contain"
-              />
-              <Text style={[styles.feedbackTitle, isCorrect ? styles.textSuccess : styles.textDanger]}>
+              <Animated.View style={yachiAnimStyle}>
+                <Image
+                  source={isCorrect ? Illustrations.llamaExcelente : Illustrations.llamaPiensa}
+                  style={styles.feedbackLlama}
+                  contentFit="contain"
+                />
+              </Animated.View>
+              <Text
+                style={[
+                  styles.feedbackTitle,
+                  isCorrect ? styles.textSuccess : styles.textDanger,
+                ]}
+              >
                 {isCorrect ? '¡Excelente!' : 'Respuesta incorrecta'}
               </Text>
             </View>
             <TouchableOpacity
-              style={[styles.buttonPrimary, isCorrect ? styles.btnSuccess : styles.btnDanger]}
+              style={[
+                styles.buttonPrimary,
+                isCorrect ? styles.btnSuccess : styles.btnDanger,
+              ]}
               onPress={handleNextQuestion}
             >
               <Text style={styles.buttonText}>Siguiente</Text>
@@ -191,11 +333,7 @@ export default function LessonScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#ffffff',
-    paddingTop: 50,
-  },
+  container: { flex: 1, backgroundColor: '#ffffff', paddingTop: 50 },
   centered: {
     flex: 1,
     justifyContent: 'center',
@@ -208,15 +346,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 20,
     marginBottom: 20,
+    gap: 8,
   },
-  closeBtn: {
-    marginRight: 16,
-  },
-  closeBtnText: {
-    fontSize: 22,
-    color: '#aaa',
-    fontWeight: 'bold',
-  },
+  closeBtn: { marginRight: 8 },
+  closeBtnText: { fontSize: 22, color: '#aaa', fontWeight: 'bold' },
   progressBarBg: {
     flex: 1,
     height: 14,
@@ -226,23 +359,49 @@ const styles = StyleSheet.create({
   },
   progressBarFill: {
     height: '100%',
-    backgroundColor: '#58cc02',
+    backgroundColor: BrandColors.success,
     borderRadius: 7,
   },
-  questionContainer: {
-    paddingHorizontal: 24,
-    marginBottom: 24,
+  phaseLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: BrandColors.brandNavy,
+    letterSpacing: 1,
   },
-  questionPrompt: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#333333',
-    lineHeight: 30,
+  livesRow: { flexDirection: 'row', gap: 2 },
+  heartIcon: { fontSize: 14 },
+
+  // Teoría
+  theoryContent: {
+    flexGrow: 1,
+    alignItems: 'center',
+    padding: 24,
+    paddingBottom: 16,
   },
-  optionsList: {
-    flex: 1,
-    paddingHorizontal: 20,
+  theoryYachiWrap: { marginBottom: 24 },
+  theoryYachi: { width: 120, height: 120 },
+  theoryCard: {
+    width: '100%',
+    backgroundColor: BrandColors.bgLight,
+    borderRadius: 20,
+    padding: 24,
+    borderWidth: 2,
+    borderColor: BrandColors.brandGreen + '40',
+    marginBottom: 16,
   },
+  theoryCardTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: BrandColors.brandNavy,
+    marginBottom: 10,
+  },
+  theoryCardBody: { fontSize: 16, color: '#444', lineHeight: 24 },
+  theoryHint: { fontSize: 13, color: '#bbb', marginTop: 8 },
+
+  // Quiz
+  questionContainer: { paddingHorizontal: 24, marginBottom: 24 },
+  questionPrompt: { fontSize: 22, fontWeight: 'bold', color: '#333', lineHeight: 30 },
+  optionsList: { flex: 1, paddingHorizontal: 20 },
   optionBase: {
     padding: 18,
     borderRadius: 16,
@@ -252,105 +411,51 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   optionCard: {},
-  optionSelected: {
-    borderColor: '#84d800',
-    backgroundColor: '#ddf4c5',
-  },
-  optionCorrect: {
-    borderColor: '#58cc02',
-    backgroundColor: '#d7ffb8',
-  },
-  optionIncorrect: {
-    borderColor: '#ff4b4b',
-    backgroundColor: '#ffdadc',
-  },
-  optionText: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#333',
-  },
-  optionTextSelected: {
-    color: '#4b9400',
-  },
-  optionTextCorrect: {
-    color: '#2e7d32',
-  },
+  optionSelected: { borderColor: '#84d800', backgroundColor: '#ddf4c5' },
+  optionCorrect: { borderColor: BrandColors.success, backgroundColor: BrandColors.successLight },
+  optionIncorrect: { borderColor: BrandColors.danger, backgroundColor: BrandColors.dangerLight },
+  optionText: { fontSize: 18, fontWeight: '600', color: '#333' },
+  optionTextSelected: { color: '#4b9400' },
+  optionTextCorrect: { color: '#2e7d32' },
+
   footer: {
     padding: 20,
     borderTopWidth: 2,
     borderColor: '#f0f0f0',
     backgroundColor: '#ffffff',
   },
-  footerSuccess: {
-    backgroundColor: '#d7ffb8',
-    borderColor: '#bbf293',
-  },
-  footerDanger: {
-    backgroundColor: '#ffdadc',
-    borderColor: '#ffc1c4',
-  },
-  feedbackContainer: {
-    alignItems: 'stretch',
-  },
+  footerSuccess: { backgroundColor: BrandColors.successLight, borderColor: '#bbf293' },
+  footerDanger: { backgroundColor: BrandColors.dangerLight, borderColor: '#ffc1c4' },
+  feedbackContainer: { alignItems: 'stretch' },
   feedbackRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
     marginBottom: 12,
   },
-  feedbackLlama: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-  },
-  feedbackTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  textSuccess: {
-    color: '#2e7d32',
-  },
-  textDanger: {
-    color: '#d32f2f',
-  },
+  feedbackLlama: { width: 52, height: 52, borderRadius: 26 },
+  feedbackTitle: { fontSize: 20, fontWeight: 'bold' },
+  textSuccess: { color: '#2e7d32' },
+  textDanger: { color: '#d32f2f' },
+
   buttonPrimary: {
-    backgroundColor: '#58cc02',
+    backgroundColor: BrandColors.success,
     paddingVertical: 16,
     borderRadius: 14,
     alignItems: 'center',
   },
-  btnSuccess: {
-    backgroundColor: '#58cc02',
-  },
-  btnDanger: {
-    backgroundColor: '#ff4b4b',
-  },
-  buttonDisabled: {
-    backgroundColor: '#e5e5e5',
-  },
-  buttonText: {
-    color: '#ffffff',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  congratsLlama: {
-    width: 140,
-    height: 145,
-    marginBottom: 16,
-  },
-  congratsTitle: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#222',
-    marginBottom: 8,
-  },
-  congratsSub: {
-    fontSize: 16,
-    color: '#666',
-    marginBottom: 24,
-  },
+  btnSuccess: { backgroundColor: BrandColors.success },
+  btnDanger: { backgroundColor: BrandColors.danger },
+  buttonDisabled: { backgroundColor: '#e5e5e5' },
+  buttonText: { color: '#ffffff', fontSize: 18, fontWeight: 'bold' },
+
+  congratsLlama: { width: 140, height: 145, marginBottom: 16 },
+  congratsTitle: { fontSize: 28, fontWeight: 'bold', color: '#222', marginBottom: 8 },
+  congratsSub: { fontSize: 16, color: '#666', marginBottom: 16 },
+  statRow: { flexDirection: 'row', gap: 16, marginBottom: 24 },
+  statBadge: { fontSize: 16, fontWeight: '700', color: '#444' },
   errorText: {
-    color: '#e53935',
+    color: BrandColors.danger,
     fontSize: 16,
     textAlign: 'center',
     marginBottom: 20,

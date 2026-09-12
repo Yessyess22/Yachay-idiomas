@@ -5,6 +5,7 @@ import { useEffect } from 'react';
 import 'react-native-reanimated';
 
 import { AuthProvider, useAuth } from '@/context/AuthContext';
+import { GameProvider, useGame } from '@/src/context/GameContext';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 export const unstable_settings = {
@@ -13,28 +14,36 @@ export const unstable_settings = {
 
 function RootLayoutNav() {
   const { session, loading } = useAuth();
+  const { isBlocked } = useGame();
   const segments = useSegments();
   const router = useRouter();
 
   useEffect(() => {
     if (loading) return;
-
     const inAuthGroup = segments[0] === '(auth)';
-
     if (!session && !inAuthGroup) {
-      // No hay sesión y no está en pantallas de auth -> mandar a login
       router.replace('/(auth)/login');
     } else if (session && inAuthGroup) {
-      // Hay sesión pero está en login/signup -> mandar a la app
       router.replace('/(tabs)');
     }
   }, [session, loading, segments]);
+
+  useEffect(() => {
+    if (isBlocked) {
+      router.replace('/blocked' as any);
+    }
+  }, [isBlocked]);
 
   return (
     <Stack>
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
       <Stack.Screen name="(auth)" options={{ headerShown: false }} />
       <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+      <Stack.Screen name="lesson/[id]" options={{ headerShown: false }} />
+      <Stack.Screen name="category/[slug]" options={{ headerShown: false }} />
+      <Stack.Screen name="level/exam/[levelId]" options={{ headerShown: false }} />
+      <Stack.Screen name="blocked" options={{ headerShown: false, gestureEnabled: false }} />
+      <Stack.Screen name="translator/index" options={{ headerShown: false }} />
     </Stack>
   );
 }
@@ -44,10 +53,12 @@ export default function RootLayout() {
 
   return (
     <AuthProvider>
-      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <RootLayoutNav />
-        <StatusBar style="auto" />
-      </ThemeProvider>
+      <GameProvider>
+        <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+          <RootLayoutNav />
+          <StatusBar style="auto" />
+        </ThemeProvider>
+      </GameProvider>
     </AuthProvider>
   );
 }
