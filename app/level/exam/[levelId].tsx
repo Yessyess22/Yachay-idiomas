@@ -312,7 +312,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f7f7f7',
     marginBottom: 12,
   },
-  optSelected: { borderColor: BrandColors.accentOrange, backgroundColor: '#FFF3E0' },
+  optSelected: { borderColor: '#1CB0F6', backgroundColor: '#DDF4FF' },
   optCorrect: { borderColor: BrandColors.brandGreen, backgroundColor: '#E8F5E9' },
   optWrong: { borderColor: BrandColors.danger, backgroundColor: BrandColors.dangerLight },
   optText: { fontSize: 17, fontWeight: '600', color: '#333' },

@@ -60,7 +60,7 @@ export default function LessonScreen() {
   const [error, setError] = useState('');
 
   const { user, refreshProfile } = useAuth();
-  const { lives, xp, checkAnswer } = useGame();
+  const { lives, xp, checkAnswer, addGems } = useGame();
   const router = useRouter();
 
   // Animación de rebote para Yachi
@@ -126,6 +126,7 @@ export default function LessonScreen() {
       setIsCorrect(false);
     } else {
       setCompleted(true);
+      addGems(15);
       if (user?.id) {
         await questionService.recordLessonProgress(lessonId, user.id, 10);
         await refreshProfile();
@@ -411,11 +412,11 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   optionCard: {},
-  optionSelected: { borderColor: '#84d800', backgroundColor: '#ddf4c5' },
+  optionSelected: { borderColor: '#1CB0F6', backgroundColor: '#DDF4FF' },
   optionCorrect: { borderColor: BrandColors.success, backgroundColor: BrandColors.successLight },
   optionIncorrect: { borderColor: BrandColors.danger, backgroundColor: BrandColors.dangerLight },
   optionText: { fontSize: 18, fontWeight: '600', color: '#333' },
-  optionTextSelected: { color: '#4b9400' },
+  optionTextSelected: { color: '#1899D6' },
   optionTextCorrect: { color: '#2e7d32' },
 
   footer: {

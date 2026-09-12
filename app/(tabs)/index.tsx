@@ -1,148 +1,252 @@
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
+import React, { useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from 'react-native';
 import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
-import type { ComponentProps } from 'react';
-import { ActivityIndicator, FlatList, StyleSheet, Text, TouchableOpacity } from 'react-native';
-import type { ImageSourcePropType } from 'react-native';
-
-import { CategoriaCard } from '@/components/yachay/categoria-card';
-import { MainContainer } from '@/components/yachay/main-container';
-import { YachayHeader } from '@/components/yachay/yachay-header';
-import { Illustrations } from '@/constants/illustrations';
-import { Theme } from '@/constants/yachay-theme';
 import { useAuth } from '@/src/context/AuthContext';
 import { categoryService } from '@/src/services/categoryService';
 import { Category } from '@/src/types';
+import { YachayTopBar } from '@/components/yachay/yachay-top-bar';
 
-type MaterialIconName = ComponentProps<typeof MaterialIcons>['name'];
-type CategoryVisual = {
-  icon: MaterialIconName;
-  color: string;
-  illustration?: ImageSourcePropType;
-  glyph?: string;
-  cornerLlama?: ImageSourcePropType;
-};
+interface LessonNode {
+  id: number;
+  title: string;
+  categorySlug: string;
+  completed: boolean;
+  active: boolean;
+  locked: boolean;
+  stars: number;
+}
 
-const CATEGORY_VISUALS: Record<string, CategoryVisual> = {
-  abecedario: { icon: 'sort-by-alpha', color: Theme.colors.accentGreen, glyph: 'A', cornerLlama: Illustrations.avatarLlama },
-  numeros: { icon: 'format-list-numbered', color: Theme.colors.accentOrange, glyph: '1,2,3', cornerLlama: Illustrations.avatarLlama },
-  palabras: { icon: 'chat-bubble-outline', color: Theme.colors.primaryDark, illustration: Illustrations.iconoPalabras },
-};
-const DEFAULT_VISUAL: CategoryVisual = { icon: 'menu-book', color: Theme.colors.accentBlue };
+// Genera una serie de nodos en forma de serpiente (Skill Tree)
+const SERPENTINE_NODES: LessonNode[] = [
+  { id: 1, title: 'Achahala 1', categorySlug: 'abecedario', completed: true, active: false, locked: false, stars: 3 },
+  { id: 2, title: 'Achahala 2', categorySlug: 'abecedario', completed: true, active: false, locked: false, stars: 3 },
+  { id: 3, title: 'Consonantes', categorySlug: 'abecedario', completed: false, active: true, locked: false, stars: 0 },
+  { id: 4, title: 'Cofre de Gemas 🎁', categorySlug: 'abecedario', completed: false, active: false, locked: true, stars: 0 },
+  { id: 5, title: 'Yupaykuna 1', categorySlug: 'numeros', completed: false, active: false, locked: true, stars: 0 },
+  { id: 6, title: 'Yupaykuna 2', categorySlug: 'numeros', completed: false, active: false, locked: true, stars: 0 },
+  { id: 7, title: 'Examen de Nivel 🏆', categorySlug: 'numeros', completed: false, active: false, locked: true, stars: 0 },
+  { id: 8, title: 'Saludos en Quechua', categorySlug: 'palabras', completed: false, active: false, locked: true, stars: 0 },
+  { id: 9, title: 'La Familia', categorySlug: 'palabras', completed: false, active: false, locked: true, stars: 0 },
+  { id: 10, title: 'Colores y Objetos', categorySlug: 'palabras', completed: false, active: false, locked: true, stars: 0 },
+];
+
+const OFFSETS = [0, 50, 90, 50, 0, -50, -90, -50];
 
 export default function HomeScreen() {
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
   const { profile } = useAuth();
   const router = useRouter();
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadCategories();
+    loadData();
   }, []);
 
-  async function loadCategories() {
+  async function loadData() {
     setLoading(true);
-    setError('');
-    const { data, error } = await categoryService.fetchCategories();
-    if (error) {
-      setError(error);
-    } else {
-      setCategories(data ?? []);
-    }
+    const { data } = await categoryService.fetchCategories();
+    if (data) setCategories(data);
     setLoading(false);
   }
 
-  if (loading) {
-    return (
-      <MainContainer style={styles.centered}>
-        <ActivityIndicator size="large" color={Theme.colors.accentGreen} />
-      </MainContainer>
-    );
-  }
-
-  if (error) {
-    return (
-      <MainContainer style={styles.centered}>
-        <Text style={styles.errorText}>Error: {error}</Text>
-        <TouchableOpacity style={styles.retryButton} onPress={loadCategories}>
-          <Text style={styles.retryText}>Reintentar</Text>
-        </TouchableOpacity>
-      </MainContainer>
-    );
+  function handleNodePress(node: LessonNode) {
+    if (node.locked) return;
+    router.push({
+      pathname: '/category/[slug]' as any,
+      params: { slug: node.categorySlug },
+    });
   }
 
   return (
-    <MainContainer>
-      <YachayHeader
-        subtitle={profile ? `¡Allinllachu, ${profile.username}!` : 'Aprende quechua paso a paso'}
-        xp={profile?.total_xp}
-        logoSource={Illustrations.logoYachayConLlama}
-        onSettingsPress={() => router.push('/(tabs)/profile' as any)}
-      />
+    <View style={styles.container}>
+      <YachayTopBar />
 
-      <FlatList
-        data={categories}
-        keyExtractor={(item) => item.id.toString()}
-        contentContainerStyle={styles.list}
-        ListHeaderComponent={<Text style={styles.sectionTitle}>Categorías de Aprendizaje</Text>}
-        renderItem={({ item, index }) => {
-          const visual = CATEGORY_VISUALS[item.slug] ?? DEFAULT_VISUAL;
-          return (
-            <CategoriaCard
-              index={index}
-              titulo={item.name}
-              imagenSource={visual.illustration}
-              fallbackIcon={visual.icon}
-              fallbackColor={visual.color}
-              glyph={visual.glyph}
-              cornerLlama={visual.cornerLlama}
-              onPress={() => router.push({ pathname: '/category/[slug]' as any, params: { slug: item.slug } })}
-            />
-          );
-        }}
-        ListEmptyComponent={<Text style={styles.emptyText}>Aún no hay categorías disponibles.</Text>}
-      />
-    </MainContainer>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        {/* Banner de Sección 1 */}
+        <View style={styles.unitBanner}>
+          <View style={styles.unitInfo}>
+            <Text style={styles.unitTag}>SECCIÓN 1, UNIDAD 1</Text>
+            <Text style={styles.unitTitle}>Abecedario y Primeras Palabras</Text>
+            <Text style={styles.unitDesc}>Aprende la fonética Achahala y saludos cotidianos en Runasimi.</Text>
+          </View>
+          <TouchableOpacity
+            style={styles.guidebookBtn}
+            onPress={() => router.push('/guidebook/1' as any)}
+          >
+            <Text style={styles.guidebookBtnText}>📖 GUÍA</Text>
+          </TouchableOpacity>
+        </View>
+
+        {loading ? (
+          <ActivityIndicator size="large" color="#58CC02" style={{ marginTop: 40 }} />
+        ) : (
+          <View style={styles.pathContainer}>
+            {SERPENTINE_NODES.map((node, index) => {
+              const xOffset = OFFSETS[index % OFFSETS.length];
+              const isChest = node.title.includes('🎁');
+              const isExam = node.title.includes('🏆');
+
+              return (
+                <View
+                  key={node.id}
+                  style={[styles.nodeWrapper, { transform: [{ translateX: xOffset }] }]}
+                >
+                  <TouchableOpacity
+                    style={[
+                      styles.nodeButton,
+                      node.completed && styles.nodeCompleted,
+                      node.active && styles.nodeActive,
+                      node.locked && styles.nodeLocked,
+                      isChest && styles.nodeChest,
+                      isExam && styles.nodeExam,
+                    ]}
+                    onPress={() => handleNodePress(node)}
+                    disabled={node.locked}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.nodeIcon}>
+                      {node.completed ? '⭐' : node.active ? '🦙' : node.locked ? '🔒' : '⭐'}
+                    </Text>
+                  </TouchableOpacity>
+
+                  {node.active && (
+                    <View style={styles.activeTooltip}>
+                      <Text style={styles.activeTooltipText}>¡EMPEZAR!</Text>
+                    </View>
+                  )}
+
+                  <Text style={styles.nodeTitle}>{node.title}</Text>
+                </View>
+              );
+            })}
+          </View>
+        )}
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  centered: {
+  container: {
     flex: 1,
-    justifyContent: 'center',
+    backgroundColor: '#F7F9FA',
+  },
+  scrollContent: {
+    paddingBottom: 40,
+  },
+  unitBanner: {
+    backgroundColor: '#58CC02',
+    margin: 16,
+    padding: 18,
+    borderRadius: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    elevation: 4,
+  },
+  unitInfo: {
+    flex: 1,
+    paddingRight: 10,
+  },
+  unitTag: {
+    color: 'rgba(255,255,255,0.85)',
+    fontSize: 12,
+    fontWeight: '800',
+    letterSpacing: 1,
+    marginBottom: 4,
+  },
+  unitTitle: {
+    color: '#FFFFFF',
+    fontSize: 20,
+    fontWeight: '900',
+    marginBottom: 4,
+  },
+  unitDesc: {
+    color: 'rgba(255,255,255,0.95)',
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  guidebookBtn: {
+    backgroundColor: '#FFFFFF',
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    borderRadius: 14,
+  },
+  guidebookBtnText: {
+    color: '#58CC02',
+    fontSize: 14,
+    fontWeight: '900',
+  },
+  pathContainer: {
+    alignItems: 'center',
+    paddingVertical: 20,
+    gap: 32,
+  },
+  nodeWrapper: {
     alignItems: 'center',
   },
-  sectionTitle: {
-    ...Theme.fonts.titleSmall,
-    fontWeight: Theme.fontWeight.bold,
-    color: Theme.colors.textTitleGray,
-    marginBottom: Theme.spacing.md,
+  nodeButton: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: '#58CC02',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderBottomWidth: 6,
+    borderBottomColor: '#46A302',
+    elevation: 4,
   },
-  list: {
-    paddingHorizontal: Theme.spacing.md,
-    paddingBottom: Theme.spacing.xl,
+  nodeCompleted: {
+    backgroundColor: '#FFC800',
+    borderBottomColor: '#E5A900',
   },
-  errorText: {
-    color: Theme.colors.danger,
-    fontSize: 15,
-    textAlign: 'center',
-    paddingHorizontal: Theme.spacing.md,
+  nodeActive: {
+    backgroundColor: '#58CC02',
+    borderBottomColor: '#46A302',
+    transform: [{ scale: 1.15 }],
   },
-  retryButton: {
-    marginTop: Theme.spacing.sm,
-    backgroundColor: Theme.colors.accentGreen,
-    paddingHorizontal: Theme.spacing.md,
-    paddingVertical: Theme.spacing.sm,
-    borderRadius: Theme.radius.sm,
+  nodeLocked: {
+    backgroundColor: '#E5E5E5',
+    borderBottomColor: '#CCCCCC',
   },
-  retryText: {
-    color: Theme.colors.white,
-    fontWeight: Theme.fontWeight.bold,
+  nodeChest: {
+    backgroundColor: '#FF9600',
+    borderBottomColor: '#E08400',
   },
-  emptyText: {
-    textAlign: 'center',
-    color: Theme.colors.textSubtitleGray,
-    marginTop: Theme.spacing.xl,
+  nodeExam: {
+    backgroundColor: '#1CB0F6',
+    borderBottomColor: '#1899D6',
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+  },
+  nodeIcon: {
+    fontSize: 30,
+  },
+  activeTooltip: {
+    position: 'absolute',
+    top: -26,
+    backgroundColor: '#3C3C3C',
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: 10,
+  },
+  activeTooltipText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '900',
+  },
+  nodeTitle: {
+    marginTop: 8,
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#3C3C3C',
   },
 });

@@ -13,6 +13,12 @@ export interface Profile {
   avatar_url: string | null;
   total_xp: number;
   created_at: string; // ISO 8601
+  streak_count?: number;
+  last_active_date?: string | null;
+  streak_freeze_count?: number;
+  gems?: number;
+  lives?: number;
+  last_life_lost_at?: string | null;
 }
 
 // ============================================================
@@ -34,7 +40,14 @@ export interface Lesson {
   sort_order: number;
 }
 
-export type QuestionType = 'multiple_choice' | 'text_input' | 'image_match';
+export type QuestionType =
+  | 'multiple_choice'
+  | 'text_input'
+  | 'image_match'
+  | 'word_bank'
+  | 'matching_pairs'
+  | 'listening'
+  | 'speaking';
 
 export interface Question {
   id: number;
@@ -53,6 +66,49 @@ export interface QuestionOption {
 /** Pregunta enriquecida con sus opciones (para renderizado en pantalla) */
 export interface QuestionWithOptions extends Question {
   options: QuestionOption[];
+}
+
+// ============================================================
+// GAMIFICACIÓN: TIENDA, MISIONES, LOGROS, LIGAS
+// ============================================================
+export interface ShopItem {
+  id: number;
+  name: string;
+  description: string;
+  price_gems: number;
+  item_type: 'streak_freeze' | 'refill_lives' | 'xp_boost';
+  icon_name: string;
+}
+
+export interface DailyQuest {
+  id: number;
+  title: string;
+  description: string;
+  target_amount: number;
+  xp_reward: number;
+  gem_reward: number;
+  quest_type: 'xp_gain' | 'lesson_count' | 'perfect_lesson' | 'streak_maintain';
+  current_progress?: number;
+  completed?: boolean;
+}
+
+export interface Badge {
+  id: number;
+  title: string;
+  description: string;
+  icon_name: string;
+  requirement_type: 'streak_days' | 'total_xp' | 'completed_lessons' | 'gems_earned';
+  requirement_value: number;
+  unlocked?: boolean;
+}
+
+export interface LeaderboardEntry {
+  firebase_uid: string;
+  username: string;
+  avatar_url: string | null;
+  weekly_xp: number;
+  league_tier: 'bronze' | 'silver' | 'gold' | 'emerald' | 'diamond';
+  rank?: number;
 }
 
 // ============================================================
@@ -121,3 +177,4 @@ export interface TranslationRequest {
   target_lang: Language;
   source_text: string;
 }
+
