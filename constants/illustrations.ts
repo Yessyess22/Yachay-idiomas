@@ -6,16 +6,22 @@ import type { ImageSourcePropType } from 'react-native';
  * incrementally without touching component code.
  */
 export const Illustrations: Record<string, ImageSourcePropType | undefined> = {
-  logoYachayConLlama: require('@/assets/images/llama_header.png'),
-  avatarLlama: require('@/assets/images/llama_avatar.png'),
-  iconoPalabras: require('@/assets/images/card_palabras.png'),
-  imagenPaisajePerfil: require('@/assets/images/paisaje_perfil.png'),
-  cardYachayMontana: require('@/assets/images/card_montana.png'),
-  cardYachayAzul: require('@/assets/images/card_azul.png'),
-  llamaExcelente: require('@/assets/images/llama_excelente.png'),
-  llamaPiensa: require('@/assets/images/llama_piensa.png'),
-  llamaSigueAsi: require('@/assets/images/llama_sigue_asi.png'),
-  iconoAbecedario: undefined, // dibujado en código en CategoriaCard (glyph "A")
-  iconoNumeros: undefined, // dibujado en código en CategoriaCard (glyph "1,2,3")
-  iconoKhipu: undefined, // assets/images/icono_khipu.png
+  // Yachi — mascota principal
+  logoYachayConLlama: require('@/assets/images/yachi/yachi_principal.png'),
+  avatarLlama: require('@/assets/images/yachi/yachi_avatar_circular.png'),
+  llamaExcelente: require('@/assets/images/yachi/yachi_excelente.png'),
+  llamaPiensa: require('@/assets/images/yachi/yachi_piensa.png'),
+  llamaSigueAsi: require('@/assets/images/yachi/yachi_sigue_asi.png'),
+
+  // Tarjetas e ilustraciones de fondo
+  imagenPaisajePerfil: require('@/assets/images/cards/paisaje_perfil.png'),
+  cardYachayMontana: require('@/assets/images/cards/tarjeta_montana.png'),
+  cardYachayAzul: require('@/assets/images/cards/tarjeta_azul.png'),
+  cardYachayVerde: require('@/assets/images/cards/tarjeta_verde.png'),
+  iconoPalabras: require('@/assets/images/cards/tarjeta_palabras.png'),
+
+  // Íconos de categoría (dibujados en código)
+  iconoAbecedario: undefined,
+  iconoNumeros: undefined,
+  iconoKhipu: undefined,
 };
