@@ -1,6 +1,6 @@
 # Plan de Tareas y Distribución del Equipo — Yachay Quechua
 
-**Versión:** 1.2 | **Fecha:** 2026-09-10
+**Versión:** 1.3 | **Fecha:** 2026-09-12
 
 ---
 
@@ -52,13 +52,16 @@
 
 | ID | Tarea | Responsable | Estado |
 | :--- | :--- | :--- | :---: |
-| S3-T01 | Definir tipos TypeScript en `src/types/game.ts` | Alejandro Padilla | ⬜ Pendiente |
-| S3-T02 | Crear `src/context/GameContext.tsx` (vidas, XP, `isBlocked`) | Alejandro Padilla | ⬜ Pendiente |
-| S3-T03 | Integrar `GameProvider` en `app/_layout.tsx` | Alejandro Padilla | ⬜ Pendiente |
-| S3-T04 | Crear `src/services/progressService.ts` y `src/services/examService.ts` | Oscar Segovia | ⬜ Pendiente |
-| S3-T05 | Crear pantalla de examen `app/level/exam/[levelId].tsx` | Yesica | ⬜ Pendiente |
-| S3-T06 | Crear pantallas de bloqueo (`blocked.tsx`) | Yesica | ⬜ Pendiente |
-| S3-T07 | Crear `src/services/voiceService.ts` y pantalla del traductor `app/translator/index.tsx` | Yesica / Oscar | ⬜ Pendiente |
+| S3-T01 | Definir tipos TypeScript de gamificación en `src/types/index.ts` | Alejandro Padilla | ✅ Completado |
+| S3-T02 | Crear `src/context/GameContext.tsx` (vidas, XP, gemas, racha, `isBlocked`) | Alejandro Padilla | ✅ Completado |
+| S3-T03 | Integrar `GameProvider` en `app/_layout.tsx` | Alejandro Padilla | ✅ Completado |
+| S3-T04 | Crear `src/services/progressService.ts` y `src/services/examService.ts` | Oscar Segovia | ✅ Completado |
+| S3-T05 | Crear pantalla de examen `app/level/exam/[levelId].tsx` | Yesica | ✅ Completado |
+| S3-T06 | Crear pantallas de bloqueo (`blocked.tsx`) | Yesica | ✅ Completado |
+| S3-T07 | Crear `src/services/voiceService.ts` y pantalla del traductor `app/translator/index.tsx` | Yesica / Oscar | ✅ Completado |
+| S3-T08 *(extra)* | Migración de gamificación (`daily_quests`, `badges`, `leaderboard_weekly`, `shop_items`, `user_inventory`) | Alejandro Padilla | ✅ Completado |
+| S3-T09 *(extra)* | Pantallas de Ligas (`leaderboard.tsx`), Tienda (`shop.tsx`) y Guía Gramatical (`guidebook/[id].tsx`) | Yessyess22 | ✅ Completado |
+| S3-T10 *(extra)* | Ejercicios de banco de palabras y pares (`components/yachay/exercises/`) | Yessyess22 | ✅ Completado |
 
 ---
 
@@ -71,3 +74,5 @@
 | S4-T03 | Ejecutar auditoría final de arquitectura (`grep` triple) | Oscar Segovia | ⬜ Pendiente |
 | S4-T04 | Verificar compilación limpia de TypeScript (`tsc --noEmit`) | Oscar Segovia | ✅ Completado |
 | S4-T05 | Actualizar `01-BITACORA_DESARROLLO.md` | Equipo | ✅ Completado |
+| S4-T06 *(nueva)* | Persistir `GameContext` (vidas, gemas, XP, racha) contra `profiles` en Supabase | Alejandro Padilla | ⬜ Pendiente |
+| S4-T07 *(nueva)* | Conectar `leaderboardService` a `leaderboard_weekly` y `shop.tsx` a `shopService.fetchShopItems()` | Oscar Segovia | ⬜ Pendiente |

@@ -1,6 +1,6 @@
 # Especificación de Base de Datos — Yachay Quechua
 
-**Versión:** 1.0 | **Fecha:** 2026-09-09 | **Sprint:** Sprint 1 | **Estado:** Borrador para revisión del equipo
+**Versión:** 1.1 | **Fecha:** 2026-09-09 | **Última actualización:** 2026-09-12 | **Sprint:** Sprint 1 (base) + Sprint 3 (extensión) | **Estado:** Esquema base aplicado en Supabase; ver Sección 9 para la extensión de Sprint 3
 
 ---
 
@@ -479,4 +479,48 @@ async function signUp(email: string, password: string, username: string) {
 
 ---
 
-*Documento a actualizar con resolución de cada criterio al cierre del Sprint 1.*
+## 9. Extensión de Esquema — Sprint 3: Gamificación y Tipos de Ejercicio
+
+**Migración:** `supabase/migrations/20260912000000_gamification_and_exercises.sql` (2026-09-12)
+
+### 9.1 Nuevas columnas en `profiles`
+
+| Columna | Tipo | Constraint | Descripción |
+| :--- | :--- | :--- | :--- |
+| `streak_count` | `INTEGER` | `NOT NULL DEFAULT 0`, `CHECK >= 0` | Días consecutivos de práctica |
+| `last_active_date` | `DATE` | — | Última fecha en que el usuario completó actividad |
+| `streak_freeze_count` | `INTEGER` | `NOT NULL DEFAULT 0`, `CHECK >= 0` | Congeladores de racha disponibles (ítem de tienda) |
+| `gems` | `INTEGER` | `NOT NULL DEFAULT 100`, `CHECK >= 0` | Moneda in-app para la Tienda |
+| `lives` | `INTEGER` | `NOT NULL DEFAULT 5`, `CHECK BETWEEN 0 AND 5` | Vidas restantes |
+| `last_life_lost_at` | `TIMESTAMPTZ` | — | Marca de tiempo de la última vida perdida (para recarga por tiempo) |
+
+### 9.2 Ampliación de `questions.question_type`
+
+El `CHECK` de `question_type` se reemplaza para incluir los nuevos tipos de ejercicio de UI: `multiple_choice`, `text_input`, `image_match`, `word_bank`, `matching_pairs`, `listening`, `speaking`.
+
+### 9.3 Tablas nuevas
+
+| Tabla | Propósito | Relación |
+| :--- | :--- | :--- |
+| `daily_quests` | Catálogo de misiones diarias (XP/gemas de recompensa, tipo de meta) | — |
+| `user_quests` | Progreso de cada usuario por misión | `firebase_uid → profiles`, `quest_id → daily_quests` |
+| `badges` | Catálogo de insignias/logros desbloqueables | — |
+| `user_badges` | Insignias desbloqueadas por usuario | `firebase_uid → profiles`, `badge_id → badges` |
+| `leaderboard_weekly` | Ranking semanal por liga (`bronze`…`diamond`) | `firebase_uid → profiles` (PK) |
+| `shop_items` | Catálogo de ítems de la Tienda (`streak_freeze`, `refill_lives`, `xp_boost`) | — |
+| `user_inventory` | Inventario de ítems comprados por usuario | `firebase_uid → profiles`, `item_id → shop_items` |
+
+Todas las tablas tienen RLS habilitado: lectura pública para autenticados en los catálogos (`daily_quests`, `badges`, `shop_items`, `leaderboard_weekly`) y acceso restringido al propietario (`(auth.jwt() ->> 'sub') = firebase_uid`) en las tablas de progreso por usuario (`user_quests`, `user_badges`, `user_inventory`).
+
+### 9.4 Estado de integración con el frontend
+
+⚠️ **Importante:** al cierre del Sprint 3, `leaderboard_weekly` y `shop_items` existen en el esquema pero **no están completamente integradas**:
+- `src/services/leaderboardService.ts` calcula el ranking desde `profiles.total_xp`, no desde `leaderboard_weekly.weekly_xp`.
+- `app/(tabs)/shop.tsx` usa una lista de ítems hardcodeada en el componente en vez de `shopService.fetchShopItems()` (que sí consulta `shop_items` correctamente).
+- Las columnas de gamificación de `profiles` (`gems`, `lives`, `streak_count`, etc.) no se leen ni actualizan desde `src/context/GameContext.tsx`, que mantiene su propio estado en memoria.
+
+Ver `docs/05-FINDINGS_DEUDA.md` (GAP-06, GAP-07) para el detalle y la propuesta de solución, planificada para Sprint 4.
+
+---
+
+*Documento a actualizar con resolución de cada criterio al cierre del Sprint 1. Sección 9 añadida al cierre del Sprint 3.*

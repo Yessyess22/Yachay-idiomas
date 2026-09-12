@@ -1,6 +1,6 @@
 # Especificación de Requerimientos — Yachay Quechua
 
-**Versión:** 1.1 | **Fecha:** 2026-09-08 | **Última actualización:** 2026-09-08 | **Estado:** Activo
+**Versión:** 1.2 | **Fecha:** 2026-09-08 | **Última actualización:** 2026-09-12 | **Estado:** Activo — casos de uso alineados con la implementación real tras el cierre del Sprint 3
 
 ---
 
@@ -35,14 +35,14 @@ La progresión gamificada se realiza mediante vidas (❤️) y puntos de experie
 
 ---
 
-### CU-02 — Cargar Cursos y Lecciones
+### CU-02 — Cargar Categorías y Lecciones
 
 | Campo | Descripción |
 | :--- | :--- |
 | **Actor principal** | Usuario autenticado |
-| **Precondición** | El usuario tiene una sesión válida en `AuthContext`. La tabla `courses` y `lessons` de Supabase están pobladas con datos semilla. |
-| **Flujo normal** | 1. El usuario navega a la pantalla `/(tabs)/index`. 2. El componente invoca el hook `useCourses()` que delega a `courseService.fetchCourses()` en `src/services/courseService.ts`. 3. El servicio ejecuta `supabase.from('courses').select('*')`. 4. Se renderiza la lista de cursos con nombre, descripción e ícono. 5. El usuario selecciona un curso y navega a `app/course/[id].tsx`, que carga las lecciones asociadas mediante `courseService.fetchLessons(courseId)`. |
-| **Flujo alternativo** | A1 — Sin conexión al emulador local: La capa de servicio captura el error de red y la pantalla muestra un estado de error visual con botón de reintento. A2 — Tabla vacía: Se renderiza un estado vacío con mensaje informativo. |
+| **Precondición** | El usuario tiene una sesión válida en `AuthContext` (`src/context/AuthContext.tsx`). Las tablas `categories` y `lessons` de Supabase están pobladas con el seed de Quechua. |
+| **Flujo normal** | 1. El usuario navega a la pantalla `/(tabs)/index` ("Aprender"). 2. El componente invoca `categoryService.fetchCategories()` en `src/services/categoryService.ts`. 3. El servicio ejecuta `supabase.from('categories').select('*')` ordenado por `sort_order`. 4. Se renderiza la lista de categorías con nombre, ícono y progreso de XP. 5. El usuario selecciona una categoría y navega a `app/category/[slug].tsx`, que carga las lecciones asociadas mediante `categoryService.fetchLessonsWithProgress(categoryId, userId)`. |
+| **Flujo alternativo** | A1 — Sin conexión a Supabase: la capa de servicio captura el error de red y la pantalla muestra un estado de error visual con botón de reintento. A2 — Tabla vacía: se renderiza un estado vacío con mensaje informativo. |
 
 ---
 
@@ -51,20 +51,20 @@ La progresión gamificada se realiza mediante vidas (❤️) y puntos de experie
 | Campo | Descripción |
 | :--- | :--- |
 | **Actor principal** | Usuario autenticado con lección activa |
-| **Precondición** | El usuario tiene vidas disponibles (> 0). La lección contiene al menos una pregunta en `lessonsData.ts`. |
-| **Flujo normal** | 1. La pantalla `app/lesson/[id].tsx` carga las preguntas desde `GameContext` (que consulta `lessonsData.ts`). 2. Se muestra la barra de progreso indicando la pregunta actual sobre el total. 3. El usuario selecciona una opción de respuesta. 4. `GameContext.checkAnswer()` valida la respuesta. 5. Si es correcta: se resalta la opción en verde, se suma XP (`+10` por defecto) y se avanza a la siguiente pregunta. 6. Al completar todas las preguntas se navega a la pantalla de resultados con el porcentaje de aciertos y el XP acumulado. |
-| **Flujo alternativo** | A1 — Respuesta incorrecta: se resalta en rojo, `GameContext` descuenta una vida y muestra la respuesta correcta brevemente. A2 — Sin vidas: se bloquea la lección y se muestra la pantalla de "Sin vidas" con un contador de recarga. |
+| **Precondición** | El usuario tiene vidas disponibles (`GameContext.lives > 0`). La lección tiene al menos una pregunta cargada desde Supabase. |
+| **Flujo normal** | 1. La pantalla `app/lesson/[id].tsx` carga las preguntas mediante `questionService.fetchQuestionsByLesson(lessonId)`, con una fase teórica previa (tarjetas de vocabulario) antes del quiz. 2. Se muestra la barra de progreso indicando la pregunta actual sobre el total. 3. El usuario selecciona una opción de respuesta (o resuelve un ejercicio de banco de palabras / pares). 4. La pantalla invoca `GameContext.checkAnswer(isCorrect)`. 5. Si es correcta: se resalta la opción en verde, se suma XP (`+10` vía `checkAnswer`) y se avanza a la siguiente pregunta con animación *bounce* de Yachi. 6. Al completar todas las preguntas se llama a `questionService.recordLessonProgress()` y se navega a la pantalla de resultados con el porcentaje de aciertos y el XP acumulado. |
+| **Flujo alternativo** | A1 — Respuesta incorrecta: se resalta en rojo, `GameContext.checkAnswer(false)` descuenta una vida y muestra la respuesta correcta brevemente. A2 — Sin vidas: `GameContext.isBlocked` se activa y `app/_layout.tsx` redirige automáticamente a `app/blocked.tsx`. |
 
 ---
 
-### CU-04 — Control de Gamificación (Vidas y XP)
+### CU-04 — Control de Gamificación (Vidas, XP, Gemas y Racha)
 
 | Campo | Descripción |
 | :--- | :--- |
-| **Actor principal** | Sistema (GameContext) |
-| **Precondición** | El usuario está resolviendo una lección activa. `GameContext` fue inicializado con `lives = 5` y `xp = 0`. |
-| **Flujo normal** | 1. Cada respuesta incorrecta ejecuta `GameContext.loseLife()`, decrementando `lives` en 1. 2. Cada respuesta correcta ejecuta `GameContext.gainXP(amount)`, incrementando `xp`. 3. El estado `lives` y `xp` se refleja en la UI mediante el `GameContext` compartido. 4. Al finalizar la lección, el XP ganado se persiste en Supabase mediante `courseService.updateUserXP()`. |
-| **Flujo alternativo** | A1 — `lives` llega a 0: `GameContext` emite el estado `isBlocked = true`. La pantalla de lección detecta el estado y muestra la vista de bloqueo sin permitir continuar. A2 — El usuario abandona la lección: `GameContext.resetLesson()` restaura el estado para la próxima sesión. |
+| **Actor principal** | Sistema (`GameContext`) |
+| **Precondición** | El usuario está resolviendo una lección o examen activo. `GameContext` fue inicializado con `lives = 5`, `xp = 0`, `gems = 100`, `streakDays = 3` (estado en memoria, ver limitación en `docs/05-FINDINGS_DEUDA.md` GAP-06). |
+| **Flujo normal** | 1. Cada respuesta se reporta con `GameContext.checkAnswer(isCorrect)`: si es correcta suma `+10 XP`; si es incorrecta decrementa `lives` en 1. 2. `GameContext.addGems(amount)` acredita gemas al completar una lección. 3. El estado `lives`, `xp`, `gems` y `streakDays` se refleja en la UI mediante el hook `useGame()` compartido (Perfil, Tienda, Barra superior). |
+| **Flujo alternativo** | A1 — `lives` llega a 0: `GameContext` marca `isBlocked = true` y el guard en `app/_layout.tsx` redirige a `/blocked`. A2 — El usuario compra "Recarga de Vidas" en la Tienda: `GameContext.restoreLives()` restaura `lives = 5`. A3 — El usuario gasta gemas: `GameContext.consumeGems(amount)` retorna `false` sin descontar si no alcanzan las gemas disponibles. |
 
 ---
 
@@ -73,9 +73,9 @@ La progresión gamificada se realiza mediante vidas (❤️) y puntos de experie
 | Campo | Descripción |
 | :--- | :--- |
 | **Actor principal** | Usuario autenticado con nivel activo |
-| **Precondición** | El usuario completó todas las lecciones del nivel actual. `GameContext` tiene `lives > 0`. El examen del nivel está disponible en la tabla `exams` de Supabase con al menos 10 preguntas mezcladas de todos los módulos del nivel. |
-| **Flujo normal** | 1. La pantalla `app/level/exam/[levelId].tsx` carga el examen desde `examService.fetchExam(levelId)`. 2. Se presenta al usuario un conjunto de preguntas mixtas (opción múltiple, escritura, asociación) con una barra de progreso global. 3. Por cada respuesta incorrecta, `GameContext.loseLife()` descuenta una vida. 4. Si el usuario responde todas las preguntas con al menos una vida restante, el examen se marca como aprobado mediante `progressService.approveLevel(userId, levelId)`. 5. Se persiste el resultado en Supabase y se desbloquea el siguiente nivel (`level_progress.unlocked = true`). 6. La pantalla de resultados muestra el porcentaje de aciertos, el XP ganado y el badge del nivel superado. |
-| **Flujo alternativo** | A1 — `lives` llega a 0 durante el examen: `GameContext` emite `isExamBlocked = true`. La pantalla muestra la vista de bloqueo del examen con el mensaje "Sin vidas — el examen se reiniciará cuando tus vidas se recarguen". El examen no se marca como aprobado. A2 — El usuario abandona el examen antes de finalizarlo: el progreso parcial no se guarda; el examen puede reiniciarse desde el principio en la próxima sesión. |
+| **Precondición** | El usuario completó las lecciones del nivel actual. El examen del nivel está disponible en la tabla `exams` de Supabase, asociado a un `level_id`, con preguntas en `questions`/`question_options`. |
+| **Flujo normal** | 1. La pantalla `app/level/exam/[levelId].tsx` carga el examen y sus preguntas con opciones mediante `examService.fetchExamByLevel(levelId)`. 2. Se presenta al usuario el conjunto de preguntas con una barra de progreso global. 3. Al finalizar, se calcula el puntaje (`score`) y se compara contra `exam.pass_threshold`. 4. Si `score >= pass_threshold`, se llama a `progressService.recordExamResult(userId, levelId, score, pass_threshold)` (marca `passed = true` en `level_progress`) y luego a `progressService.unlockNextLevel(userId, levelId + 1)`. 5. La pantalla de resultados muestra "¡Nivel Superado!" con el puntaje obtenido y el mínimo requerido. |
+| **Flujo alternativo** | A1 — `score < pass_threshold`: se llama a `progressService.recordExamResult()` con `passed = false` (no se desbloquea el siguiente nivel); la pantalla muestra "Inténtalo de nuevo" con opción de volver al inicio. A2 — El usuario abandona el examen antes de finalizarlo: el progreso parcial no se guarda; el examen se reinicia desde el principio en la próxima sesión. |
 
 ---
 
@@ -84,9 +84,9 @@ La progresión gamificada se realiza mediante vidas (❤️) y puntos de experie
 | Campo | Descripción |
 | :--- | :--- |
 | **Actor principal** | Usuario autenticado en el módulo Traductor |
-| **Precondición** | El dispositivo del usuario tiene micrófono disponible y el navegador otorgó permiso de acceso al audio (`MediaDevices.getUserMedia`). El servicio de IA de traducción está configurado y accesible desde `src/services/voiceService.ts`. |
-| **Flujo normal** | 1. El usuario navega a la pantalla `app/translator/index.tsx`. 2. El usuario selecciona la dirección de traducción: Español → Quechua o Quechua → Español. 3. El usuario presiona el botón "Hablar" (micrófono). 4. La app inicia la grabación de audio mediante la API del navegador (`MediaRecorder`). 5. Al soltar el botón, `voiceService.transcribeAndTranslate(audioBlob, direction)` envía el audio al servicio de IA. 6. El servicio retorna el texto transcrito en el idioma origen y la traducción en el idioma destino. 7. La pantalla muestra ambos textos y reproduce el audio sintetizado de la traducción mediante la API de síntesis de voz. |
-| **Flujo alternativo** | A1 — Permiso de micrófono denegado: La pantalla muestra un banner explicativo con instrucciones para habilitar el micrófono en el navegador; nunca usa `window.alert`. A2 — El servicio de IA no responde en menos de 10 segundos: La pantalla muestra un estado de error con mensaje "No se pudo conectar al servicio de traducción" y un botón de reintento. A3 — Audio demasiado corto o con ruido excesivo: El servicio retorna un error de calidad de audio; la pantalla muestra retroalimentación visual indicando "No se pudo detectar voz clara; intente de nuevo". |
+| **Precondición** | El navegador soporta `SpeechRecognition`/`webkitSpeechRecognition` y `speechSynthesis` (Web Speech API — Chrome/Edge en Expo Web). La Edge Function `translate` de Supabase está desplegada y accesible desde `src/services/voiceService.ts`. |
+| **Flujo normal** | 1. El usuario navega a `app/translator/index.tsx` y elige la dirección de traducción (Español ↔ Quechua) y el modo texto o voz. 2. En modo voz, `startVoiceRecognition(lang)` inicia el reconocimiento y resuelve con el `transcript` capturado. 3. El texto (transcrito o escrito) se envía a `translateText({ source_lang, target_lang, source_text })`, que invoca la Edge Function `translate` vía `supabase.functions.invoke('translate', ...)`. 4. La pantalla muestra el texto traducido y permite reproducirlo con `speakText(text, lang)` (Web Speech Synthesis API). |
+| **Flujo alternativo** | A1 — Navegador sin soporte de `SpeechRecognition`: `startVoiceRecognition()` rechaza la promesa; la pantalla muestra un banner explicativo, nunca `window.alert`. A2 — La Edge Function retorna error: `translateText()` devuelve `{ translatedText: '', error }`; la pantalla muestra un estado de error con botón de reintento. |
 
 ---
 
