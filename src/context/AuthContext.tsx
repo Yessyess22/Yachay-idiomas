@@ -54,10 +54,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   async function signUp(email: string, password: string, username?: string) {
     const res = await authService.signUp(email, password, username);
     if (!res.error && res.user) {
-      await refreshProfile();
+      const signInRes = await authService.signIn(email, password);
+      if (signInRes.session) {
+        setSession(signInRes.session);
+        await authService.getProfile(signInRes.session.user.id).then(setProfile);
+      }
     }
     return { error: res.error };
   }
+
 
   async function signIn(email: string, password: string) {
     const res = await authService.signIn(email, password);

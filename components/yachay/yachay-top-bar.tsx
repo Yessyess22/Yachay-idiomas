@@ -1,121 +1,185 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View, Modal } from 'react-native';
+import { Image, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useGame } from '@/src/context/GameContext';
-import { BrandColors } from '@/src/constants/theme';
-import { IconSymbol } from '@/components/ui/icon-symbol';
+import { useAuth } from '@/src/context/AuthContext';
+import { useRouter } from 'expo-router';
+
+const TEAL = '#1B8B8C';
+const GOLD = '#D48B0A';
+
+function getLevelName(xp: number) {
+  if (xp < 200) return 'Nivel 1';
+  if (xp < 500) return 'Nivel 2';
+  if (xp < 1000) return 'Nivel 3';
+  if (xp < 2000) return 'Nivel 4';
+  return 'Nivel 5';
+}
 
 export function YachayTopBar() {
-  const { lives, gems, streakDays, restoreLives } = useGame();
-  const [modalVisible, setModalVisible] = useState(false);
+  const { lives, gems, streakDays, xp, restoreLives } = useGame();
+  const { profile } = useAuth();
+  const router = useRouter();
+  const [livesModal, setLivesModal] = useState(false);
+
+  const totalXp = profile?.total_xp ?? xp ?? 0;
+  const levelName = getLevelName(totalXp);
+  const coins = totalXp + gems * 5;
+  const username = profile?.username || 'Tú';
+  const initial = username.charAt(0).toUpperCase();
 
   return (
-    <View style={styles.container}>
-      {/* Racha 🔥 */}
-      <View style={styles.badge}>
-        <Text style={styles.emoji}>🔥</Text>
-        <Text style={[styles.badgeText, { color: '#FF9600' }]}>{streakDays}</Text>
+    <>
+      <View style={styles.bar}>
+        {/* LOGO izquierda */}
+        <View style={styles.logoWrap}>
+          <Text style={styles.logoText}>Yachay</Text>
+        </View>
+
+        {/* STATS en el centro */}
+        <View style={styles.statsRow}>
+          {/* Coins */}
+          <View style={styles.pill}>
+            <Image
+              source={require('@/assets/images/logros/moneda_yachay_coin.png')}
+              style={styles.pillIcon}
+            />
+            <Text style={styles.pillText}>{coins.toLocaleString()}</Text>
+          </View>
+
+          {/* Nivel */}
+          <View style={styles.pill}>
+            <Image
+              source={require('@/assets/images/logros/logro_principiante_chullo.png')}
+              style={styles.pillIcon}
+            />
+            <Text style={styles.pillText}>{levelName}</Text>
+          </View>
+
+          {/* Racha + vidas (toca para ver vidas) */}
+          <TouchableOpacity style={styles.pill} onPress={() => setLivesModal(true)} activeOpacity={0.75}>
+            <Text style={styles.pillEmoji}>🔥</Text>
+            <Text style={styles.pillText}>{streakDays} días</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Avatar derecha */}
+        <TouchableOpacity
+          style={styles.avatarCircle}
+          onPress={() => router.push('/(tabs)/profile' as any)}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.avatarInitial}>{initial}</Text>
+        </TouchableOpacity>
       </View>
 
-      {/* Gemas 💎 */}
-      <View style={styles.badge}>
-        <Text style={styles.emoji}>💎</Text>
-        <Text style={[styles.badgeText, { color: '#1CB0F6' }]}>{gems}</Text>
-      </View>
-
-      {/* Vidas ❤️ */}
-      <TouchableOpacity
-        style={styles.badge}
-        onPress={() => setModalVisible(true)}
-        activeOpacity={0.7}
-      >
-        <Text style={styles.emoji}>❤️</Text>
-        <Text style={[styles.badgeText, { color: '#FF4B4B' }]}>{lives}</Text>
-      </TouchableOpacity>
-
-      {/* Modal de información de vidas */}
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={modalVisible}
-        onRequestClose={() => setModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+      {/* Modal vidas */}
+      <Modal animationType="slide" transparent visible={livesModal} onRequestClose={() => setLivesModal(false)}>
+        <View style={styles.overlay}>
+          <View style={styles.modal}>
             <Text style={styles.modalEmoji}>❤️</Text>
-            <Text style={styles.modalTitle}>Tus Vidas ({lives}/5)</Text>
-            <Text style={styles.modalDescription}>
+            <Text style={styles.modalTitle}>Vidas ({lives} / 5)</Text>
+            <Text style={styles.modalDesc}>
               {lives < 5
                 ? 'Las vidas se recargan con el tiempo o puedes completarlas en la Tienda.'
-                : '¡Tienes tus vidas al máximo! Sigue practicando Quechua.'}
+                : '¡Tus vidas están al máximo! Sigue aprendiendo Quechua.'}
             </Text>
-
             {lives < 5 && (
               <TouchableOpacity
-                style={styles.refillButton}
-                onPress={() => {
-                  restoreLives();
-                  setModalVisible(false);
-                }}
+                style={styles.refillBtn}
+                onPress={() => { restoreLives(); setLivesModal(false); }}
               >
-                <Text style={styles.refillButtonText}>Recargar Vidas Gratis</Text>
+                <Text style={styles.refillText}>Recargar Vidas Gratis ❤️</Text>
               </TouchableOpacity>
             )}
-
-            <TouchableOpacity
-              style={styles.closeButton}
-              onPress={() => setModalVisible(false)}
-            >
-              <Text style={styles.closeButtonText}>Cerrar</Text>
+            <TouchableOpacity style={styles.closeBtn} onPress={() => setLivesModal(false)}>
+              <Text style={styles.closeBtnText}>Cerrar</Text>
             </TouchableOpacity>
           </View>
         </View>
       </Modal>
-    </View>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  bar: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-around',
+    justifyContent: 'space-between',
     backgroundColor: '#FFFFFF',
     paddingVertical: 10,
     paddingHorizontal: 16,
-    borderBottomWidth: 2,
-    borderBottomColor: '#E5E5E5',
-    elevation: 3,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E8E2D9',
+    elevation: 4,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.07,
+    shadowRadius: 4,
   },
-  badge: {
+  logoWrap: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F7F7F7',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+  },
+  logoText: {
+    fontSize: 22,
+    fontWeight: '900',
+    color: TEAL,
+    letterSpacing: -0.5,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  pill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F5F5F0',
     borderRadius: 20,
-    borderWidth: 1.5,
-    borderColor: '#E5E5E5',
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    gap: 5,
+    borderWidth: 1,
+    borderColor: '#E8E2D9',
   },
-  emoji: {
-    fontSize: 18,
-    marginRight: 6,
+  pillIcon: {
+    width: 20,
+    height: 20,
+    resizeMode: 'contain',
   },
-  badgeText: {
+  pillEmoji: {
     fontSize: 16,
-    fontWeight: '800',
   },
-  modalOverlay: {
+  pillText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#2A1A0A',
+  },
+  avatarCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: TEAL,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#B2DFDB',
+  },
+  avatarInitial: {
+    color: '#FFFFFF',
+    fontWeight: '900',
+    fontSize: 15,
+  },
+  /* Modal */
+  overlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
   },
-  modalContent: {
+  modal: {
     backgroundColor: '#FFFFFF',
     borderRadius: 24,
     padding: 24,
@@ -123,25 +187,17 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 340,
   },
-  modalEmoji: {
-    fontSize: 50,
-    marginBottom: 12,
-  },
-  modalTitle: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: '#3C3C3C',
-    marginBottom: 8,
-  },
-  modalDescription: {
+  modalEmoji: { fontSize: 50, marginBottom: 10 },
+  modalTitle: { fontSize: 22, fontWeight: '800', color: '#3C3C3C', marginBottom: 8 },
+  modalDesc: {
     fontSize: 15,
     color: '#777777',
     textAlign: 'center',
     marginBottom: 20,
     lineHeight: 22,
   },
-  refillButton: {
-    backgroundColor: '#58CC02',
+  refillBtn: {
+    backgroundColor: TEAL,
     paddingVertical: 14,
     paddingHorizontal: 24,
     borderRadius: 16,
@@ -149,21 +205,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 10,
     borderBottomWidth: 4,
-    borderBottomColor: '#46A302',
+    borderBottomColor: '#136566',
   },
-  refillButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '800',
-  },
-  closeButton: {
-    paddingVertical: 12,
-    width: '100%',
-    alignItems: 'center',
-  },
-  closeButtonText: {
-    color: '#AFB5C0',
-    fontSize: 16,
-    fontWeight: '700',
-  },
+  refillText: { color: '#FFFFFF', fontSize: 16, fontWeight: '800' },
+  closeBtn: { paddingVertical: 12, width: '100%', alignItems: 'center' },
+  closeBtnText: { color: '#AFB5C0', fontSize: 16, fontWeight: '700' },
 });

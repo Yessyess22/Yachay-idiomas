@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Image,
   ScrollView,
   StyleSheet,
   Text,
@@ -12,6 +13,9 @@ import { useGame } from '@/src/context/GameContext';
 import { shopService } from '@/src/services/shopService';
 import { ShopItem } from '@/src/types';
 import { YachayTopBar } from '@/components/yachay/yachay-top-bar';
+
+const TEAL = '#1B8B8C';
+const CREAM = '#FAF7F2';
 
 const DEFAULT_SHOP_ITEMS: ShopItem[] = [
   {
@@ -136,7 +140,7 @@ export default function ShopScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F7F9FA',
+    backgroundColor: '#FAF7F2',
   },
   content: {
     padding: 20,
@@ -198,12 +202,12 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   buyButton: {
-    backgroundColor: '#1CB0F6',
+    backgroundColor: '#1B8B8C',
     paddingVertical: 10,
     paddingHorizontal: 16,
     borderRadius: 14,
     borderBottomWidth: 3,
-    borderBottomColor: '#1899D6',
+    borderBottomColor: '#136566',
   },
   buyButtonDisabled: {
     backgroundColor: '#E5E5E5',
