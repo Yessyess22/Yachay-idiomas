@@ -8,14 +8,15 @@ Este archivo es la ancla de contexto obligatoria para que el asistente de IA o c
 
 | Campo | Valor |
 | :--- | :--- |
-| **Fase** | Fase 3 — Gamificación Global, Exámenes de Nivel y Traductor de Voz |
-| **Sprint activo** | **Sprint 4: Integración Final, QA y Pulido de Producto** |
+| **Fase** | Fase 4 — Onboarding, Integración Final, QA y Pulido (No Comercial v2.0) |
+| **Sprint activo** | **Sprint 4: Onboarding Inmersivo, Persistencia GameContext, Cierre GAP-06/GAP-07** |
 | **Sprints Completados** | **Sprint 1 (100% ✅)**, **Sprint 2 (100% ✅)** y **Sprint 3 (100% ✅)** |
-| **Fecha de actualización** | 2026-09-12 |
+| **Fecha de actualización** | 2026-09-14 |
 | **Responsables** | Oscar Segovia, Yesica Escobar, Alejandro Padilla |
-| **Estado del Backend** | ✅ Esquema relacional 3FN en Supabase cloud (11 tablas base: `profiles`, `categories`, `lessons`, `questions`, `question_options`, `levels`, `exams`, `exam_questions`, `lesson_progress`, `level_progress`, `translation_history`) más la migración `20260912000000_gamification_and_exercises.sql` que agrega gamificación a `profiles` (`gems`, `lives`, `streak_count`, `streak_freeze_count`, `last_active_date`, `last_life_lost_at`) y las tablas `daily_quests`, `user_quests`, `badges`, `user_badges`, `leaderboard_weekly`, `shop_items`, `user_inventory`, todas con RLS. |
-| **Estado del Frontend** | ✅ Sprint 3 completo: `GameContext` (vidas, XP, gemas, racha), lección en dos fases (Teoría → Quiz), exámenes de nivel bloqueantes (`level/exam/[levelId].tsx`), pantalla de bloqueo (`blocked.tsx`), traductor de voz (`translator/index.tsx`), Ligas (`(tabs)/leaderboard.tsx`), Tienda (`(tabs)/shop.tsx`) y Guía Gramatical (`guidebook/[id].tsx`). |
-| **Deuda conocida** | `GameContext` es estado local en memoria — no persiste contra las columnas de gamificación de `profiles` (ver GAP-06 en `05-FINDINGS_DEUDA.md`). `leaderboardService` no usa aún la tabla `leaderboard_weekly`. |
+| **Estado del Backend** | ✅ Esquema relacional 3FN en Supabase cloud con gamificación completa: `profiles` (con columnas `gems`, `lives`, `streak_count`, `streak_freeze_count`, `last_active_date`, `last_life_lost_at`), `daily_quests`, `user_quests`, `badges`, `user_badges`, `leaderboard_weekly`, `shop_items`, `user_inventory`. Todas con RLS. |
+| **Estado del Frontend** | 🔵 Sprint 4 en curso: `app/onboarding/index.tsx` (nuevo), `GameContext` con persistencia Supabase (hydrate + sync debounced), `leaderboardService` conectado a `leaderboard_weekly`, dashboard renombrado "Camino del Saber". |
+| **Deuda cerrada** | GAP-06: `GameContext` ahora hidrata desde `profiles` y sincroniza mutaciones. GAP-07: `leaderboardService` usa `leaderboard_weekly`; `shop.tsx` ya usaba `shopService.fetchShopItems()`. |
+| **Deuda pendiente** | GAP-03: Tests unitarios Jest de `GameContext` y E2E aún pendientes (S4-T05). Compilación Docker (`tsc --noEmit`) pendiente de confirmar (S4-T07). |
 
 ---
 
@@ -31,13 +32,16 @@ Este archivo es la ancla de contexto obligatoria para que el asistente de IA o c
 
 ---
 
-## Próximo Objetivo: Sprint 4
+## Objetivos del Sprint 4 — Estado
 
-- [ ] **S4-T01** Escribir tests unitarios de `GameContext` con Jest.
-- [ ] **S4-T02** Escribir tests de flujo E2E.
-- [ ] **S4-T03** Ejecutar auditoría final de arquitectura (`grep` triple: sin `supabase.from` en `app/`, sin estilos inline, sin diálogos nativos).
-- [ ] **Nuevo** Persistir `GameContext` contra las columnas de gamificación de `profiles` (vidas, gemas, XP, racha) — ver GAP-06.
-- [ ] **Nuevo** Conectar `leaderboardService` a la tabla `leaderboard_weekly` y `shop.tsx` a `shopService.fetchShopItems()`.
+- [x] **S4-T01** Crear `app/onboarding/index.tsx`: carrusel de 4 pasos con Yachi + AsyncStorage (`onboardingComplete`).
+- [x] **S4-T02** Refactorizar `app/(tabs)/index.tsx` — "Camino del Saber" con ruta visual por unidades temáticas (ya implementado en Sprint 3; etiquetado y documentado en v2.0).
+- [x] **S4-T03** Persistir `GameContext` en `profiles`: `hydrateFromProfile()` al login + sync debounced 800 ms (Cierre GAP-06). `authService.updateGameState()` añadido.
+- [x] **S4-T04** `leaderboardService` ahora consulta `leaderboard_weekly` JOIN `profiles`. `shop.tsx` ya usaba `shopService.fetchShopItems()` (Cierre GAP-07).
+- [ ] **S4-T05** Tests unitarios de `GameContext` con Jest + E2E de flujo (Cierre GAP-03).
+- [ ] **S4-T06** Auditoría `grep` triple: 0 `supabase.from` en `app/`, 0 alerts, 0 estilos inline.
+- [ ] **S4-T07** Verificar `npx tsc --noEmit` en contenedor Docker sin errores.
+- [ ] **S4-T08** Registrar cierre de Sprint 4 en bitácora.
 
 ---
 
@@ -54,7 +58,30 @@ Contenedor Expo Web configurado en `Dockerfile` (`node:20-alpine`) y `docker-com
 
 ### 3. Clean Architecture — Feature-First (0 llamadas directas en `app/`)
 Flujo de datos estrictamente unificado:
-`Vista UI (app/) -> Contexto/Hook (src/context/) -> Servicio (src/services/) -> Cliente Supabase (src/services/supabase.ts)`
+`Vista UI (app/) → Contexto/Hook (src/context/) → Servicio (src/services/) → Cliente Supabase (src/services/supabase.ts)`
+
+### 4. Invariantes de Arquitectura (v2.0)
+| ID | Invariante | Verificación |
+| :--- | :--- | :--- |
+| **INV-01** | No hay importación de `supabase.ts` en ningún archivo de `app/` | `grep -r "from.*services/supabase" app/` → 0 resultados |
+| **INV-02** | No hay estilos inline JSX no autorizados | `grep -r "style={{" app/` → solo casos aprobados |
+| **INV-03** | No hay `window.alert` ni `Alert.alert` para feedback de lecciones | `grep -r "window.alert\|Alert.alert" app/` → 0 en archivos de lecciones |
+| **INV-04** | Gamificación es exclusivamente educativa (sin monetización real) | Revisión manual + no existe `stripe`, `paypal` ni similar en dependencias |
+
+### 5. Patrón de Hidratación GameContext (nuevo en Sprint 4)
+```
+AuthContext.profile actualizado
+       ↓
+ProfileHydrator (en _layout.tsx)
+       ↓
+gameContext.hydrateFromProfile(profile)
+       ↓ dispatcha HYDRATE
+GameState: lives, xp, gems, streakDays actualizados desde Supabase
+       ↓ useEffect debounced (800 ms)
+authService.updateGameState(userId, { lives, gems, xp, streakDays })
+       ↓
+supabase.from('profiles').update(...)
+```
 
 ---
 
@@ -66,3 +93,4 @@ Flujo de datos estrictamente unificado:
 | 2026-09-10 | Equipo | Ejecución y cierre de Sprint 1 y Sprint 2. Migración DDL y Seed aplicados en Supabase, Clean Architecture implementada (`src/services/`), refactor de telas UI (Home, Categorías, Lecciones, Perfil y Logout) y cero errores de TypeScript en compilación. |
 | 2026-09-11 | Alejandro (con asistencia de Claude Sonnet 4.6) | Ejecución de Sprint 3: `GameContext`, lección en dos fases, exámenes de nivel bloqueantes, pantalla de bloqueo y traductor de voz con IA. |
 | 2026-09-12 | Yessyess22 | Cierre de Sprint 3: Ligas, Tienda, Guía Gramatical, ejercicios de banco de palabras y pares, migración de gamificación (`daily_quests`, `badges`, `leaderboard_weekly`, `shop_items`) y actualización de Perfil/Dashboard. Apertura de Sprint 4 y actualización de toda la documentación (`README.md`, `CONTEXTO_PROYECTO.md`, `docs/`) al estado real del repositorio. |
+| 2026-09-14 | Alejandro (con asistencia de Claude Sonnet 4.6) | Apertura formal del Sprint 4 bajo Visión No Comercial v2.0. Implementación de: `app/onboarding/index.tsx` (4 pasos + AsyncStorage), `GameContext` con hidratación desde `profiles` y sync debounced (cierre GAP-06), `leaderboardService` conectado a `leaderboard_weekly` (cierre GAP-07 p1), `authService.updateGameState()`, `_layout.tsx` con guard de onboarding. Actualización de docs/02 a docs/06 y docs/03 a v2.0. |

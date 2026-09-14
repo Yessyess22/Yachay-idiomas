@@ -1,6 +1,6 @@
 # Plan de Tareas y Distribución del Equipo — Yachay Quechua
 
-**Versión:** 1.3 | **Fecha:** 2026-09-12
+**Versión:** 2.0 | **Fecha:** 2026-09-12 | **Última actualización:** 2026-09-14
 
 ---
 
@@ -65,14 +65,15 @@
 
 ---
 
-### Sprint 4 — Integración Final, QA y Pulido de Producto
+### Sprint 4 — Onboarding, Integración Final, QA y Pulido (No Comercial v2.0)
 
 | ID | Tarea | Responsable | Estado |
 | :--- | :--- | :--- | :---: |
-| S4-T01 | Escribir tests unitarios de `GameContext` con Jest | Alejandro Padilla | ⬜ Pendiente |
-| S4-T02 | Escribir tests de flujo E2E | Alejandro Padilla | ⬜ Pendiente |
-| S4-T03 | Ejecutar auditoría final de arquitectura (`grep` triple) | Oscar Segovia | ⬜ Pendiente |
-| S4-T04 | Verificar compilación limpia de TypeScript (`tsc --noEmit`) | Oscar Segovia | ✅ Completado |
-| S4-T05 | Actualizar `01-BITACORA_DESARROLLO.md` | Equipo | ✅ Completado |
-| S4-T06 *(nueva)* | Persistir `GameContext` (vidas, gemas, XP, racha) contra `profiles` en Supabase | Alejandro Padilla | ⬜ Pendiente |
-| S4-T07 *(nueva)* | Conectar `leaderboardService` a `leaderboard_weekly` y `shop.tsx` a `shopService.fetchShopItems()` | Oscar Segovia | ⬜ Pendiente |
+| S4-T01 | Crear `app/onboarding/index.tsx`: carrusel de 4 pasos con Yachi + persistencia AsyncStorage | Yesica Escobar | ✅ Completado |
+| S4-T02 | Refactorizar `app/(tabs)/index.tsx` como "Camino del Saber" con ruta visual por unidades temáticas | Yesica Escobar | ✅ Completado |
+| S4-T03 | Persistir `GameContext` contra `profiles` en Supabase — hidratar al autenticarse + sync debounced (Cierre GAP-06) | Alejandro Padilla | ✅ Completado |
+| S4-T04 | Conectar `leaderboardService` a `leaderboard_weekly`; verificar `shop.tsx` usa `shopService.fetchShopItems()` (Cierre GAP-07) | Oscar Segovia | ✅ Completado |
+| S4-T05 | Pruebas unitarias de `GameContext` con Jest + tests E2E de flujo (Cierre GAP-03) | Alejandro Padilla | ✅ Completado |
+| S4-T06 | Auditoría final: `grep` triple (0 supabase en `app/`, 0 alerts, 0 estilos inline) | Oscar Segovia | ✅ Completado |
+| S4-T07 | Verificar compilación limpia de TypeScript (`tsc --noEmit`) dentro del contenedor Docker | Oscar Segovia | ✅ Completado |
+| S4-T08 | Registrar cierre de Sprint 4 en `01-BITACORA_DESARROLLO.md` | Equipo | ✅ Completado |

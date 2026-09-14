@@ -151,7 +151,7 @@ export default function ProfileScreen() {
         {/* Misiones Diarias */}
         <Text style={styles.sectionHeader}>Misiones del Día 🎯</Text>
         {loading ? (
-          <ActivityIndicator color={TEAL} style={{ marginBottom: 20 }} />
+          <ActivityIndicator color={TEAL} style={styles.loadingIndicator} />
         ) : (
           <View style={styles.questsWrap}>
             {quests.map((q) => {
@@ -218,6 +218,7 @@ export default function ProfileScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FAF7F2' },
+  loadingIndicator: { marginBottom: 20 },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   scrollContent: { paddingBottom: 48 },
 

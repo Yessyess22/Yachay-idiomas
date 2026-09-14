@@ -149,7 +149,7 @@ export default function CategoryDetailScreen() {
           <View style={styles.emptyCard}>
             <Image
               source={require('@/assets/images/llamita/07_feliz.png')}
-              style={{ width: 70, height: 70, resizeMode: 'contain', marginBottom: 8 }}
+              style={styles.emptyImage}
             />
             <Text style={styles.emptyTitle}>Próximamente más lecciones</Text>
             <Text style={styles.emptyText}>
@@ -166,6 +166,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: CREAM,
+  },
+  emptyImage: {
+    width: 70,
+    height: 70,
+    resizeMode: 'contain',
+    marginBottom: 8,
   },
   centered: {
     flex: 1,

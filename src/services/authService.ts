@@ -84,6 +84,21 @@ export const authService = {
   },
 
 
+  async updateGameState(
+    uid: string,
+    data: { lives: number; gems: number; xp: number; streakDays: number }
+  ): Promise<void> {
+    await supabase
+      .from('profiles')
+      .update({
+        lives: data.lives,
+        gems: data.gems,
+        total_xp: data.xp,
+        streak_count: data.streakDays,
+      })
+      .eq('firebase_uid', uid);
+  },
+
   onAuthStateChange(callback: (session: Session | null) => void) {
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
       callback(session);

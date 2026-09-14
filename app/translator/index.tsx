@@ -225,7 +225,7 @@ export default function TranslatorScreen() {
           <View style={[styles.card, styles.resultCard]}>
             <Text style={styles.cardLabel}>{LANG_LABELS[targetLang]}</Text>
             {loading ? (
-              <ActivityIndicator color={BrandColors.brandGreen} style={{ marginVertical: 16 }} />
+              <ActivityIndicator color={BrandColors.brandGreen} style={styles.loadingIndicator} />
             ) : (
               <>
                 <Text style={styles.resultText}>{translatedText}</Text>
@@ -249,6 +249,7 @@ export default function TranslatorScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: BrandColors.bgLight, paddingTop: 50 },
+  loadingIndicator: { marginVertical: 16 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',

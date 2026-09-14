@@ -162,7 +162,7 @@ export default function LogrosScreen() {
       {/* ── RANKING ── */}
       {activeTab === 'leaderboard' && (
         loading ? (
-          <ActivityIndicator size="large" color={TEAL} style={{ marginTop: 48 }} />
+          <ActivityIndicator size="large" color={TEAL} style={styles.loadingIndicator} />
         ) : (
           <FlatList
             data={entries}
@@ -205,6 +205,7 @@ export default function LogrosScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FAF7F2' },
+  loadingIndicator: { marginTop: 48 },
 
   rachaBanner: {
     backgroundColor: TEAL,

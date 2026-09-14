@@ -1,8 +1,11 @@
-import { createContext, ReactNode, useCallback, useContext, useReducer } from 'react';
+import { createContext, ReactNode, useCallback, useContext, useEffect, useReducer, useRef } from 'react';
+import { authService } from '@/src/services/authService';
+import { Profile } from '@/src/types';
 
 const INITIAL_LIVES = 5;
 const XP_PER_CORRECT = 10;
 const GEMS_PER_LESSON = 15;
+const SYNC_DEBOUNCE_MS = 800;
 
 type GameState = {
   lives: number;
@@ -18,7 +21,8 @@ type GameAction =
   | { type: 'RESTORE_LIVES' }
   | { type: 'ADD_GEMS'; amount: number }
   | { type: 'CONSUME_GEMS'; amount: number }
-  | { type: 'SET_STREAK'; streak: number };
+  | { type: 'SET_STREAK'; streak: number }
+  | { type: 'HYDRATE'; lives: number; xp: number; gems: number; streakDays: number };
 
 type GameContextType = GameState & {
   checkAnswer: (isCorrect: boolean) => void;
@@ -26,10 +30,20 @@ type GameContextType = GameState & {
   addGems: (amount?: number) => void;
   consumeGems: (amount: number) => boolean;
   setStreak: (streak: number) => void;
+  hydrateFromProfile: (profile: Profile) => void;
 };
 
 function gameReducer(state: GameState, action: GameAction): GameState {
   switch (action.type) {
+    case 'HYDRATE':
+      return {
+        ...state,
+        lives: action.lives,
+        xp: action.xp,
+        gems: action.gems,
+        streakDays: action.streakDays,
+        isBlocked: action.lives <= 0,
+      };
     case 'CORRECT_ANSWER':
       return { ...state, xp: state.xp + XP_PER_CORRECT };
     case 'WRONG_ANSWER': {
@@ -59,6 +73,37 @@ export function GameProvider({ children }: { children: ReactNode }) {
     streakDays: 3,
     isBlocked: false,
   });
+
+  const userIdRef = useRef<string | null>(null);
+  const syncTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Debounced sync to Supabase profiles table
+  useEffect(() => {
+    if (!userIdRef.current) return;
+    if (syncTimer.current) clearTimeout(syncTimer.current);
+    syncTimer.current = setTimeout(() => {
+      authService.updateGameState(userIdRef.current!, {
+        lives: state.lives,
+        gems: state.gems,
+        xp: state.xp,
+        streakDays: state.streakDays,
+      });
+    }, SYNC_DEBOUNCE_MS);
+    return () => {
+      if (syncTimer.current) clearTimeout(syncTimer.current);
+    };
+  }, [state.lives, state.gems, state.xp, state.streakDays]);
+
+  const hydrateFromProfile = useCallback((profile: Profile) => {
+    userIdRef.current = profile.firebase_uid;
+    dispatch({
+      type: 'HYDRATE',
+      lives: profile.lives ?? INITIAL_LIVES,
+      xp: profile.total_xp ?? 0,
+      gems: profile.gems ?? 100,
+      streakDays: profile.streak_count ?? 0,
+    });
+  }, []);
 
   const checkAnswer = useCallback((isCorrect: boolean) => {
     dispatch({ type: isCorrect ? 'CORRECT_ANSWER' : 'WRONG_ANSWER' });
@@ -96,6 +141,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
         addGems,
         consumeGems,
         setStreak,
+        hydrateFromProfile,
       }}
     >
       {children}

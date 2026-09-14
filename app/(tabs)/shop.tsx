@@ -106,7 +106,7 @@ export default function ShopScreen() {
         ) : null}
 
         {loading ? (
-          <ActivityIndicator size="large" color="#58CC02" style={{ marginTop: 20 }} />
+          <ActivityIndicator size="large" color="#58CC02" style={styles.loadingIndicator} />
         ) : (
           items.map((item) => (
             <View key={item.id} style={styles.itemCard}>
@@ -141,6 +141,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#FAF7F2',
+  },
+  loadingIndicator: {
+    marginTop: 20,
   },
   content: {
     padding: 20,

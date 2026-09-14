@@ -203,7 +203,7 @@ export default function HomeScreen() {
                 </View>
               );
             })}
-            <View style={{ height: 40 }} />
+            <View style={styles.listFooterSpacer} />
           </View>
 
           {/* ─── COLUMNA DERECHA: Llamita motivacional ─── */}
@@ -228,6 +228,9 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: CREAM,
+  },
+  listFooterSpacer: {
+    height: 40,
   },
 
   /* Banner de sección */

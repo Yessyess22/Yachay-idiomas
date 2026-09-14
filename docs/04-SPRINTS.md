@@ -1,6 +1,6 @@
 # Plan de Sprints — Yachay Quechua
 
-**Versión:** 1.3 | **Fecha:** 2026-09-10 | **Última actualización:** 2026-09-12 | **Duración por sprint:** ~2 semanas académicas
+**Versión:** 2.0 | **Fecha:** 2026-09-10 | **Última actualización:** 2026-09-14 | **Duración por sprint:** ~2 semanas académicas
 
 ---
 
@@ -11,7 +11,7 @@
 | **Sprint 1** | Diseño de BD, Infraestructura Docker y Clean Architecture | 2026-09-08 → 2026-09-19 | ✅ Completado |
 | **Sprint 2** | Auth, Capa de Datos y Módulos Abecedario/Números/Palabras | 2026-09-22 → 2026-10-03 | ✅ Completado |
 | **Sprint 3** | Gamificación Global, Exámenes de Nivel y Traductor de Voz | 2026-10-06 → 2026-10-17 | ✅ Completado (adelantado, cerrado el 2026-09-12) |
-| **Sprint 4** | Integración Final, QA y Pulido de Producto | 2026-10-20 → 2026-10-31 | 🔵 Sprint Activo |
+| **Sprint 4** | Integración Final, QA y Pulido de Producto | 2026-10-20 → 2026-10-31 | ✅ Completado (cerrado el 2026-09-14) |
 
 ---
 
@@ -78,16 +78,17 @@
 
 ---
 
-## Sprint 4 — Integración Final, QA y Pulido de Producto
+## Sprint 4 — Onboarding, Integración Final, QA y Pulido (No Comercial v2.0)
 
-**Estado:** 🔵 **Sprint Activo**
+**Estado:** ✅ **COMPLETADO (100%)** | **Período:** 2026-10-20 → 2026-10-31 | **Cerrado:** 2026-09-14
 
 ### Tareas del Sprint 4
 
 | ID | Descripción | Responsable | Estado |
 | :--- | :--- | :--- | :---: |
-| S4-T01 | Escribir tests unitarios de `GameContext` con Jest. | Alejandro Padilla | ⬜ |
-| S4-T02 | Escribir tests de flujo E2E. | Alejandro Padilla | ⬜ |
-| S4-T03 | Ejecutar auditoría final de arquitectura (`grep` triple: sin `supabase.from` en `app/`, sin estilos inline, sin diálogos nativos). | Oscar Segovia | ⬜ |
-| S4-T04 | Persistir `GameContext` (vidas, gemas, XP, racha) contra `profiles` en Supabase. | Alejandro Padilla | ⬜ |
-| S4-T05 | Conectar `leaderboardService` a `leaderboard_weekly` y `shop.tsx` a `shopService.fetchShopItems()`. | Oscar Segovia | ⬜ |
+| S4-T01 | Crear flujo de Onboarding Inmersivo de 4 pasos con Yachi (`app/onboarding/index.tsx`) y persistencia en AsyncStorage. | Yesica Escobar | ✅ |
+| S4-T02 | Refactorizar Dashboard Principal como "Camino del Saber" (`app/(tabs)/index.tsx`) — ruta de aprendizaje visual por unidades temáticas con XP, vidas y racha. | Yesica Escobar | ✅ |
+| S4-T03 | Persistencia real de `GameContext` en la tabla `profiles` de Supabase (Cierre de GAP-06): hidratar vidas/gemas/racha/XP desde `authService.getProfile()` al autenticarse; sincronizar mutaciones asíncronamente. | Alejandro Padilla | ✅ |
+| S4-T04 | Conexión de `leaderboardService` a `leaderboard_weekly` y verificación de `shop.tsx` usando `shopService.fetchShopItems()` (Cierre de GAP-07). | Oscar Segovia | ✅ |
+| S4-T05 | Pruebas unitarias de `GameContext` con Jest y tests de flujo E2E (Cierre de GAP-03). | Alejandro Padilla | ✅ |
+| S4-T06 | Auditoría final de arquitectura (`grep` triple): 0 llamadas directas a Supabase en `app/`, 0 `window.alert`/`Alert.alert` en lecciones, 0 estilos inline no autorizados. | Oscar Segovia | ✅ |
