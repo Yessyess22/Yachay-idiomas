@@ -1,4 +1,3 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router/react-navigation';
 import { StatusBar } from 'expo-status-bar';
@@ -28,7 +27,7 @@ function ProfileHydrator() {
 }
 
 function RootLayoutNav() {
-  const { session, loading } = useAuth();
+  const { user, loading } = useAuth();
   const { isBlocked } = useGame();
   const segments = useSegments();
   const router = useRouter();
@@ -40,27 +39,18 @@ function RootLayoutNav() {
     }
   }, [isBlocked]);
 
-  // Main routing: checks onboarding state from AsyncStorage before session routing
   useEffect(() => {
     if (loading) return;
 
-    (async () => {
-      const done = (await AsyncStorage.getItem('onboardingComplete')) === 'true';
-      const inOnboarding = segments[0] === 'onboarding';
+    const inAuthGroup = segments[0] === '(auth)';
+    const inOnboarding = segments[0] === 'onboarding';
 
-      if (!done && !inOnboarding) {
-        router.replace('/onboarding' as any);
-        return;
-      }
-
-      const inAuthGroup = segments[0] === '(auth)';
-      if (!session && !inAuthGroup && done) {
-        router.replace('/(auth)' as any);
-      } else if (session && inAuthGroup) {
-        router.replace('/(tabs)');
-      }
-    })();
-  }, [session, loading, segments]);
+    if (user && (inAuthGroup || inOnboarding)) {
+      router.replace('/(tabs)');
+    } else if (!user && !inAuthGroup && !inOnboarding) {
+      router.replace('/onboarding' as any);
+    }
+  }, [user, loading, segments]);
 
   return (
     <Stack>

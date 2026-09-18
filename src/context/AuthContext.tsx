@@ -1,11 +1,11 @@
-import { authService } from '@/src/services/authService';
-import { Profile } from '@/src/types';
-import { Session, User } from '@supabase/supabase-js';
+import { User as FirebaseUser } from 'firebase/auth';
 import { createContext, ReactNode, useContext, useEffect, useState } from 'react';
 
+import { authService } from '@/src/services/authService';
+import { Profile } from '@/src/types';
+
 type AuthContextType = {
-  session: Session | null;
-  user: User | null;
+  user: FirebaseUser | null;
   profile: Profile | null;
   loading: boolean;
   signUp: (email: string, password: string, username?: string) => Promise<{ error: string | null }>;
@@ -17,80 +17,48 @@ type AuthContextType = {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [session, setSession] = useState<Session | null>(null);
+  const [user, setUser] = useState<FirebaseUser | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    authService.getSession().then((sess) => {
-      setSession(sess);
-      if (sess?.user) {
-        authService.getProfile(sess.user.id).then(setProfile);
+    const unsubscribe = authService.onAuthStateChange(async (firebaseUser) => {
+      setUser(firebaseUser);
+      if (firebaseUser) {
+        const p = await authService.getProfile(firebaseUser.uid);
+        setProfile(p);
+      } else {
+        setProfile(null);
       }
       setLoading(false);
     });
 
-    const subscription = authService.onAuthStateChange((sess) => {
-      setSession(sess);
-      if (sess?.user) {
-        authService.getProfile(sess.user.id).then(setProfile);
-      } else {
-        setProfile(null);
-      }
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
+    return unsubscribe;
   }, []);
 
   async function refreshProfile() {
-    if (session?.user) {
-      const p = await authService.getProfile(session.user.id);
+    if (user) {
+      const p = await authService.getProfile(user.uid);
       setProfile(p);
     }
   }
 
   async function signUp(email: string, password: string, username?: string) {
     const res = await authService.signUp(email, password, username);
-    if (!res.error && res.user) {
-      const signInRes = await authService.signIn(email, password);
-      if (signInRes.session) {
-        setSession(signInRes.session);
-        await authService.getProfile(signInRes.session.user.id).then(setProfile);
-      }
-    }
     return { error: res.error };
   }
 
-
   async function signIn(email: string, password: string) {
     const res = await authService.signIn(email, password);
-    if (!res.error && res.session?.user) {
-      await authService.getProfile(res.session.user.id).then(setProfile);
-    }
     return { error: res.error };
   }
 
   async function signOut() {
     await authService.signOut();
-    setSession(null);
-    setProfile(null);
   }
 
   return (
-    <AuthContext.Provider
-      value={{
-        session,
-        user: session?.user ?? null,
-        profile,
-        loading,
-        signUp,
-        signIn,
-        signOut,
-        refreshProfile,
-      }}
-    >
+    <AuthContext.Provider value={{ user, profile, loading, signUp, signIn, signOut, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   );

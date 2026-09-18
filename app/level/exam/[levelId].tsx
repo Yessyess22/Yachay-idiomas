@@ -96,10 +96,10 @@ export default function LevelExamScreen() {
       const didPass = score >= exam.pass_threshold;
       setPassed(didPass);
 
-      if (user?.id) {
-        await progressService.recordExamResult(user.id, parsedLevelId, score, exam.pass_threshold);
+      if (user?.uid) {
+        await progressService.recordExamResult(user.uid, parsedLevelId, score, exam.pass_threshold);
         if (didPass) {
-          await progressService.unlockNextLevel(user.id, parsedLevelId + 1);
+          await progressService.unlockNextLevel(user.uid, parsedLevelId + 1);
         }
       }
 

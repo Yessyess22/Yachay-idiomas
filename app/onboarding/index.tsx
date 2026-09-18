@@ -31,13 +31,11 @@ export default function OnboardingScreen() {
   const [dailyGoal, setDailyGoal] = useState<DailyGoal>('regular');
 
   async function completeOnboarding() {
-    await AsyncStorage.setItem('onboardingComplete', 'true');
     await AsyncStorage.setItem('dailyGoal', dailyGoal);
     router.replace('/(auth)' as any);
   }
 
   async function handleGuest() {
-    await AsyncStorage.setItem('onboardingComplete', 'true');
     await AsyncStorage.setItem('dailyGoal', dailyGoal);
     router.replace('/(auth)/login' as any);
   }
@@ -109,9 +107,7 @@ function StepWelcome() {
         El quechua es el idioma más hablado de los pueblos originarios de América del Sur.
         Con Yachay aprenderás de forma divertida, gratuita y a tu ritmo.
       </Text>
-      <View style={styles.badge}>
-        <Text style={styles.badgeText}>🌄 100% Gratuito · Sin Publicidad · Sin Pagos</Text>
-      </View>
+
     </View>
   );
 }

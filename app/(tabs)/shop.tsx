@@ -80,7 +80,7 @@ export default function ShopScreen() {
         restoreLives();
       }
       if (user) {
-        await shopService.buyItem(user.id, item, gems);
+        await shopService.buyItem(user.uid, item, gems);
       }
       setMessage(`¡Has adquirido ${item.name}! 🎉`);
     } else {

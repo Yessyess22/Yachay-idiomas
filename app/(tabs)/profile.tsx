@@ -74,12 +74,12 @@ export default function ProfileScreen() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (user?.id) loadProfileData();
+    if (user?.uid) loadProfileData();
   }, [user]);
 
   async function loadProfileData() {
-    const { data: qData } = await questService.fetchDailyQuests(user!.id);
-    const { data: bData } = await questService.fetchBadges(user!.id);
+    const { data: qData } = await questService.fetchDailyQuests(user!.uid);
+    const { data: bData } = await questService.fetchBadges(user!.uid);
     if (qData && qData.length > 0) setQuests(qData);
     if (bData && bData.length > 0) setBadges(bData);
   }

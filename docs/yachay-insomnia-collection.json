@@ -1,0 +1,559 @@
+{
+  "_type": "export",
+  "__export_format": 4,
+  "__export_date": "2026-09-17T00:00:00.000Z",
+  "__export_source": "yachay-idiomas",
+  "resources": [
+
+    {
+      "_id": "wrk_yachay",
+      "_type": "workspace",
+      "name": "Yachay Idiomas API",
+      "description": "Supabase PostgREST + Firebase Auth — Yachay Quechua",
+      "scope": "collection"
+    },
+
+    {
+      "_id": "env_base",
+      "_type": "environment",
+      "name": "Producción",
+      "parentId": "wrk_yachay",
+      "data": {
+        "BASE_URL": "https://pcjkblllqokyhomlwloo.supabase.co/rest/v1",
+        "ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBjamtibGxscW9reWhvbWx3bG9vIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODg4NzUzMDAsImV4cCI6MjEwNDQ1MTMwMH0.tWqeNN_qQJ5fVuliCsWD_Xg3sdK9mZzwC3hMNI6KsgY",
+        "FIREBASE_API_KEY": "AIzaSyATfEfQIqnmIp65Ss5i81Ij8CX-9jd235U",
+        "FIREBASE_UID": "REEMPLAZA_CON_UID_REAL",
+        "FIREBASE_ID_TOKEN": "REEMPLAZA_CON_ID_TOKEN_DE_FIREBASE"
+      }
+    },
+
+    { "_id": "fld_auth",     "_type": "request_group", "name": "🔐 Auth (Firebase)",          "parentId": "wrk_yachay" },
+    { "_id": "fld_profiles", "_type": "request_group", "name": "👤 Perfiles",                  "parentId": "wrk_yachay" },
+    { "_id": "fld_content",  "_type": "request_group", "name": "📚 Contenido",                 "parentId": "wrk_yachay" },
+    { "_id": "fld_levels",   "_type": "request_group", "name": "🎓 Niveles y Exámenes",        "parentId": "wrk_yachay" },
+    { "_id": "fld_progress", "_type": "request_group", "name": "📊 Progreso del Usuario",      "parentId": "wrk_yachay" },
+    { "_id": "fld_game",     "_type": "request_group", "name": "🎮 Gamificación",              "parentId": "wrk_yachay" },
+    { "_id": "fld_shop",     "_type": "request_group", "name": "🛒 Tienda",                    "parentId": "wrk_yachay" },
+    { "_id": "fld_trans",    "_type": "request_group", "name": "🌐 Traductor",                 "parentId": "wrk_yachay" },
+
+    {
+      "_id": "req_001", "_type": "request", "parentId": "fld_auth",
+      "name": "Registrar usuario (Firebase)",
+      "method": "POST",
+      "url": "https://identitytoolkit.googleapis.com/v1/accounts:signUp?key={{ FIREBASE_API_KEY }}",
+      "headers": [{ "name": "Content-Type", "value": "application/json" }],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"email\": \"test@yachay.app\",\n  \"password\": \"123456\",\n  \"returnSecureToken\": true\n}"
+      },
+      "description": "Crea un usuario en Firebase Auth. Guarda el 'localId' como FIREBASE_UID y el 'idToken' como FIREBASE_ID_TOKEN en el environment."
+    },
+
+    {
+      "_id": "req_002", "_type": "request", "parentId": "fld_auth",
+      "name": "Iniciar sesión (Firebase)",
+      "method": "POST",
+      "url": "https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key={{ FIREBASE_API_KEY }}",
+      "headers": [{ "name": "Content-Type", "value": "application/json" }],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"email\": \"test@yachay.app\",\n  \"password\": \"123456\",\n  \"returnSecureToken\": true\n}"
+      },
+      "description": "Retorna 'localId' (= firebase_uid) e 'idToken'. Actualiza FIREBASE_UID y FIREBASE_ID_TOKEN en el environment."
+    },
+
+    {
+      "_id": "req_010", "_type": "request", "parentId": "fld_profiles",
+      "name": "GET Perfil por firebase_uid",
+      "method": "GET",
+      "url": "{{ BASE_URL }}/profiles?firebase_uid=eq.{{ FIREBASE_UID }}&select=*",
+      "headers": [
+        { "name": "apikey",        "value": "{{ ANON_KEY }}" },
+        { "name": "Authorization", "value": "Bearer {{ ANON_KEY }}" }
+      ],
+      "description": "Obtiene el perfil completo del usuario (XP, gems, lives, streak, etc.)"
+    },
+
+    {
+      "_id": "req_011", "_type": "request", "parentId": "fld_profiles",
+      "name": "POST Crear perfil",
+      "method": "POST",
+      "url": "{{ BASE_URL }}/profiles",
+      "headers": [
+        { "name": "apikey",        "value": "{{ ANON_KEY }}" },
+        { "name": "Authorization", "value": "Bearer {{ ANON_KEY }}" },
+        { "name": "Content-Type",  "value": "application/json" },
+        { "name": "Prefer",        "value": "return=representation" }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"firebase_uid\": \"{{ FIREBASE_UID }}\",\n  \"username\": \"yachachiq_test\",\n  \"avatar_url\": null,\n  \"total_xp\": 0\n}"
+      }
+    },
+
+    {
+      "_id": "req_012", "_type": "request", "parentId": "fld_profiles",
+      "name": "PATCH Actualizar XP / Gems / Lives",
+      "method": "PATCH",
+      "url": "{{ BASE_URL }}/profiles?firebase_uid=eq.{{ FIREBASE_UID }}",
+      "headers": [
+        { "name": "apikey",        "value": "{{ ANON_KEY }}" },
+        { "name": "Authorization", "value": "Bearer {{ ANON_KEY }}" },
+        { "name": "Content-Type",  "value": "application/json" },
+        { "name": "Prefer",        "value": "return=representation" }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"total_xp\": 500,\n  \"gems\": 200,\n  \"lives\": 4,\n  \"streak_count\": 7\n}"
+      }
+    },
+
+    {
+      "_id": "req_013", "_type": "request", "parentId": "fld_profiles",
+      "name": "DELETE Eliminar perfil",
+      "method": "DELETE",
+      "url": "{{ BASE_URL }}/profiles?firebase_uid=eq.{{ FIREBASE_UID }}",
+      "headers": [
+        { "name": "apikey",        "value": "{{ ANON_KEY }}" },
+        { "name": "Authorization", "value": "Bearer {{ ANON_KEY }}" }
+      ]
+    },
+
+    {
+      "_id": "req_020", "_type": "request", "parentId": "fld_content",
+      "name": "GET Todas las categorías",
+      "method": "GET",
+      "url": "{{ BASE_URL }}/categories?select=*&order=sort_order.asc",
+      "headers": [
+        { "name": "apikey",        "value": "{{ ANON_KEY }}" },
+        { "name": "Authorization", "value": "Bearer {{ ANON_KEY }}" }
+      ]
+    },
+
+    {
+      "_id": "req_021", "_type": "request", "parentId": "fld_content",
+      "name": "GET Lecciones por categoría",
+      "method": "GET",
+      "url": "{{ BASE_URL }}/lessons?category_id=eq.1&select=*&order=sort_order.asc",
+      "headers": [
+        { "name": "apikey",        "value": "{{ ANON_KEY }}" },
+        { "name": "Authorization", "value": "Bearer {{ ANON_KEY }}" }
+      ],
+      "description": "Cambia category_id=eq.X según la categoría deseada."
+    },
+
+    {
+      "_id": "req_022", "_type": "request", "parentId": "fld_content",
+      "name": "GET Preguntas de una lección (con opciones)",
+      "method": "GET",
+      "url": "{{ BASE_URL }}/questions?lesson_id=eq.1&select=*,question_options(*)",
+      "headers": [
+        { "name": "apikey",        "value": "{{ ANON_KEY }}" },
+        { "name": "Authorization", "value": "Bearer {{ ANON_KEY }}" }
+      ],
+      "description": "Retorna preguntas con sus opciones embebidas. Cambia lesson_id=eq.X."
+    },
+
+    {
+      "_id": "req_023", "_type": "request", "parentId": "fld_content",
+      "name": "POST Crear lección",
+      "method": "POST",
+      "url": "{{ BASE_URL }}/lessons",
+      "headers": [
+        { "name": "apikey",        "value": "{{ ANON_KEY }}" },
+        { "name": "Authorization", "value": "Bearer {{ ANON_KEY }}" },
+        { "name": "Content-Type",  "value": "application/json" },
+        { "name": "Prefer",        "value": "return=representation" }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"category_id\": 1,\n  \"title\": \"Saludos Básicos\",\n  \"description\": \"Aprende a saludar en Quechua\",\n  \"sort_order\": 1\n}"
+      }
+    },
+
+    {
+      "_id": "req_024", "_type": "request", "parentId": "fld_content",
+      "name": "POST Crear pregunta",
+      "method": "POST",
+      "url": "{{ BASE_URL }}/questions",
+      "headers": [
+        { "name": "apikey",        "value": "{{ ANON_KEY }}" },
+        { "name": "Authorization", "value": "Bearer {{ ANON_KEY }}" },
+        { "name": "Content-Type",  "value": "application/json" },
+        { "name": "Prefer",        "value": "return=representation" }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"lesson_id\": 1,\n  \"prompt\": \"¿Cómo se dice 'Hola' en Quechua?\",\n  \"question_type\": \"multiple_choice\"\n}"
+      }
+    },
+
+    {
+      "_id": "req_025", "_type": "request", "parentId": "fld_content",
+      "name": "POST Crear opciones de pregunta",
+      "method": "POST",
+      "url": "{{ BASE_URL }}/question_options",
+      "headers": [
+        { "name": "apikey",        "value": "{{ ANON_KEY }}" },
+        { "name": "Authorization", "value": "Bearer {{ ANON_KEY }}" },
+        { "name": "Content-Type",  "value": "application/json" },
+        { "name": "Prefer",        "value": "return=representation" }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "[\n  { \"question_id\": 1, \"option_text\": \"Napaykullayki\", \"is_correct\": true },\n  { \"question_id\": 1, \"option_text\": \"Allianchu\",    \"is_correct\": false },\n  { \"question_id\": 1, \"option_text\": \"Yachay\",       \"is_correct\": false },\n  { \"question_id\": 1, \"option_text\": \"Rimay\",        \"is_correct\": false }\n]"
+      },
+      "description": "Inserta múltiples opciones en un solo request (batch insert)."
+    },
+
+    {
+      "_id": "req_030", "_type": "request", "parentId": "fld_levels",
+      "name": "GET Niveles por categoría",
+      "method": "GET",
+      "url": "{{ BASE_URL }}/levels?category_id=eq.1&select=*&order=level_number.asc",
+      "headers": [
+        { "name": "apikey",        "value": "{{ ANON_KEY }}" },
+        { "name": "Authorization", "value": "Bearer {{ ANON_KEY }}" }
+      ]
+    },
+
+    {
+      "_id": "req_031", "_type": "request", "parentId": "fld_levels",
+      "name": "GET Examen por nivel (con preguntas y opciones)",
+      "method": "GET",
+      "url": "{{ BASE_URL }}/exams?level_id=eq.1&select=*,exam_questions(question_id,questions(*,question_options(*)))",
+      "headers": [
+        { "name": "apikey",        "value": "{{ ANON_KEY }}" },
+        { "name": "Authorization", "value": "Bearer {{ ANON_KEY }}" }
+      ],
+      "description": "JOIN profundo: examen → preguntas → opciones. Cambia level_id=eq.X."
+    },
+
+    {
+      "_id": "req_032", "_type": "request", "parentId": "fld_levels",
+      "name": "POST Crear nivel",
+      "method": "POST",
+      "url": "{{ BASE_URL }}/levels",
+      "headers": [
+        { "name": "apikey",        "value": "{{ ANON_KEY }}" },
+        { "name": "Authorization", "value": "Bearer {{ ANON_KEY }}" },
+        { "name": "Content-Type",  "value": "application/json" },
+        { "name": "Prefer",        "value": "return=representation" }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"category_id\": 1,\n  \"title\": \"Nivel 1 — Saludos\",\n  \"level_number\": 1\n}"
+      }
+    },
+
+    {
+      "_id": "req_033", "_type": "request", "parentId": "fld_levels",
+      "name": "POST Crear examen",
+      "method": "POST",
+      "url": "{{ BASE_URL }}/exams",
+      "headers": [
+        { "name": "apikey",        "value": "{{ ANON_KEY }}" },
+        { "name": "Authorization", "value": "Bearer {{ ANON_KEY }}" },
+        { "name": "Content-Type",  "value": "application/json" },
+        { "name": "Prefer",        "value": "return=representation" }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"level_id\": 1,\n  \"title\": \"Examen Nivel 1\",\n  \"pass_threshold\": 70\n}"
+      }
+    },
+
+    {
+      "_id": "req_034", "_type": "request", "parentId": "fld_levels",
+      "name": "POST Asignar preguntas al examen",
+      "method": "POST",
+      "url": "{{ BASE_URL }}/exam_questions",
+      "headers": [
+        { "name": "apikey",        "value": "{{ ANON_KEY }}" },
+        { "name": "Authorization", "value": "Bearer {{ ANON_KEY }}" },
+        { "name": "Content-Type",  "value": "application/json" },
+        { "name": "Prefer",        "value": "return=representation" }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "[\n  { \"exam_id\": 1, \"question_id\": 1 },\n  { \"exam_id\": 1, \"question_id\": 2 },\n  { \"exam_id\": 1, \"question_id\": 3 }\n]"
+      }
+    },
+
+    {
+      "_id": "req_040", "_type": "request", "parentId": "fld_progress",
+      "name": "GET Progreso de lecciones del usuario",
+      "method": "GET",
+      "url": "{{ BASE_URL }}/lesson_progress?firebase_uid=eq.{{ FIREBASE_UID }}&select=*",
+      "headers": [
+        { "name": "apikey",        "value": "{{ ANON_KEY }}" },
+        { "name": "Authorization", "value": "Bearer {{ ANON_KEY }}" }
+      ]
+    },
+
+    {
+      "_id": "req_041", "_type": "request", "parentId": "fld_progress",
+      "name": "POST/UPSERT Registrar lección completada",
+      "method": "POST",
+      "url": "{{ BASE_URL }}/lesson_progress",
+      "headers": [
+        { "name": "apikey",        "value": "{{ ANON_KEY }}" },
+        { "name": "Authorization", "value": "Bearer {{ ANON_KEY }}" },
+        { "name": "Content-Type",  "value": "application/json" },
+        { "name": "Prefer",        "value": "resolution=merge-duplicates,return=representation" }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"firebase_uid\": \"{{ FIREBASE_UID }}\",\n  \"lesson_id\": 1,\n  \"completed\": true,\n  \"xp_earned\": 10,\n  \"completed_at\": \"2026-09-17T00:00:00Z\"\n}"
+      },
+      "description": "El header 'Prefer: resolution=merge-duplicates' hace UPSERT (INSERT o UPDATE si ya existe)."
+    },
+
+    {
+      "_id": "req_042", "_type": "request", "parentId": "fld_progress",
+      "name": "GET Progreso de niveles del usuario",
+      "method": "GET",
+      "url": "{{ BASE_URL }}/level_progress?firebase_uid=eq.{{ FIREBASE_UID }}&select=*",
+      "headers": [
+        { "name": "apikey",        "value": "{{ ANON_KEY }}" },
+        { "name": "Authorization", "value": "Bearer {{ ANON_KEY }}" }
+      ]
+    },
+
+    {
+      "_id": "req_043", "_type": "request", "parentId": "fld_progress",
+      "name": "POST/UPSERT Registrar resultado de examen",
+      "method": "POST",
+      "url": "{{ BASE_URL }}/level_progress",
+      "headers": [
+        { "name": "apikey",        "value": "{{ ANON_KEY }}" },
+        { "name": "Authorization", "value": "Bearer {{ ANON_KEY }}" },
+        { "name": "Content-Type",  "value": "application/json" },
+        { "name": "Prefer",        "value": "resolution=merge-duplicates,return=representation" }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"firebase_uid\": \"{{ FIREBASE_UID }}\",\n  \"level_id\": 1,\n  \"unlocked\": true,\n  \"exam_score\": 85,\n  \"passed_at\": \"2026-09-17T00:00:00Z\"\n}"
+      }
+    },
+
+    {
+      "_id": "req_050", "_type": "request", "parentId": "fld_game",
+      "name": "GET Misiones diarias",
+      "method": "GET",
+      "url": "{{ BASE_URL }}/daily_quests?select=*",
+      "headers": [
+        { "name": "apikey",        "value": "{{ ANON_KEY }}" },
+        { "name": "Authorization", "value": "Bearer {{ ANON_KEY }}" }
+      ]
+    },
+
+    {
+      "_id": "req_051", "_type": "request", "parentId": "fld_game",
+      "name": "POST Crear misión diaria",
+      "method": "POST",
+      "url": "{{ BASE_URL }}/daily_quests",
+      "headers": [
+        { "name": "apikey",        "value": "{{ ANON_KEY }}" },
+        { "name": "Authorization", "value": "Bearer {{ ANON_KEY }}" },
+        { "name": "Content-Type",  "value": "application/json" },
+        { "name": "Prefer",        "value": "return=representation" }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"title\": \"Gana 30 XP hoy\",\n  \"description\": \"Completa lecciones para ganar experiencia\",\n  \"target_amount\": 30,\n  \"xp_reward\": 10,\n  \"gem_reward\": 5,\n  \"quest_type\": \"xp_gain\"\n}"
+      }
+    },
+
+    {
+      "_id": "req_052", "_type": "request", "parentId": "fld_game",
+      "name": "GET Misiones del usuario (con detalle)",
+      "method": "GET",
+      "url": "{{ BASE_URL }}/user_quests?firebase_uid=eq.{{ FIREBASE_UID }}&select=*,daily_quests(*)",
+      "headers": [
+        { "name": "apikey",        "value": "{{ ANON_KEY }}" },
+        { "name": "Authorization", "value": "Bearer {{ ANON_KEY }}" }
+      ]
+    },
+
+    {
+      "_id": "req_053", "_type": "request", "parentId": "fld_game",
+      "name": "GET Todos los logros / badges",
+      "method": "GET",
+      "url": "{{ BASE_URL }}/badges?select=*",
+      "headers": [
+        { "name": "apikey",        "value": "{{ ANON_KEY }}" },
+        { "name": "Authorization", "value": "Bearer {{ ANON_KEY }}" }
+      ]
+    },
+
+    {
+      "_id": "req_054", "_type": "request", "parentId": "fld_game",
+      "name": "POST Crear logro / badge",
+      "method": "POST",
+      "url": "{{ BASE_URL }}/badges",
+      "headers": [
+        { "name": "apikey",        "value": "{{ ANON_KEY }}" },
+        { "name": "Authorization", "value": "Bearer {{ ANON_KEY }}" },
+        { "name": "Content-Type",  "value": "application/json" },
+        { "name": "Prefer",        "value": "return=representation" }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"title\": \"Llama de Fuego\",\n  \"description\": \"Mantén una racha de 3 días\",\n  \"icon_name\": \"🔥\",\n  \"requirement_type\": \"streak_days\",\n  \"requirement_value\": 3\n}"
+      }
+    },
+
+    {
+      "_id": "req_055", "_type": "request", "parentId": "fld_game",
+      "name": "GET Logros desbloqueados del usuario",
+      "method": "GET",
+      "url": "{{ BASE_URL }}/user_badges?firebase_uid=eq.{{ FIREBASE_UID }}&select=*,badges(*)",
+      "headers": [
+        { "name": "apikey",        "value": "{{ ANON_KEY }}" },
+        { "name": "Authorization", "value": "Bearer {{ ANON_KEY }}" }
+      ]
+    },
+
+    {
+      "_id": "req_056", "_type": "request", "parentId": "fld_game",
+      "name": "POST Desbloquear logro al usuario",
+      "method": "POST",
+      "url": "{{ BASE_URL }}/user_badges",
+      "headers": [
+        { "name": "apikey",        "value": "{{ ANON_KEY }}" },
+        { "name": "Authorization", "value": "Bearer {{ ANON_KEY }}" },
+        { "name": "Content-Type",  "value": "application/json" },
+        { "name": "Prefer",        "value": "return=representation" }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"firebase_uid\": \"{{ FIREBASE_UID }}\",\n  \"badge_id\": 1\n}"
+      }
+    },
+
+    {
+      "_id": "req_057", "_type": "request", "parentId": "fld_game",
+      "name": "GET Leaderboard semanal (top 20)",
+      "method": "GET",
+      "url": "{{ BASE_URL }}/leaderboard_weekly?select=*,profiles(username,avatar_url)&order=weekly_xp.desc&limit=20",
+      "headers": [
+        { "name": "apikey",        "value": "{{ ANON_KEY }}" },
+        { "name": "Authorization", "value": "Bearer {{ ANON_KEY }}" }
+      ]
+    },
+
+    {
+      "_id": "req_058", "_type": "request", "parentId": "fld_game",
+      "name": "POST/UPSERT Actualizar XP semanal del usuario",
+      "method": "POST",
+      "url": "{{ BASE_URL }}/leaderboard_weekly",
+      "headers": [
+        { "name": "apikey",        "value": "{{ ANON_KEY }}" },
+        { "name": "Authorization", "value": "Bearer {{ ANON_KEY }}" },
+        { "name": "Content-Type",  "value": "application/json" },
+        { "name": "Prefer",        "value": "resolution=merge-duplicates,return=representation" }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"firebase_uid\": \"{{ FIREBASE_UID }}\",\n  \"weekly_xp\": 150,\n  \"league_tier\": \"silver\",\n  \"updated_at\": \"2026-09-17T00:00:00Z\"\n}"
+      }
+    },
+
+    {
+      "_id": "req_060", "_type": "request", "parentId": "fld_shop",
+      "name": "GET Ítems de la tienda",
+      "method": "GET",
+      "url": "{{ BASE_URL }}/shop_items?select=*",
+      "headers": [
+        { "name": "apikey",        "value": "{{ ANON_KEY }}" },
+        { "name": "Authorization", "value": "Bearer {{ ANON_KEY }}" }
+      ]
+    },
+
+    {
+      "_id": "req_061", "_type": "request", "parentId": "fld_shop",
+      "name": "POST Crear ítem de tienda",
+      "method": "POST",
+      "url": "{{ BASE_URL }}/shop_items",
+      "headers": [
+        { "name": "apikey",        "value": "{{ ANON_KEY }}" },
+        { "name": "Authorization", "value": "Bearer {{ ANON_KEY }}" },
+        { "name": "Content-Type",  "value": "application/json" },
+        { "name": "Prefer",        "value": "return=representation" }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"name\": \"Protector de Racha\",\n  \"description\": \"Protege tu racha si un día no estudias\",\n  \"price_gems\": 200,\n  \"item_type\": \"streak_freeze\",\n  \"icon_name\": \"🛡️\"\n}"
+      }
+    },
+
+    {
+      "_id": "req_062", "_type": "request", "parentId": "fld_shop",
+      "name": "GET Inventario del usuario",
+      "method": "GET",
+      "url": "{{ BASE_URL }}/user_inventory?firebase_uid=eq.{{ FIREBASE_UID }}&select=*,shop_items(*)",
+      "headers": [
+        { "name": "apikey",        "value": "{{ ANON_KEY }}" },
+        { "name": "Authorization", "value": "Bearer {{ ANON_KEY }}" }
+      ]
+    },
+
+    {
+      "_id": "req_063", "_type": "request", "parentId": "fld_shop",
+      "name": "POST/UPSERT Comprar ítem",
+      "method": "POST",
+      "url": "{{ BASE_URL }}/user_inventory",
+      "headers": [
+        { "name": "apikey",        "value": "{{ ANON_KEY }}" },
+        { "name": "Authorization", "value": "Bearer {{ ANON_KEY }}" },
+        { "name": "Content-Type",  "value": "application/json" },
+        { "name": "Prefer",        "value": "resolution=merge-duplicates,return=representation" }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"firebase_uid\": \"{{ FIREBASE_UID }}\",\n  \"item_id\": 1,\n  \"quantity\": 1\n}"
+      }
+    },
+
+    {
+      "_id": "req_070", "_type": "request", "parentId": "fld_trans",
+      "name": "GET Historial de traducciones del usuario",
+      "method": "GET",
+      "url": "{{ BASE_URL }}/translation_history?firebase_uid=eq.{{ FIREBASE_UID }}&select=*&order=created_at.desc&limit=50",
+      "headers": [
+        { "name": "apikey",        "value": "{{ ANON_KEY }}" },
+        { "name": "Authorization", "value": "Bearer {{ ANON_KEY }}" }
+      ]
+    },
+
+    {
+      "_id": "req_071", "_type": "request", "parentId": "fld_trans",
+      "name": "POST Guardar traducción",
+      "method": "POST",
+      "url": "{{ BASE_URL }}/translation_history",
+      "headers": [
+        { "name": "apikey",        "value": "{{ ANON_KEY }}" },
+        { "name": "Authorization", "value": "Bearer {{ ANON_KEY }}" },
+        { "name": "Content-Type",  "value": "application/json" },
+        { "name": "Prefer",        "value": "return=representation" }
+      ],
+      "body": {
+        "mimeType": "application/json",
+        "text": "{\n  \"firebase_uid\": \"{{ FIREBASE_UID }}\",\n  \"source_lang\": \"es\",\n  \"target_lang\": \"qu\",\n  \"source_text\": \"Hola\",\n  \"translated_text\": \"Napaykullayki\"\n}"
+      }
+    },
+
+    {
+      "_id": "req_072", "_type": "request", "parentId": "fld_trans",
+      "name": "DELETE Eliminar traducción por id",
+      "method": "DELETE",
+      "url": "{{ BASE_URL }}/translation_history?id=eq.1",
+      "headers": [
+        { "name": "apikey",        "value": "{{ ANON_KEY }}" },
+        { "name": "Authorization", "value": "Bearer {{ ANON_KEY }}" }
+      ]
+    }
+
+  ]
+}

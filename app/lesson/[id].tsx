@@ -30,21 +30,21 @@ const GOLD = '#E5A00D';
 const GREEN = '#27AE60';
 const RED = '#EA5455';
 
-// Deriva tarjetas de teoría a partir de las preguntas de la lección
-function buildTheoryCards(questions: QuestionWithOptions[], lessonTitle: string) {
-  const uniqueTerms = Array.from(
-    new Map(
-      questions
-        .filter((q) => q.prompt.includes('→') || q.prompt.includes('-'))
-        .slice(0, 3)
-        .map((q) => [q.prompt, q.prompt])
-    ).values()
-  );
+type VocabCard = { quechua: string; spanish: string };
 
-  return [
-    { title: lessonTitle, body: 'Repasa el vocabulario andino antes de comenzar la lección.' },
-    ...uniqueTerms.map((term) => ({ title: 'Vocabulario Clave', body: term })),
-  ];
+// Extrae vocabulario real de cada pregunta: respuesta correcta + contexto del prompt
+function buildVocabCards(questions: QuestionWithOptions[]): VocabCard[] {
+  const seen = new Set<string>();
+  const cards: VocabCard[] = [];
+  for (const q of questions) {
+    const correct = q.options.find((o) => o.is_correct);
+    if (!correct) continue;
+    const key = correct.option_text.toLowerCase().trim();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    cards.push({ quechua: correct.option_text, spanish: q.prompt });
+  }
+  return cards;
 }
 
 export default function LessonScreen() {
@@ -52,8 +52,8 @@ export default function LessonScreen() {
   const lessonId = parseInt(id as string, 10);
 
   const [phase, setPhase] = useState<Phase>('theory');
-  const [theoryIndex, setTheoryIndex] = useState(0);
-  const [theoryCards, setTheoryCards] = useState<{ title: string; body: string }[]>([]);
+  const [vocabIndex, setVocabIndex] = useState(0);
+  const [vocabCards, setVocabCards] = useState<VocabCard[]>([]);
 
   const [questions, setQuestions] = useState<QuestionWithOptions[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -94,15 +94,15 @@ export default function LessonScreen() {
     } else {
       const qs = data ?? [];
       setQuestions(qs);
-      setTheoryCards(buildTheoryCards(qs, `Lección ${lessonId}`));
+      setVocabCards(buildVocabCards(qs));
     }
     setLoading(false);
   }
 
   // ─── Teoría ──────────────────────────────────────────────
-  function handleTheoryNext() {
-    if (theoryIndex + 1 < theoryCards.length) {
-      setTheoryIndex((i) => i + 1);
+  function handleVocabNext() {
+    if (vocabIndex + 1 < vocabCards.length) {
+      setVocabIndex((i: number) => i + 1);
     } else {
       setPhase('quiz');
     }
@@ -132,8 +132,8 @@ export default function LessonScreen() {
     } else {
       setCompleted(true);
       addGems(15);
-      if (user?.id) {
-        await questionService.recordLessonProgress(lessonId, user.id, 10);
+      if (user?.uid) {
+        await questionService.recordLessonProgress(lessonId, user.uid, 10);
         await refreshProfile();
       }
     }
@@ -191,10 +191,17 @@ export default function LessonScreen() {
     );
   }
 
-  // ─── Fase Teoría ──────────────────────────────────────────
+  // ─── Fase Vocabulario ─────────────────────────────────────
   if (phase === 'theory') {
-    const card = theoryCards[theoryIndex];
-    const isLast = theoryIndex + 1 >= theoryCards.length;
+    // Si no hay vocab cards, saltamos directo al quiz
+    if (vocabCards.length === 0) {
+      setPhase('quiz');
+      return null;
+    }
+    const card = vocabCards[vocabIndex];
+    const isLast = vocabIndex + 1 >= vocabCards.length;
+    const progressPct = ((vocabIndex + 1) / vocabCards.length) * 100;
+
     return (
       <View style={styles.container}>
         <View style={styles.topBar}>
@@ -202,17 +209,9 @@ export default function LessonScreen() {
             <Text style={styles.closeBtnText}>✕</Text>
           </TouchableOpacity>
           <View style={styles.progressBarBg}>
-            <View
-              style={[
-                styles.progressBarFill,
-                {
-                  width: `${((theoryIndex + 1) / theoryCards.length) * 100}%`,
-                  backgroundColor: TEAL,
-                },
-              ]}
-            />
+            <View style={[styles.progressBarFill, { width: `${progressPct}%`, backgroundColor: TEAL }]} />
           </View>
-          <Text style={styles.phaseLabel}>TEORÍA</Text>
+          <Text style={styles.phaseLabel}>VOCABULARIO</Text>
         </View>
 
         <ScrollView contentContainerStyle={styles.theoryContent}>
@@ -223,18 +222,24 @@ export default function LessonScreen() {
               contentFit="contain"
             />
           </Animated.View>
-          <View style={styles.theoryCard}>
-            <Text style={styles.theoryCardTitle}>{card.title}</Text>
-            <Text style={styles.theoryCardBody}>{card.body}</Text>
+
+          {/* Tarjeta de vocabulario: español → quechua */}
+          <View style={styles.vocabCard}>
+            <Text style={styles.vocabLabel}>En español:</Text>
+            <Text style={styles.vocabSpanish}>{card.spanish}</Text>
+            <View style={styles.vocabDivider} />
+            <Text style={styles.vocabLabel}>En quechua:</Text>
+            <Text style={styles.vocabQuechua}>{card.quechua}</Text>
           </View>
+
           <Text style={styles.theoryHint}>
-            Paso {theoryIndex + 1} de {theoryCards.length}
+            Palabra {vocabIndex + 1} de {vocabCards.length} — memorízala antes de continuar
           </Text>
         </ScrollView>
 
         <View style={styles.footer}>
-          <TouchableOpacity style={styles.buttonPrimary} onPress={handleTheoryNext}>
-            <Text style={styles.buttonText}>{isLast ? '¡Comenzar Quiz! 🚀' : 'Siguiente →'}</Text>
+          <TouchableOpacity style={styles.buttonPrimary} onPress={handleVocabNext}>
+            <Text style={styles.buttonText}>{isLast ? '¡Comenzar práctica! 🚀' : 'Siguiente →'}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -539,5 +544,47 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 20,
     fontWeight: '700',
+  },
+
+  // Vocab card
+  vocabCard: {
+    width: '100%',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 28,
+    borderWidth: 2,
+    borderColor: TEAL,
+    borderBottomWidth: 5,
+    marginBottom: 16,
+    alignItems: 'center',
+  },
+  vocabLabel: {
+    fontSize: 12,
+    fontWeight: '900',
+    letterSpacing: 1,
+    color: '#999',
+    textTransform: 'uppercase',
+    marginBottom: 6,
+  },
+  vocabSpanish: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#2A1A0A',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  vocabDivider: {
+    width: 48,
+    height: 3,
+    backgroundColor: TEAL,
+    borderRadius: 2,
+    marginVertical: 16,
+  },
+  vocabQuechua: {
+    fontSize: 32,
+    fontWeight: '900',
+    color: TEAL,
+    textAlign: 'center',
+    letterSpacing: 0.5,
   },
 });

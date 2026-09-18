@@ -1,63 +1,69 @@
+import {
+  createUserWithEmailAndPassword,
+  onAuthStateChanged,
+  signInWithEmailAndPassword,
+  signOut as firebaseSignOut,
+  User,
+} from 'firebase/auth';
+
 import { supabase } from '@/src/services/supabase';
 import { Profile } from '@/src/types';
-import { Session, User } from '@supabase/supabase-js';
+import { auth } from './firebase';
+
+function translateFirebaseError(code: string): string {
+  const map: Record<string, string> = {
+    'auth/email-already-in-use':  'Este correo ya está registrado.',
+    'auth/invalid-email':         'El correo electrónico no es válido.',
+    'auth/weak-password':         'La contraseña debe tener al menos 6 caracteres.',
+    'auth/user-not-found':        'No existe una cuenta con ese correo.',
+    'auth/wrong-password':        'Contraseña incorrecta.',
+    'auth/invalid-credential':    'Correo o contraseña incorrectos.',
+    'auth/too-many-requests':     'Demasiados intentos fallidos. Intenta más tarde.',
+    'auth/network-request-failed':'Sin conexión a internet.',
+  };
+  return map[code] ?? 'Ocurrió un error. Inténtalo de nuevo.';
+}
 
 export const authService = {
   async signUp(email: string, password: string, username?: string): Promise<{ user: User | null; error: string | null }> {
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-    });
-
-    if (error) {
-      const mockUser: any = {
-        id: 'demo-user-123',
-        email: email || 'yachachiq@yachay.app',
-        user_metadata: { username: username || email.split('@')[0] },
-      };
-      return { user: mockUser, error: null };
-    }
-
-    if (data.user) {
+    try {
+      const { user } = await createUserWithEmailAndPassword(auth, email, password);
       const finalUsername = username || email.split('@')[0];
       const { error: profileError } = await supabase.from('profiles').insert({
-        firebase_uid: data.user.id,
+        firebase_uid: user.uid,
         username: finalUsername,
         avatar_url: null,
         total_xp: 0,
       });
-
       if (profileError) {
         console.warn('Profile creation warning:', profileError.message);
       }
+      return { user, error: null };
+    } catch (e: any) {
+      return { user: null, error: translateFirebaseError(e.code) };
     }
-
-    return { user: data.user, error: null };
   },
 
-  async signIn(email: string, password: string): Promise<{ session: Session | null; error: string | null }> {
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) {
-      const mockSession: any = {
-        access_token: 'demo-token-123',
-        user: {
-          id: 'demo-user-123',
-          email: email || 'yachachiq@yachay.app',
-        },
-      };
-      return { session: mockSession, error: null };
+  async signIn(email: string, password: string): Promise<{ user: User | null; error: string | null }> {
+    try {
+      const { user } = await signInWithEmailAndPassword(auth, email, password);
+      return { user, error: null };
+    } catch (e: any) {
+      return { user: null, error: translateFirebaseError(e.code) };
     }
-    return { session: data.session, error: null };
   },
 
   async signOut(): Promise<{ error: string | null }> {
-    const { error } = await supabase.auth.signOut();
-    return { error: null };
+    try {
+      await firebaseSignOut(auth);
+      return { error: null };
+    } catch (e: any) {
+      return { error: e.message };
+    }
   },
 
-  async getSession(): Promise<Session | null> {
-    const { data } = await supabase.auth.getSession();
-    return data?.session ?? null;
+  getCurrentUser(): User | null {
+    return auth.currentUser;
   },
 
   async getProfile(uid: string): Promise<Profile | null> {
@@ -83,7 +89,6 @@ export const authService = {
     return data as Profile;
   },
 
-
   async updateGameState(
     uid: string,
     data: { lives: number; gems: number; xp: number; streakDays: number }
@@ -99,10 +104,7 @@ export const authService = {
       .eq('firebase_uid', uid);
   },
 
-  onAuthStateChange(callback: (session: Session | null) => void) {
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
-      callback(session);
-    });
-    return listener.subscription;
+  onAuthStateChange(callback: (user: User | null) => void): () => void {
+    return onAuthStateChanged(auth, callback);
   },
 };
