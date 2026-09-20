@@ -16,7 +16,10 @@ import { LeaderboardEntry } from '@/src/types';
 import { YachayTopBar } from '@/components/yachay/yachay-top-bar';
 
 const TEAL = '#1B8B8C';
+const TEAL_DARK = '#0E4D55';
 const GOLD = '#E5A00D';
+const PARCHMENT = '#F8F5EE';
+const BORDER_COLOR = '#ECE5D8';
 
 /* ─── Logros estáticos ─── */
 interface Achievement {
@@ -30,32 +33,37 @@ interface Achievement {
 
 const ACHIEVEMENTS: Achievement[] = [
   {
-    id: 1, title: 'Principiante Quechua',
+    id: 1,
+    title: 'Principiante Quechua',
     description: 'Completaste las primeras 5 lecciones',
     icon: require('@/assets/images/logros/logro_principiante_chullo.png'),
     status: 'unlocked',
   },
   {
-    id: 2, title: 'Hablante Activo',
+    id: 2,
+    title: 'Hablante Activo',
     description: 'Mantén una racha de 10 días o más',
     icon: require('@/assets/images/logros/logro_hablante_corona.png'),
     status: 'unlocked',
   },
   {
-    id: 3, title: 'Maestro Yachay',
+    id: 3,
+    title: 'Maestro Yachay',
     description: 'Domina 100 palabras de vocabulario',
     icon: require('@/assets/images/logros/logro_maestro_sol.png'),
     status: 'progress',
     progress: 65,
   },
   {
-    id: 4, title: 'Gran Ahorrador',
+    id: 4,
+    title: 'Gran Ahorrador',
     description: 'Acumula 1,000 Yachay Coins en tu tesoro',
     icon: require('@/assets/images/logros/moneda_yachay_coin.png'),
     status: 'unlocked',
   },
   {
-    id: 5, title: 'Chullo Coleccionable',
+    id: 5,
+    title: 'Chullo Coleccionable',
     description: 'Completa todos los niveles del Abecedario',
     icon: require('@/assets/images/logros/item_chullo_coleccionable.png'),
     status: 'locked',
@@ -65,16 +73,36 @@ const ACHIEVEMENTS: Achievement[] = [
 type Tab = 'achievements' | 'leaderboard';
 
 function StatusBadge({ status, progress }: { status: Achievement['status']; progress?: number }) {
-  if (status === 'unlocked') return <Text style={styles.statusUnlocked}>✓ Desbloqueado</Text>;
-  if (status === 'progress') return <Text style={styles.statusProgress}>En progreso ({progress}%)</Text>;
-  return <Text style={styles.statusLocked}>🔒 Bloqueado</Text>;
+  if (status === 'unlocked') {
+    return (
+      <View style={[styles.badgePill, styles.badgeUnlocked]}>
+        <Text style={styles.badgeUnlockedText}>✓ Desbloqueado</Text>
+      </View>
+    );
+  }
+  if (status === 'progress') {
+    return (
+      <View style={[styles.badgePill, styles.badgeProgress]}>
+        <Text style={styles.badgeProgressText}>En progreso ({progress}%)</Text>
+      </View>
+    );
+  }
+  return (
+    <View style={[styles.badgePill, styles.badgeLocked]}>
+      <Text style={styles.badgeLockedText}>🔒 Bloqueado</Text>
+    </View>
+  );
 }
 
 function RankBadge({ rank }: { rank: number }) {
   if (rank === 1) return <Text style={styles.rankEmoji}>🥇</Text>;
   if (rank === 2) return <Text style={styles.rankEmoji}>🥈</Text>;
   if (rank === 3) return <Text style={styles.rankEmoji}>🥉</Text>;
-  return <Text style={styles.rankNumber}>#{rank}</Text>;
+  return (
+    <View style={styles.rankNumberContainer}>
+      <Text style={styles.rankNumber}>#{rank}</Text>
+    </View>
+  );
 }
 
 const DEFAULT_LEADERBOARD: LeaderboardEntry[] = [
@@ -86,43 +114,107 @@ const DEFAULT_LEADERBOARD: LeaderboardEntry[] = [
 ];
 
 export default function LogrosScreen() {
-  const { streakDays } = useGame();
-  const { user } = useAuth();
+  const { streakDays, xp, gems } = useGame();
+  const { user, profile } = useAuth();
   const [activeTab, setActiveTab] = useState<Tab>('achievements');
   const [entries, setEntries] = useState<LeaderboardEntry[]>(DEFAULT_LEADERBOARD);
   const [loading, setLoading] = useState(false);
+
+  const userStreak = Math.max(1, streakDays ?? profile?.streak_count ?? 1);
+  const userXp = xp ?? profile?.total_xp ?? 0;
+  const userGems = gems ?? profile?.gems ?? 100;
+
+  const achievements: Achievement[] = [
+    {
+      id: 1,
+      title: 'Principiante Quechua',
+      description: 'Acumula tus primeros 50 XP en lecciones',
+      icon: require('@/assets/images/logros/logro_principiante_chullo.png'),
+      status: userXp >= 50 ? 'unlocked' : userXp > 0 ? 'progress' : 'locked',
+      progress: userXp >= 50 ? 100 : Math.round((userXp / 50) * 100),
+    },
+    {
+      id: 2,
+      title: 'Hablante Activo',
+      description: 'Mantén una racha de 7 días activa',
+      icon: require('@/assets/images/logros/logro_hablante_corona.png'),
+      status: userStreak >= 7 ? 'unlocked' : userStreak > 1 ? 'progress' : 'locked',
+      progress: userStreak >= 7 ? 100 : Math.round((userStreak / 7) * 100),
+    },
+    {
+      id: 3,
+      title: 'Maestro Yachay',
+      description: 'Domina 100 XP de vocabulario andino',
+      icon: require('@/assets/images/logros/logro_maestro_sol.png'),
+      status: userXp >= 100 ? 'unlocked' : userXp > 0 ? 'progress' : 'locked',
+      progress: userXp >= 100 ? 100 : Math.round((userXp / 100) * 100),
+    },
+    {
+      id: 4,
+      title: 'Gran Ahorrador',
+      description: 'Acumula 500 gemas en tu tesoro',
+      icon: require('@/assets/images/logros/moneda_yachay_coin.png'),
+      status: userGems >= 500 ? 'unlocked' : userGems > 0 ? 'progress' : 'locked',
+      progress: userGems >= 500 ? 100 : Math.round((userGems / 500) * 100),
+    },
+    {
+      id: 5,
+      title: 'Chullo Coleccionable',
+      description: 'Alcanza el Nivel 2 en Yachay (200 XP)',
+      icon: require('@/assets/images/logros/item_chullo_coleccionable.png'),
+      status: userXp >= 200 ? 'unlocked' : 'locked',
+      progress: userXp >= 200 ? 100 : Math.round((userXp / 200) * 100),
+    },
+  ];
 
   useEffect(() => {
     loadLeaderboard();
   }, []);
 
   async function loadLeaderboard() {
-    const { data } = await leaderboardService.fetchWeeklyLeaderboard();
-    if (data && data.length > 0) setEntries(data);
+    try {
+      setLoading(true);
+      const { data } = await leaderboardService.fetchWeeklyLeaderboard();
+      if (data && data.length > 0) setEntries(data);
+    } catch {
+      // Usar lista por defecto si falla red
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
     <View style={styles.container}>
       <YachayTopBar />
 
-      {/* Banner racha imparable */}
+      {/* Banner de Racha con Montañas Andinas */}
       <View style={styles.rachaBanner}>
-        <View>
-          <Text style={styles.rachaTag}>¡RACHA IMPARABLE!</Text>
-          <Text style={styles.rachaDays}>{streakDays} Días Consecutivos</Text>
+        <View style={styles.rachaContent}>
+          <View style={styles.rachaTagBadge}>
+            <Text style={styles.rachaTag}>🔥 RACHA IMPARABLE</Text>
+          </View>
+          <Text style={styles.rachaDays}>
+            {userStreak} {userStreak === 1 ? 'Día Seguido' : 'Días Seguidos'}
+          </Text>
+          <Text style={styles.rachaSub}>¡El esfuerzo constante forja al sabio!</Text>
         </View>
         <Image
           source={require('@/assets/images/logros/logro_hablante_corona.png')}
           style={styles.rachaCup}
+          resizeMode="contain"
         />
+        {/* Ribete textil andino */}
+        <View style={styles.andineRibbon}>
+          <Text style={styles.andineRibbonText}>▲▼▲▼ ❖ ◆ ❖ ◆ ▲▼▲▼ ❖ ◆ ❖ ◆ ▲▼▲▼</Text>
+        </View>
       </View>
-      <View style={styles.andineBorder} />
 
-      {/* Pestañas internas */}
+      {/* Selector de Pestañas con estilo pastilla */}
       <View style={styles.tabBar}>
         <TouchableOpacity
           style={[styles.tabBtn, activeTab === 'achievements' && styles.tabBtnActive]}
           onPress={() => setActiveTab('achievements')}
+          activeOpacity={0.8}
         >
           <Text style={[styles.tabText, activeTab === 'achievements' && styles.tabTextActive]}>
             🏅 Mis Logros
@@ -131,152 +223,446 @@ export default function LogrosScreen() {
         <TouchableOpacity
           style={[styles.tabBtn, activeTab === 'leaderboard' && styles.tabBtnActive]}
           onPress={() => setActiveTab('leaderboard')}
+          activeOpacity={0.8}
         >
           <Text style={[styles.tabText, activeTab === 'leaderboard' && styles.tabTextActive]}>
-            🏆 Ranking
+            🏆 Ranking Semanal
           </Text>
         </TouchableOpacity>
       </View>
 
-      {/* ── LOGROS ── */}
-      {activeTab === 'achievements' && (
-        <ScrollView contentContainerStyle={styles.listContent} showsVerticalScrollIndicator={false}>
-          {ACHIEVEMENTS.map((ach) => (
-            <View key={ach.id} style={[styles.achCard, ach.status === 'locked' && styles.achCardLocked]}>
-              <Image
-                source={ach.icon}
-                style={[styles.achIcon, ach.status === 'locked' && { opacity: 0.35 }]}
-              />
-              <View style={styles.achBody}>
-                <Text style={[styles.achTitle, ach.status === 'locked' && styles.achTitleLocked]}>
-                  {ach.title}
-                </Text>
-                <Text style={styles.achDesc}>{ach.description}</Text>
-                <StatusBadge status={ach.status} progress={ach.progress} />
+      {/* Contenido según la pestaña activa */}
+      {activeTab === 'achievements' ? (
+        <ScrollView
+          style={styles.contentScroll}
+          contentContainerStyle={styles.contentContainer}
+          showsVerticalScrollIndicator={false}
+        >
+          {achievements.map((ach) => (
+            <View
+              key={ach.id}
+              style={[
+                styles.card,
+                ach.status === 'locked' && styles.cardLocked,
+              ]}
+            >
+              <View style={styles.cardIconWrapper}>
+                <Image
+                  source={ach.icon}
+                  style={[styles.cardIcon, ach.status === 'locked' && styles.cardIconLocked]}
+                  resizeMode="contain"
+                />
+                {ach.status === 'locked' && (
+                  <View style={styles.cardLockOverlay}>
+                    <Text style={styles.cardLockText}>🔒</Text>
+                  </View>
+                )}
+              </View>
+              <View style={styles.cardInfo}>
+                <Text style={styles.cardTitle}>{ach.title}</Text>
+                <Text style={styles.cardDesc}>{ach.description}</Text>
+                {ach.progress !== undefined && ach.status === 'progress' && (
+                  <View style={styles.progressBarBg}>
+                    <View style={[styles.progressBarFill, { width: `${ach.progress}%` }]} />
+                  </View>
+                )}
+                <View style={styles.statusBadgeRow}>
+                  <StatusBadge status={ach.status} progress={ach.progress} />
+                </View>
               </View>
             </View>
           ))}
+          <View style={{ height: 40 }} />
         </ScrollView>
-      )}
-
-      {/* ── RANKING ── */}
-      {activeTab === 'leaderboard' && (
-        loading ? (
-          <ActivityIndicator size="large" color={TEAL} style={styles.loadingIndicator} />
-        ) : (
-          <FlatList
-            data={entries}
-            keyExtractor={(item) => item.firebase_uid}
-            contentContainerStyle={styles.listContent}
-            ListHeaderComponent={
-              <View style={styles.rankHeader}>
-                <Text style={styles.rankHeaderText}>Liga Plata — Semana actual</Text>
-                <Text style={styles.rankHeaderSub}>Los 3 primeros ascienden a Liga Oro este domingo.</Text>
-              </View>
-            }
-            renderItem={({ item, index }) => {
-              const rank = index + 1;
-              const isMe = item.firebase_uid === user?.id;
-              return (
-                <View style={[styles.rankRow, isMe && styles.myRow]}>
-                  <View style={styles.rankBadgeWrap}>
-                    <RankBadge rank={rank} />
+      ) : (
+        <View style={styles.leaderboardContainer}>
+          {loading ? (
+            <View style={styles.centerContainer}>
+              <ActivityIndicator size="large" color={TEAL} />
+              <Text style={styles.loadingText}>Cargando tabla de posiciones...</Text>
+            </View>
+          ) : (
+            <FlatList
+              data={entries}
+              keyExtractor={(item, index) => (item.rank ?? index).toString() + (item.firebase_uid || index)}
+              contentContainerStyle={styles.contentContainer}
+              showsVerticalScrollIndicator={false}
+              renderItem={({ item }) => {
+                const isMe = (user?.uid || (user as any)?.id) === item.firebase_uid;
+                const isPodium = (item.rank ?? 99) <= 3;
+                return (
+                  <View
+                    style={[
+                      styles.card,
+                      styles.rankCard,
+                      isMe && styles.rankCardMe,
+                      isPodium && styles.rankCardPodium,
+                    ]}
+                  >
+                    <View style={styles.rankBadgeCol}>
+                      <RankBadge rank={item.rank ?? 0} />
+                    </View>
+                    <View style={styles.rankAvatarCircle}>
+                      <Text style={styles.rankAvatarText}>
+                        {item.username ? item.username.charAt(0).toUpperCase() : '👤'}
+                      </Text>
+                    </View>
+                    <View style={styles.rankInfoCol}>
+                      <Text style={[styles.rankUsername, isMe && styles.rankUsernameMe]} numberOfLines={1}>
+                        {item.username} {isMe && '(Tú)'}
+                      </Text>
+                      <Text style={styles.rankLeague}>
+                        {item.league_tier === 'gold' ? '🌟 Liga de Oro' : item.league_tier === 'silver' ? '🥈 Liga de Plata' : '🥉 Liga Bronce'}
+                      </Text>
+                    </View>
+                    <View style={styles.rankXpCol}>
+                      <Text style={styles.rankXpValue}>{item.weekly_xp}</Text>
+                      <Text style={styles.rankXpLabel}>XP</Text>
+                    </View>
                   </View>
-                  <View style={styles.avatarCircle}>
-                    <Text style={styles.avatarInitial}>
-                      {item.username.charAt(0).toUpperCase()}
-                    </Text>
-                  </View>
-                  <View style={styles.rankInfo}>
-                    <Text style={[styles.rankUsername, isMe && styles.myUsername]}>
-                      {item.username}{isMe ? ' (Tú)' : ''}
-                    </Text>
-                  </View>
-                  <Text style={styles.xpText}>⚡ {item.weekly_xp} XP</Text>
-                </View>
-              );
-            }}
-          />
-        )
+                );
+              }}
+              ListFooterComponent={<View style={{ height: 40 }} />}
+            />
+          )}
+        </View>
       )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FAF7F2' },
-  loadingIndicator: { marginTop: 48 },
-
+  container: {
+    flex: 1,
+    backgroundColor: PARCHMENT,
+  },
+  /* Banner de Racha */
   rachaBanner: {
-    backgroundColor: TEAL,
+    backgroundColor: '#0E4D55',
+    marginHorizontal: 16,
+    marginTop: 12,
+    marginBottom: 10,
+    borderRadius: 20,
+    overflow: 'hidden',
+    paddingTop: 16,
+    paddingHorizontal: 16,
+    paddingBottom: 28,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 16,
-    paddingHorizontal: 20,
+    borderWidth: 1.5,
+    borderColor: '#1B8B8C',
+    position: 'relative',
+    shadowColor: '#0E4D55',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 3,
   },
-  rachaTag: { color: 'rgba(255,255,255,0.82)', fontSize: 11, fontWeight: '800', letterSpacing: 0.8, marginBottom: 3 },
-  rachaDays: { color: '#FFFFFF', fontSize: 22, fontWeight: '900' },
-  rachaCup: { width: 58, height: 58, resizeMode: 'contain', backgroundColor: '#FFFFFF', borderRadius: 10, padding: 4 },
-  andineBorder: { height: 7, backgroundColor: '#D4A96A', opacity: 0.5 },
+  rachaContent: {
+    flex: 1,
+    paddingRight: 10,
+  },
+  rachaTagBadge: {
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    alignSelf: 'flex-start',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    marginBottom: 6,
+  },
+  rachaTag: {
+    color: '#FFD768',
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.8,
+  },
+  rachaDays: {
+    color: '#FFFFFF',
+    fontSize: 22,
+    fontWeight: '900',
+    letterSpacing: -0.3,
+  },
+  rachaSub: {
+    color: '#DDF1ED',
+    fontSize: 12,
+    marginTop: 2,
+    fontWeight: '500',
+  },
+  rachaCup: {
+    width: 68,
+    height: 68,
+  },
+  andineRibbon: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(0,0,0,0.25)',
+    paddingVertical: 3,
+    alignItems: 'center',
+  },
+  andineRibbonText: {
+    color: '#FFD768',
+    fontSize: 9,
+    fontWeight: '700',
+    letterSpacing: 2,
+  },
 
+  /* Pestañas */
   tabBar: {
     flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E8E2D9',
-    gap: 8,
+    marginHorizontal: 16,
+    marginBottom: 12,
+    backgroundColor: '#EAE3D6',
+    borderRadius: 14,
+    padding: 4,
   },
   tabBtn: {
-    flex: 1, paddingVertical: 9, alignItems: 'center', borderRadius: 12,
-    backgroundColor: '#F2EDE6',
+    flex: 1,
+    paddingVertical: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 11,
   },
-  tabBtnActive: { backgroundColor: TEAL },
-  tabText: { fontSize: 13, fontWeight: '800', color: '#7A6A5A' },
-  tabTextActive: { color: '#FFFFFF' },
+  tabBtnActive: {
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#3A2E26',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  tabText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#7A6E65',
+  },
+  tabTextActive: {
+    color: TEAL_DARK,
+    fontWeight: '800',
+  },
 
-  listContent: { padding: 16, paddingBottom: 48 },
+  /* Scroll y Contenedores */
+  contentScroll: {
+    flex: 1,
+  },
+  leaderboardContainer: {
+    flex: 1,
+  },
+  contentContainer: {
+    paddingHorizontal: 16,
+    paddingTop: 4,
+    paddingBottom: 20,
+  },
+  centerContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 32,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: '#7A6E65',
+    fontWeight: '600',
+  },
 
-  /* Logros */
-  achCard: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#FFFFFF', borderRadius: 18, padding: 16,
-    marginBottom: 12, borderWidth: 1, borderColor: '#ECE6DE',
-    elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05, shadowRadius: 3,
+  /* Tarjetas Estilo Pergamino Limpio */
+  card: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    borderWidth: 1.5,
+    borderColor: BORDER_COLOR,
+    padding: 14,
+    marginBottom: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    shadowColor: '#3A2E26',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 1,
   },
-  achCardLocked: { opacity: 0.55, backgroundColor: '#F5F0E8' },
-  achIcon: { width: 58, height: 58, resizeMode: 'contain', marginRight: 14 },
-  achBody: { flex: 1 },
-  achTitle: { fontSize: 15, fontWeight: '900', color: '#2A1A0A', marginBottom: 2 },
-  achTitleLocked: { color: '#8A7A6A' },
-  achDesc: { fontSize: 13, color: '#7A6A5A', marginBottom: 5 },
-  statusUnlocked: { fontSize: 13, fontWeight: '800', color: TEAL },
-  statusProgress: { fontSize: 13, fontWeight: '800', color: GOLD },
-  statusLocked: { fontSize: 13, fontWeight: '700', color: '#AAAAAA' },
+  cardLocked: {
+    opacity: 0.65,
+    backgroundColor: '#F5F0E8',
+  },
+  cardIconWrapper: {
+    width: 60,
+    height: 60,
+    borderRadius: 14,
+    backgroundColor: '#F7F3EB',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 14,
+    borderWidth: 1,
+    borderColor: '#E7DFD1',
+    position: 'relative',
+  },
+  cardIcon: {
+    width: 44,
+    height: 44,
+  },
+  cardIconLocked: {
+    opacity: 0.55,
+  },
+  cardLockOverlay: {
+    position: 'absolute',
+    bottom: -2,
+    right: -2,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 9,
+    width: 18,
+    height: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#D8CFC2',
+    elevation: 2,
+  },
+  cardLockText: {
+    fontSize: 10,
+  },
+  cardInfo: {
+    flex: 1,
+  },
+  cardTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#2C2520',
+    marginBottom: 2,
+  },
+  cardDesc: {
+    fontSize: 12,
+    color: '#7A6E65',
+    lineHeight: 16,
+    marginBottom: 6,
+  },
+  progressBarBg: {
+    height: 6,
+    backgroundColor: '#EAE3D6',
+    borderRadius: 4,
+    overflow: 'hidden',
+    marginVertical: 4,
+  },
+  progressBarFill: {
+    height: '100%',
+    backgroundColor: TEAL,
+    borderRadius: 4,
+  },
+  statusBadgeRow: {
+    flexDirection: 'row',
+    marginTop: 2,
+  },
+  badgePill: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  badgeUnlocked: {
+    backgroundColor: '#EAF7EE',
+  },
+  badgeUnlockedText: {
+    color: '#1E824C',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  badgeProgress: {
+    backgroundColor: '#FFF9E6',
+  },
+  badgeProgressText: {
+    color: '#B7791F',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  badgeLocked: {
+    backgroundColor: '#EAE3D6',
+  },
+  badgeLockedText: {
+    color: '#7A6E65',
+    fontSize: 11,
+    fontWeight: '700',
+  },
 
-  /* Ranking */
-  rankHeader: { marginBottom: 14 },
-  rankHeaderText: { fontSize: 18, fontWeight: '900', color: '#2A1A0A' },
-  rankHeaderSub: { fontSize: 13, color: '#8A7A6A', marginTop: 2 },
-  rankRow: {
-    flexDirection: 'row', alignItems: 'center',
-    backgroundColor: '#FFFFFF', paddingVertical: 13, paddingHorizontal: 14,
-    borderRadius: 16, marginBottom: 10, borderWidth: 1, borderColor: '#ECE6DE',
+  /* Ranking Cards */
+  rankCard: {
+    paddingVertical: 12,
+    paddingHorizontal: 14,
   },
-  myRow: { borderColor: TEAL, backgroundColor: '#E4F4F4', borderWidth: 2 },
-  rankBadgeWrap: { width: 36, alignItems: 'center' },
-  rankEmoji: { fontSize: 22 },
-  rankNumber: { fontSize: 16, fontWeight: '800', color: '#7A6A5A' },
-  avatarCircle: {
-    width: 40, height: 40, borderRadius: 20,
-    backgroundColor: TEAL, justifyContent: 'center', alignItems: 'center', marginHorizontal: 12,
+  rankCardPodium: {
+    borderColor: '#FBD46D',
   },
-  avatarInitial: { color: '#FFFFFF', fontWeight: '900', fontSize: 17 },
-  rankInfo: { flex: 1 },
-  rankUsername: { fontSize: 16, fontWeight: '700', color: '#2A1A0A' },
-  myUsername: { color: TEAL, fontWeight: '900' },
-  xpText: { fontSize: 15, fontWeight: '800', color: GOLD },
+  rankCardMe: {
+    backgroundColor: '#EBF7F5',
+    borderColor: '#1B8B8C',
+    borderWidth: 2,
+  },
+  rankBadgeCol: {
+    width: 34,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  rankEmoji: {
+    fontSize: 22,
+  },
+  rankNumberContainer: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: '#EAE3D6',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  rankNumber: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#7A6E65',
+  },
+  rankAvatarCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#DDF1ED',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginHorizontal: 10,
+    borderWidth: 1,
+    borderColor: '#BFE4DC',
+  },
+  rankAvatarText: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: TEAL_DARK,
+  },
+  rankInfoCol: {
+    flex: 1,
+  },
+  rankUsername: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#2C2520',
+  },
+  rankUsernameMe: {
+    color: TEAL_DARK,
+  },
+  rankLeague: {
+    fontSize: 11,
+    color: '#7A6E65',
+    marginTop: 2,
+    fontWeight: '500',
+  },
+  rankXpCol: {
+    alignItems: 'flex-end',
+  },
+  rankXpValue: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: GOLD,
+  },
+  rankXpLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#7A6E65',
+  },
 });

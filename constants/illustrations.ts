@@ -8,6 +8,8 @@ import type { ImageSourcePropType } from 'react-native';
 export const Illustrations: Record<string, ImageSourcePropType | undefined> = {
   // Yachi — mascota principal
   logoYachayConLlama: require('@/assets/images/yachi/yachi_principal.png'),
+  logoYachayOficial: require('@/assets/images/yachay_mockups_y_kit_completo/03_logos_e_iconos_app/logo_yachay_oficial.png'),
+  mascotaSaludo: require('@/assets/images/yachay_mockups_y_kit_completo/03_logos_e_iconos_app/mascota_llamita_saludo.png'),
   avatarLlama: require('@/assets/images/yachi/yachi_avatar_circular.png'),
   llamaExcelente: require('@/assets/images/yachi/yachi_excelente.png'),
   llamaPiensa: require('@/assets/images/yachi/yachi_piensa.png'),

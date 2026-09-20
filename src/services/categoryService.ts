@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '@/src/services/supabase';
 import { Category, LessonWithProgress } from '@/src/types';
 
@@ -76,16 +77,36 @@ export const categoryService = {
       .select('*')
       .eq('firebase_uid', userId);
 
-    if (progressError) {
-      console.warn('Progress fetch warning:', progressError.message);
+    const progressMap = new Map(
+      (progressData || []).map((p) => [p.lesson_id, p])
+    );
+
+    let localCompletedSet = new Set<number>();
+    if (userId) {
+      try {
+        const storageKey = `@yachay_completed_lessons_${userId}`;
+        const localData = await AsyncStorage.getItem(storageKey);
+        if (localData) {
+          const list: number[] = JSON.parse(localData);
+          list.forEach((id) => localCompletedSet.add(id));
+        }
+      } catch {}
     }
 
-    const progressMap = new Map((progressData || []).map((p) => [p.lesson_id, p]));
-
-    const result: LessonWithProgress[] = lessons.map((lesson) => ({
-      ...lesson,
-      progress: progressMap.get(lesson.id) ?? null,
-    }));
+    const result: LessonWithProgress[] = lessons.map((lesson) => {
+      const dbProgress = progressMap.get(lesson.id);
+      const isLocalDone = localCompletedSet.has(lesson.id);
+      return {
+        ...lesson,
+        progress: dbProgress || (isLocalDone ? {
+          firebase_uid: userId || '',
+          lesson_id: lesson.id,
+          completed: true,
+          xp_earned: 10,
+          completed_at: new Date().toISOString(),
+        } : null),
+      };
+    });
 
     return { data: result, error: null };
   },

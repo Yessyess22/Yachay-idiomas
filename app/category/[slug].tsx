@@ -46,9 +46,10 @@ export default function CategoryDetailScreen() {
     }
     setCategory(catData);
 
-    // 2. Obtener lecciones de esta categoría
+    // 2. Obtener lecciones de esta categoría con progreso real
+    const userId = user?.uid || (user as any)?.id;
     const { data: lessonsData, error: lessErr } =
-      await categoryService.fetchLessonsWithProgress(catData.id, user?.id);
+      await categoryService.fetchLessonsWithProgress(catData.id, userId);
 
     if (lessErr) {
       setError(lessErr);

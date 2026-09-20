@@ -70,7 +70,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
     lives: INITIAL_LIVES,
     xp: 0,
     gems: 100,
-    streakDays: 3,
+    streakDays: 1,
     isBlocked: false,
   });
 
@@ -101,7 +101,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       lives: profile.lives ?? INITIAL_LIVES,
       xp: profile.total_xp ?? 0,
       gems: profile.gems ?? 100,
-      streakDays: profile.streak_count ?? 0,
+      streakDays: Math.max(1, profile.streak_count ?? 1),
     });
   }, []);
 

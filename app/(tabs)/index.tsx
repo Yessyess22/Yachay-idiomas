@@ -1,147 +1,402 @@
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Image,
+  ImageBackground,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/src/context/AuthContext';
 import { useGame } from '@/src/context/GameContext';
 import { categoryService } from '@/src/services/categoryService';
+import { questionService } from '@/src/services/questionService';
 import { Category } from '@/src/types';
 import { YachayTopBar } from '@/components/yachay/yachay-top-bar';
+import { supabase } from '@/src/services/supabase';
 
 const TEAL = '#1B8B8C';
-const CREAM = '#F8F8F5';
+const TEAL_DARK = '#0E4D55';
+const CREAM = '#F7F4EB';
+const GOLD = '#E5A00D';
+const GREEN = '#27AE60';
+const GREEN_DARK = '#1E8449';
+const BLUE = '#2980B9';
+const ORANGE = '#E67E22';
+const PURPLE = '#8E44AD';
 
 interface LessonNode {
   id: number;
   title: string;
   subtitle: string;
   categorySlug: string;
+  levelNumber: 1 | 2 | 3;
+  levelColor: string;
+  levelLabel: string;
   completed: boolean;
   active: boolean;
   locked: boolean;
   type: 'lesson' | 'chest' | 'exam';
 }
 
-const SERPENTINE_NODES: LessonNode[] = [
-  { id: 1, title: 'Achahala 1',     subtitle: 'Vocales básicas',      categorySlug: 'abecedario', completed: true,  active: false, locked: false, type: 'lesson' },
-  { id: 2, title: 'Achahala 2',     subtitle: 'Fonemas simples',      categorySlug: 'abecedario', completed: true,  active: false, locked: false, type: 'lesson' },
-  { id: 3, title: 'Consonantes',    subtitle: 'Sonidos andinos',      categorySlug: 'abecedario', completed: false, active: true,  locked: false, type: 'lesson' },
-  { id: 4, title: 'Cofre de Gemas', subtitle: 'Recompensa sorpresa',  categorySlug: 'abecedario', completed: false, active: false, locked: true,  type: 'chest' },
-  { id: 5, title: 'Yupaykuna 1',    subtitle: 'Números del 1 al 10',  categorySlug: 'numeros',    completed: false, active: false, locked: true,  type: 'lesson' },
-  { id: 6, title: 'Yupaykuna 2',    subtitle: 'Conteo y decenas',     categorySlug: 'numeros',    completed: false, active: false, locked: true,  type: 'lesson' },
-  { id: 7, title: 'Examen Nivel',   subtitle: 'Pon a prueba tu nivel',categorySlug: 'numeros',    completed: false, active: false, locked: true,  type: 'exam' },
-  { id: 8, title: 'Saludos',        subtitle: 'Expresiones cotidianas',categorySlug: 'palabras',  completed: false, active: false, locked: true,  type: 'lesson' },
-  { id: 9, title: 'La Familia',     subtitle: 'Parentesco en Quechua',categorySlug: 'palabras',   completed: false, active: false, locked: true,  type: 'lesson' },
-  { id: 10, title: 'Colores',       subtitle: 'Mundo de colores',     categorySlug: 'palabras',   completed: false, active: false, locked: true,  type: 'lesson' },
+const INITIAL_SERPENTINE_NODES: LessonNode[] = [
+  // Nivel 1 — Achahala y Fonética (Verde Esmeralda)
+  {
+    id: 1,
+    title: 'Achahala',
+    subtitle: 'Vocales y Consonantes',
+    categorySlug: 'abecedario',
+    levelNumber: 1,
+    levelColor: GREEN,
+    levelLabel: 'NIVEL 1',
+    completed: false,
+    active: true,
+    locked: false,
+    type: 'lesson',
+  },
+  {
+    id: 100,
+    title: 'Cofre Sagrado',
+    subtitle: 'Recompensa del Nivel 1',
+    categorySlug: 'abecedario',
+    levelNumber: 1,
+    levelColor: GOLD,
+    levelLabel: 'COFRE',
+    completed: false,
+    active: false,
+    locked: true,
+    type: 'chest',
+  },
+
+  // Nivel 2 — Yupaykuna / Números (Azul Lago Titicaca)
+  {
+    id: 2,
+    title: 'Yupaykuna',
+    subtitle: 'Números del 1 al 10',
+    categorySlug: 'numeros',
+    levelNumber: 2,
+    levelColor: BLUE,
+    levelLabel: 'NIVEL 2',
+    completed: false,
+    active: false,
+    locked: true,
+    type: 'lesson',
+  },
+  {
+    id: 200,
+    title: 'Examen Andino',
+    subtitle: 'Evaluación de Números',
+    categorySlug: 'numeros',
+    levelNumber: 2,
+    levelColor: PURPLE,
+    levelLabel: 'EXAMEN',
+    completed: false,
+    active: false,
+    locked: true,
+    type: 'exam',
+  },
+
+  // Nivel 3 — Palabras y Vocabulario (Terracota Andino)
+  {
+    id: 3,
+    title: 'Rimaykuna',
+    subtitle: 'Saludos y Familia',
+    categorySlug: 'palabras',
+    levelNumber: 3,
+    levelColor: ORANGE,
+    levelLabel: 'NIVEL 3',
+    completed: false,
+    active: false,
+    locked: true,
+    type: 'lesson',
+  },
+  {
+    id: 300,
+    title: 'Tesoro del Inca',
+    subtitle: 'Cofre Legendario',
+    categorySlug: 'palabras',
+    levelNumber: 3,
+    levelColor: GOLD,
+    levelLabel: 'COFRE',
+    completed: false,
+    active: false,
+    locked: true,
+    type: 'chest',
+  },
 ];
 
-const NODE_SIZE = 66;
-
 export default function HomeScreen() {
-  const { profile } = useAuth();
-  const { streakDays, xp, gems } = useGame();
+  const { user, profile } = useAuth();
+  const { streakDays, xp, gems, addGems } = useGame();
   const router = useRouter();
+  const { width } = useWindowDimensions();
+
+  // Adaptación de anchos para pantallas móviles vs desktop
+  const isDesktop = width >= 720;
+  const sideCardWidth = isDesktop ? 135 : Math.max(98, Math.min(115, (width - 150) / 2));
+
+  const [nodes, setNodes] = useState<LessonNode[]>(INITIAL_SERPENTINE_NODES);
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [user, xp]);
 
   async function loadData() {
     setLoading(true);
     const { data } = await categoryService.fetchCategories();
     if (data) setCategories(data);
+
+    // Consulta de lecciones aprobadas (tanto en AsyncStorage local como en Supabase)
+    const uid = user?.uid || (user as any)?.id;
+    let completedLessonIds = new Set<number>();
+
+    if (uid) {
+      try {
+        const ids = await questionService.getCompletedLessonIds(uid);
+        completedLessonIds = new Set(ids);
+      } catch (e) {
+        console.warn('Error fetching completed lessons:', e);
+      }
+    }
+
+    // Progresión estricta por niveles:
+    // Nivel 1 (Abecedario): Lecciones 1 (Vocales) o 2 (Consonantes)
+    const doneL1 = completedLessonIds.has(1) || completedLessonIds.has(2);
+    // Nivel 2 (Números): Lecciones 3 (1-5) o 4 (6-10)
+    const doneL2 = completedLessonIds.has(3) || completedLessonIds.has(4);
+    // Nivel 3 (Palabras): Lecciones 5 (Saludos) o 6 (Familia)
+    const doneL3 = completedLessonIds.has(5) || completedLessonIds.has(6);
+
+    const updatedNodes = INITIAL_SERPENTINE_NODES.map((node) => {
+      // Nivel 1: Achahala
+      if (node.id === 1) {
+        return {
+          ...node,
+          completed: doneL1,
+          active: !doneL1,
+          locked: false,
+        };
+      }
+      // Cofre Nivel 1
+      if (node.id === 100) {
+        return {
+          ...node,
+          completed: doneL1,
+          active: false,
+          locked: !doneL1,
+        };
+      }
+
+      // Nivel 2: Yupaykuna (Solo se desbloquea al aprobar el Nivel 1)
+      if (node.id === 2) {
+        return {
+          ...node,
+          completed: doneL2,
+          active: doneL1 && !doneL2,
+          locked: !doneL1,
+        };
+      }
+      // Examen Nivel 2
+      if (node.id === 200) {
+        return {
+          ...node,
+          completed: doneL2,
+          active: false,
+          locked: !doneL2,
+        };
+      }
+
+      // Nivel 3: Rimaykuna (Solo se desbloquea al aprobar el Nivel 2)
+      if (node.id === 3) {
+        return {
+          ...node,
+          completed: doneL3,
+          active: doneL2 && !doneL3,
+          locked: !doneL2,
+        };
+      }
+      // Cofre Final Nivel 3
+      if (node.id === 300) {
+        return {
+          ...node,
+          completed: doneL3,
+          active: false,
+          locked: !doneL3,
+        };
+      }
+
+      return node;
+    });
+
+    setNodes(updatedNodes);
     setLoading(false);
   }
 
   function handleNodePress(node: LessonNode) {
     if (node.locked) return;
+    if (node.type === 'chest') {
+      addGems(25);
+      Alert.alert(
+        '🎁 ¡Cofre Sagrado Reclamado!',
+        '¡Felicitaciones! Has recibido +25 Yachay Coins por tus logros en este nivel.',
+        [{ text: '¡Allillanchu! (¡Genial!)' }]
+      );
+      return;
+    }
+    if (node.type === 'exam') {
+      Alert.alert(
+        '👑 ¡Examen Andino!',
+        '¡Has desbloqueado el reto de maestría! Continúa practicando las lecciones para perfeccionar tu Quechua.',
+        [{ text: '¡Sumaq!' }]
+      );
+      return;
+    }
     router.push({
       pathname: '/category/[slug]' as any,
       params: { slug: node.categorySlug },
     });
   }
 
-  const username = profile?.username || 'Tú';
-  const dailyXp = xp || 40;       // XP del día
-  const dailyCoins = gems * 5 + 25; // Coins del día (estimado)
+  const username = profile?.username || user?.email?.split('@')[0] || 'Yachachiq';
+  const currentCompleted = nodes.filter((n) => n.completed).length;
 
-  // Desplazamiento ZigZag para los nodos de lección (Duolingo Style)
-  const ZIGZAG_OFFSETS = [0, -45, -80, -45, 0, 45, 80, 45, 0, -45];
+  /**
+   * CÁLCULO DE OFFSET EN ZIGZAG:
+   * - Los dos primeros nodos (index 0 y index 1) están a los lados de las tarjetas:
+   *   tienen offset estrictamente 0 (alineados al centro vertical), con 40px+ de separación
+   *   respecto a los bordes de las tarjetas laterales para NUNCA superponerse.
+   * - A partir del nodo 2 (index >= 2), las tarjetas laterales ya terminaron arriba,
+   *   por lo que el camino fluye libremente en zigzag suave (+/- 28px).
+   */
+  function getNodeOffset(index: number): number {
+    if (index === 0 || index === 1) return 0; // Entre tarjetas: 100% centrado y despejado
+    const curveSequence = [-26, 0, 26, -26, 0, 26, 0];
+    return curveSequence[(index - 2) % curveSequence.length];
+  }
+
+  const completedRatio = Math.min(1, Math.max(0, currentCompleted / nodes.length));
+  const progPct = Math.round(completedRatio * 100);
 
   return (
     <View style={styles.root}>
       <YachayTopBar />
 
-      {/* Banner de sección */}
-      <View style={styles.sectionBanner}>
-        <View style={styles.bannerLeft}>
-          <Text style={styles.bannerTag}>SECCIÓN 1 • QUECHUA BÁSICO</Text>
-          <Text style={styles.bannerTitle}>Saludos y Cortesía</Text>
-          <Text style={styles.bannerDesc}>Domina las frases esenciales y el alfabeto tradicional</Text>
-        </View>
-        <TouchableOpacity
-          style={styles.guidebookBtn}
-          onPress={() => router.push('/guidebook/1' as any)}
-        >
-          <Text style={styles.guidebookText}>📖 GUÍA</Text>
-        </TouchableOpacity>
-      </View>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        {/* Banner Superior de Sección estilo Mockup */}
+        <View style={styles.sectionBannerContainer}>
+          <ImageBackground
+            source={require('@/assets/images/cards/tarjeta_montana.png')}
+            style={styles.sectionBannerBg}
+            imageStyle={styles.sectionBannerImg}
+          >
+            <View style={styles.sectionBannerOverlay}>
+              <View style={styles.bannerContentRow}>
+                <View style={styles.bannerLeft}>
+                  <Text style={styles.bannerTag}>SECCIÓN 1 • RUNASIMI BÁSICO</Text>
+                  <Text style={styles.bannerTitle}>El Camino del Saber</Text>
+                  <Text style={styles.bannerDesc}>
+                    Aprende fonemas, números y expresiones tradicionales.
+                  </Text>
+                </View>
+              </View>
 
-      {/* Área principal: tarjetas laterales + path central en ZigZag */}
-      <ScrollView contentContainerStyle={styles.mainArea} showsVerticalScrollIndicator={false}>
-        <View style={styles.columns}>
-          {/* ─── COLUMNA IZQUIERDA: Meta Diaria ─── */}
-          <View style={styles.sideLeft}>
+              {/* Cenefa textil andina geométrica inferior */}
+              <View style={styles.bannerTextileRibbon}>
+                <Text style={styles.textileRibbonText}>
+                  ▲▼▲▼ ❖ ◆ ❖ ◆ ▲▼▲▼ ❖ ◆ ❖ ◆ ▲▼▲▼ ❖ ◆ ❖ ◆ ▲▼▲▼ ❖ ◆ ❖ ◆ ▲▼▲▼
+                </Text>
+              </View>
+            </View>
+          </ImageBackground>
+        </View>
+
+        {/* ─── CONTENEDOR PRINCIPAL DE 3 COLUMNAS EXACTO AL MOCKUP ─── */}
+        <View style={styles.columnsWrapper}>
+          {/* ── COLUMNA IZQUIERDA: Meta Diaria ── */}
+          <View style={[styles.sideColLeft, { width: sideCardWidth }]}>
             <View style={styles.metaCard}>
-              <Text style={styles.metaCardTitle}>Meta Diaria</Text>
-              <Text style={styles.metaCardSub}>2 de 3 lecciones hoy</Text>
-              {/* Barra de progreso */}
-              <View style={styles.metaProgBg}>
-                <View style={[styles.metaProgFill, { width: '66%' }]} />
+              <Text style={styles.metaTitle}>Meta Diaria</Text>
+              <Text style={styles.metaSub}>
+                {currentCompleted} de {nodes.length} lecciones hoy
+              </Text>
+
+              {/* Barra de progreso con punto indicador al extremo */}
+              <View style={styles.metaProgTrack}>
+                <View style={[styles.metaProgFill, { width: `${Math.max(6, progPct)}%` }]} />
+                <View
+                  style={[
+                    styles.metaProgDot,
+                    { left: `${Math.max(0, Math.min(92, progPct - 4))}%` },
+                  ]}
+                />
               </View>
-              <View style={styles.metaStats}>
-                <Text style={styles.metaStatLine}>⚡ XP de Hoy: +{dailyXp} XP</Text>
-                <Text style={styles.metaStatLine}>🪙 Yachay Coins: +{dailyCoins}</Text>
+
+              {/* Stats con iconos claros */}
+              <View style={styles.metaStatLine}>
+                <Text style={styles.metaStatIcon}>⚡</Text>
+                <Text style={styles.metaStatText}>XP: +{xp || 0}</Text>
               </View>
-              <TouchableOpacity onPress={() => router.push('/(tabs)/leaderboard' as any)}>
-                <Text style={styles.metaLink}>Ver Desafíos Semanales →</Text>
+              <View style={styles.metaStatLine}>
+                <Text style={styles.metaStatIcon}>🪙</Text>
+                <Text style={styles.metaStatText}>Coins: +{(xp || 0) + (gems || 0)}</Text>
+              </View>
+
+              <TouchableOpacity
+                onPress={() => router.push('/(tabs)/explore' as any)}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.metaLinkText}>Ver Desafíos →</Text>
               </TouchableOpacity>
+
+              {/* Silueta de montaña al pie de la tarjeta */}
+              <View style={styles.metaMountainFooter}>
+                <Text style={styles.metaMountainDeco}>🏔️ ⛰️ 🏔️</Text>
+              </View>
             </View>
           </View>
 
-          {/* ─── COLUMNA CENTRAL: Path de nodos en ZigZag ─── */}
-          <View style={styles.pathCol}>
-            {SERPENTINE_NODES.map((node, index) => {
+          {/* ── COLUMNA CENTRAL: Camino del Saber ── */}
+          <View style={styles.pathCenterCol}>
+            {nodes.map((node, index) => {
               const isCompleted = node.completed;
               const isActive = node.active;
               const isLocked = node.locked;
               const isChest = node.type === 'chest';
               const isExam = node.type === 'exam';
               const showEmpezarAbove = isActive;
-
-              // Offset horizontal en ZigZag
-              const offsetX = ZIGZAG_OFFSETS[index % ZIGZAG_OFFSETS.length];
+              const offsetX = getNodeOffset(index);
 
               return (
                 <View
                   key={node.id}
                   style={[styles.nodeGroup, { transform: [{ translateX: offsetX }] }]}
                 >
-                  {/* Conector */}
+                  {/* Conector o sendero entre nodos con adorno de pasto andino (ichu) */}
                   {index > 0 && (
-                    <View style={[styles.connector, isLocked && styles.connectorLocked]} />
+                    <View style={styles.connectorWrap}>
+                      {/* Pastito andino decorativo al lado del sendero */}
+                      {index % 2 === 1 ? (
+                        <Text style={styles.ichuLeft}>🌾</Text>
+                      ) : (
+                        <Text style={styles.ichuRight}>🌾</Text>
+                      )}
+                      <View
+                        style={[
+                          styles.trailConnector,
+                          isLocked ? styles.trailConnectorLocked : styles.trailConnectorActive,
+                        ]}
+                      />
+                    </View>
                   )}
 
-                  {/* ¡EMPEZAR! aparece encima del nodo activo */}
+                  {/* Globo interactivo ¡EMPEZAR! en el nodo activo */}
                   {showEmpezarAbove && (
                     <TouchableOpacity
                       style={styles.empezarBtn}
@@ -149,22 +404,21 @@ export default function HomeScreen() {
                       activeOpacity={0.85}
                     >
                       <Text style={styles.empezarText}>¡EMPEZAR!</Text>
+                      <View style={styles.empezarArrow} />
                     </TouchableOpacity>
                   )}
 
-                  {/* Nodo */}
+                  {/* Botón Circular del Nodo */}
                   <TouchableOpacity
                     style={[
                       styles.nodeBtn,
-                      isCompleted && styles.nodeCompleted,
-                      isActive && styles.nodeActive,
-                      isLocked && styles.nodeLocked,
-                      isChest && styles.nodeChest,
-                      isExam && styles.nodeExam,
+                      isActive && styles.nodeBtnActive,
+                      isLocked && styles.nodeBtnLocked,
+                      isCompleted && styles.nodeBtnCompleted,
                     ]}
                     onPress={() => handleNodePress(node)}
                     disabled={isLocked}
-                    activeOpacity={0.82}
+                    activeOpacity={0.8}
                   >
                     {isLocked ? (
                       <Text style={styles.lockEmoji}>🔒</Text>
@@ -185,7 +439,7 @@ export default function HomeScreen() {
                       />
                     )}
 
-                    {/* Check completado */}
+                    {/* Badge de completado con check */}
                     {isCompleted && (
                       <View style={styles.checkBadge}>
                         <Text style={styles.checkMark}>✓</Text>
@@ -193,7 +447,17 @@ export default function HomeScreen() {
                     )}
                   </TouchableOpacity>
 
-                  {/* Título + Subtítulo del nodo */}
+                  {/* Tag de color de Nivel */}
+                  <View
+                    style={[
+                      styles.levelTag,
+                      isLocked ? styles.levelTagLocked : styles.levelTagActive,
+                    ]}
+                  >
+                    <Text style={styles.levelTagText}>{node.levelLabel}</Text>
+                  </View>
+
+                  {/* Título y subtítulo del nodo */}
                   <Text style={[styles.nodeTitle, isLocked && styles.nodeTitleLocked]}>
                     {node.title}
                   </Text>
@@ -203,19 +467,26 @@ export default function HomeScreen() {
                 </View>
               );
             })}
-            <View style={styles.listFooterSpacer} />
+            <View style={{ height: 80 }} />
           </View>
 
-          {/* ─── COLUMNA DERECHA: Llamita motivacional ─── */}
-          <View style={styles.sideRight}>
+          {/* ── COLUMNA DERECHA: Llamita Motivacional (Yachi) ── */}
+          <View style={[styles.sideColRight, { width: sideCardWidth }]}>
             <View style={styles.llamitaCard}>
               <Image
                 source={require('@/assets/images/llamita/06_emocionado.png')}
-                style={styles.llamitaCardImg}
+                style={styles.llamitaImg}
+                resizeMode="contain"
               />
+              <Text style={styles.llamitaMood}>¡Emocionado!</Text>
               <Text style={styles.llamitaGreet}>¡Sigue así, {username}!</Text>
-              <Text style={styles.llamitaDays}>{streakDays} días aprendiendo</Text>
+              <Text style={styles.llamitaDays}>
+                {Math.max(1, streakDays || 1)} {Math.max(1, streakDays || 1) === 1 ? 'día' : 'días'} aprendiendo
+              </Text>
               <Text style={styles.llamitaMsg}>¡Estás en racha de oro! 🔥</Text>
+
+              {/* Decoración textil andina en base de la tarjeta */}
+              <Text style={styles.llamitaDecoBottom}>◇ ◆ ◇ ◆ ◇</Text>
             </View>
           </View>
         </View>
@@ -227,294 +498,407 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: CREAM,
+    backgroundColor: '#F8F5EE',
   },
-  listFooterSpacer: {
-    height: 40,
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: 40,
   },
 
-  /* Banner de sección */
-  sectionBanner: {
-    backgroundColor: TEAL,
+  /* Banner de sección con fondo de montaña y cenefa textil */
+  sectionBannerContainer: {
+    marginHorizontal: 14,
+    marginTop: 12,
+    borderRadius: 22,
+    overflow: 'hidden',
+    backgroundColor: '#0F5B62',
+    elevation: 3,
+    shadowColor: '#1A332E',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+  },
+  sectionBannerBg: {
+    width: '100%',
+  },
+  sectionBannerImg: {
+    opacity: 0.45,
+    resizeMode: 'cover',
+  },
+  sectionBannerOverlay: {
+    backgroundColor: 'rgba(11, 75, 82, 0.82)',
+  },
+  bannerContentRow: {
     paddingVertical: 14,
-    paddingHorizontal: 18,
+    paddingHorizontal: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  bannerLeft: { flex: 1, paddingRight: 12 },
+  bannerLeft: {
+    flex: 1,
+    paddingRight: 10,
+  },
   bannerTag: {
-    color: 'rgba(255,255,255,0.8)',
+    color: '#FBD46D',
     fontSize: 10,
-    fontWeight: '800',
+    fontWeight: '900',
     letterSpacing: 0.8,
     marginBottom: 2,
   },
   bannerTitle: {
     color: '#FFFFFF',
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: '900',
-    marginBottom: 2,
+    letterSpacing: -0.3,
+    marginBottom: 3,
   },
   bannerDesc: {
-    color: 'rgba(255,255,255,0.85)',
+    color: 'rgba(255, 255, 255, 0.92)',
     fontSize: 12,
     lineHeight: 16,
   },
-  guidebookBtn: {
-    backgroundColor: '#FFFFFF',
-    paddingVertical: 9,
-    paddingHorizontal: 13,
-    borderRadius: 12,
-    flexShrink: 0,
-  },
-  guidebookText: {
-    color: TEAL,
-    fontSize: 13,
-    fontWeight: '900',
-  },
-
-  /* Layout de 3 columnas */
-  mainArea: {
-    flexGrow: 1,
-    paddingVertical: 16,
-    paddingHorizontal: 8,
-  },
-  columns: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
+  bannerTextileRibbon: {
+    backgroundColor: '#0A3F45',
+    paddingVertical: 4,
+    alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.15)',
+  },
+  textileRibbonText: {
+    fontSize: 9,
+    color: '#E8B966',
+    letterSpacing: 3,
+    fontWeight: '700',
   },
 
-  /* Columna izquierda */
-  sideLeft: {
-    width: 140,
+  /* Contenedor de 3 columnas */
+  columnsWrapper: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'flex-start',
+    paddingHorizontal: 6,
+    paddingTop: 16,
+  },
+
+  /* Tarjeta Meta Diaria (Izquierda) */
+  sideColLeft: {
     position: 'sticky' as any,
-    top: 16,
+    top: 12,
   },
   metaCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: '#E8E2D9',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
+    borderRadius: 20,
+    padding: 12,
+    borderWidth: 1.5,
+    borderColor: '#ECE5D8',
+    shadowColor: '#3A2E26',
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
-    shadowRadius: 3,
+    shadowRadius: 4,
+    elevation: 2,
+    overflow: 'hidden',
   },
-  metaCardTitle: {
+  metaTitle: {
     fontSize: 14,
     fontWeight: '900',
-    color: '#2A1A0A',
-    marginBottom: 3,
+    color: '#1F2937',
+    marginBottom: 2,
   },
-  metaCardSub: {
+  metaSub: {
     fontSize: 11,
-    color: '#7A6A5A',
+    color: '#6B7280',
     marginBottom: 8,
+    lineHeight: 14,
   },
-  metaProgBg: {
-    height: 8,
-    backgroundColor: '#E8E2D9',
-    borderRadius: 4,
-    overflow: 'hidden',
+  metaProgTrack: {
+    height: 6,
+    backgroundColor: '#EAE3D6',
+    borderRadius: 3,
+    position: 'relative',
     marginBottom: 10,
+    justifyContent: 'center',
   },
   metaProgFill: {
     height: '100%',
-    backgroundColor: '#27AE60',
-    borderRadius: 4,
+    backgroundColor: GREEN,
+    borderRadius: 3,
   },
-  metaStats: { gap: 4, marginBottom: 10 },
+  metaProgDot: {
+    position: 'absolute',
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: GREEN,
+    borderWidth: 1.5,
+    borderColor: '#FFFFFF',
+    top: -2,
+  },
   metaStatLine: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    marginBottom: 4,
+  },
+  metaStatIcon: {
+    fontSize: 12,
+  },
+  metaStatText: {
     fontSize: 11,
-    fontWeight: '700',
+    fontWeight: '800',
     color: '#2A1A0A',
   },
-  metaLink: {
-    fontSize: 11,
+  metaLinkText: {
+    fontSize: 10,
     fontWeight: '800',
     color: TEAL,
     textDecorationLine: 'underline',
+    marginTop: 6,
+  },
+  metaMountainFooter: {
+    alignItems: 'center',
+    marginTop: 8,
+    opacity: 0.45,
+  },
+  metaMountainDeco: {
+    fontSize: 10,
+    letterSpacing: 2,
   },
 
-  /* Columna central — path */
-  pathCol: {
+  /* Columna Central del Camino */
+  pathCenterCol: {
     flex: 1,
-    maxWidth: 220,
+    minWidth: 120,
+    maxWidth: 155,
     alignItems: 'center',
   },
-
   nodeGroup: {
     alignItems: 'center',
+    marginVertical: 8,
+    width: 130,
+  },
+  connectorWrap: {
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    position: 'relative',
+    height: 32,
+    marginBottom: 4,
+  },
+  trailConnector: {
+    width: 6,
+    height: '100%',
+    borderRadius: 3,
+  },
+  trailConnectorActive: {
+    backgroundColor: '#C5DEC8',
+  },
+  trailConnectorLocked: {
+    backgroundColor: '#E2DAD0',
+  },
+  ichuLeft: {
+    position: 'absolute',
+    left: 8,
+    top: 4,
+    fontSize: 16,
+    opacity: 0.75,
+  },
+  ichuRight: {
+    position: 'absolute',
+    right: 8,
+    top: 4,
+    fontSize: 16,
+    opacity: 0.75,
   },
 
-  connector: {
-    width: 3,
-    height: 28,
-    backgroundColor: '#C8DDD9',
-    borderRadius: 2,
-  },
-  connectorLocked: {
-    backgroundColor: '#D8D8D8',
-  },
-
-  /* Botón EMPEZAR */
+  /* Globo ¡EMPEZAR! */
   empezarBtn: {
-    backgroundColor: '#27AE60',
-    paddingVertical: 8,
-    paddingHorizontal: 22,
-    borderRadius: 20,
-    borderBottomWidth: 3,
-    borderBottomColor: '#1E8449',
+    backgroundColor: GREEN,
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderRadius: 14,
     marginBottom: 6,
-    elevation: 3,
+    alignItems: 'center',
+    position: 'relative',
+    shadowColor: '#1A6635',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 4,
   },
   empezarText: {
     color: '#FFFFFF',
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '900',
-    letterSpacing: 0.3,
+    letterSpacing: 0.6,
+  },
+  empezarArrow: {
+    position: 'absolute',
+    bottom: -6,
+    width: 0,
+    height: 0,
+    borderLeftWidth: 6,
+    borderRightWidth: 6,
+    borderTopWidth: 6,
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
+    borderTopColor: GREEN,
   },
 
-  /* Nodos */
+  /* Botón Circular del Nodo */
   nodeBtn: {
-    width: NODE_SIZE,
-    height: NODE_SIZE,
-    borderRadius: NODE_SIZE / 2,
-    backgroundColor: TEAL,
+    width: 74,
+    height: 74,
+    borderRadius: 37,
     justifyContent: 'center',
     alignItems: 'center',
-    borderBottomWidth: 4,
-    borderBottomColor: '#136566',
-    elevation: 5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
     position: 'relative',
+    shadowColor: '#3A2E26',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.12,
+    shadowRadius: 5,
+    elevation: 3,
   },
-  nodeCompleted: {
-    backgroundColor: TEAL,
-    borderBottomColor: '#136566',
+  nodeBtnActive: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 4.5,
+    borderColor: GREEN,
   },
-  nodeActive: {
-    backgroundColor: TEAL,
-    borderBottomColor: '#136566',
-    borderWidth: 3,
-    borderColor: '#B2DFDB',
-    transform: [{ scale: 1.08 }],
+  nodeBtnLocked: {
+    backgroundColor: '#EAE4DA',
+    borderWidth: 3.5,
+    borderColor: '#C8BEB2',
   },
-  nodeLocked: {
-    backgroundColor: '#D5D5D5',
-    borderBottomColor: '#B0B0B0',
-    elevation: 1,
-  },
-  nodeChest: {
-    backgroundColor: '#E5A00D',
-    borderBottomColor: '#B57D0A',
-  },
-  nodeExam: {
-    backgroundColor: '#1CB0F6',
-    borderBottomColor: '#1899D6',
-    width: NODE_SIZE + 8,
-    height: NODE_SIZE + 8,
-    borderRadius: (NODE_SIZE + 8) / 2,
+  nodeBtnCompleted: {
+    backgroundColor: GREEN,
+    borderWidth: 4.5,
+    borderColor: '#1E8449',
   },
   nodeImg: {
-    width: 40,
-    height: 40,
+    width: 38,
+    height: 38,
     resizeMode: 'contain',
   },
   lockEmoji: {
-    fontSize: 22,
+    fontSize: 26,
   },
-  /* Badge de check en nodo completado */
   checkBadge: {
     position: 'absolute',
     bottom: -2,
     right: -2,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 11,
     width: 22,
     height: 22,
-    borderRadius: 11,
-    backgroundColor: '#27AE60',
-    borderWidth: 2,
-    borderColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 2,
+    borderColor: GREEN,
   },
   checkMark: {
-    color: '#FFFFFF',
+    color: GREEN,
     fontSize: 11,
     fontWeight: '900',
   },
+
+  /* Tag de Nivel */
+  levelTag: {
+    marginTop: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 10,
+  },
+  levelTagActive: {
+    backgroundColor: GREEN,
+  },
+  levelTagLocked: {
+    backgroundColor: '#9E9589',
+  },
+  levelTagText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+
+  /* Títulos de nodos */
   nodeTitle: {
-    marginTop: 7,
-    fontSize: 13,
-    fontWeight: '800',
-    color: '#2A1A0A',
+    marginTop: 4,
+    fontSize: 15,
+    fontWeight: '900',
+    color: '#1A1A1A',
     textAlign: 'center',
-    maxWidth: 120,
   },
   nodeTitleLocked: {
-    color: '#9A9A9A',
+    color: '#2B2621',
   },
   nodeSub: {
     fontSize: 11,
-    color: '#7A6A5A',
+    color: '#666666',
     textAlign: 'center',
-    maxWidth: 120,
-    marginBottom: 0,
+    marginTop: 1,
   },
   nodeSubLocked: {
-    color: '#BBBBBB',
+    color: '#6E665E',
   },
 
-  /* Columna derecha — Llamita */
-  sideRight: {
-    width: 130,
+  /* Tarjeta Llamita (Derecha) */
+  sideColRight: {
     position: 'sticky' as any,
-    top: 16,
+    top: 12,
   },
   llamitaCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: '#E8E2D9',
+    borderRadius: 20,
+    padding: 10,
+    borderWidth: 1.5,
+    borderColor: '#ECE5D8',
     alignItems: 'center',
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
+    shadowColor: '#3A2E26',
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
-    shadowRadius: 3,
+    shadowRadius: 4,
+    elevation: 2,
+    overflow: 'hidden',
   },
-  llamitaCardImg: {
-    width: 80,
-    height: 80,
-    resizeMode: 'contain',
-    marginBottom: 8,
+  llamitaImg: {
+    width: 64,
+    height: 64,
+    marginBottom: 4,
+  },
+  llamitaMood: {
+    fontSize: 9,
+    color: '#757575',
+    fontWeight: '700',
+    marginBottom: 2,
   },
   llamitaGreet: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '900',
-    color: '#2A1A0A',
+    color: '#1F2937',
     textAlign: 'center',
-    marginBottom: 4,
+    marginBottom: 3,
   },
   llamitaDays: {
     fontSize: 11,
-    fontWeight: '700',
+    fontWeight: '800',
     color: TEAL,
     textAlign: 'center',
     marginBottom: 3,
   },
   llamitaMsg: {
-    fontSize: 11,
-    color: '#7A6A5A',
+    fontSize: 10,
+    color: '#D35400',
     textAlign: 'center',
+    fontWeight: '800',
+    lineHeight: 13,
+  },
+  llamitaDecoBottom: {
+    marginTop: 6,
+    fontSize: 8,
+    color: '#D4A373',
+    letterSpacing: 2,
+    fontWeight: '700',
   },
 });

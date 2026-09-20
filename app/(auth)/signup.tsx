@@ -33,7 +33,7 @@ export default function SignupScreen() {
 
   return (
     <View style={styles.container}>
-      <Image source={Illustrations.cardYachayAzul} style={styles.brandImage} contentFit="contain" />
+      <Image source={Illustrations.logoYachayOficial} style={styles.brandImage} contentFit="contain" />
       <Text style={styles.title}>Crear cuenta</Text>
       <Text style={styles.subtitle}>Empieza a aprender quechua en Yachay</Text>
 

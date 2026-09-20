@@ -1,7 +1,7 @@
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router/react-navigation';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import 'react-native-reanimated';
 
 import { AuthProvider, useAuth } from '@/context/AuthContext';
@@ -16,12 +16,14 @@ export const unstable_settings = {
 function ProfileHydrator() {
   const { profile } = useAuth();
   const { hydrateFromProfile } = useGame();
+  const hydratedUidRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (profile) {
+    if (profile && profile.firebase_uid !== hydratedUidRef.current) {
+      hydratedUidRef.current = profile.firebase_uid;
       hydrateFromProfile(profile);
     }
-  }, [profile]);
+  }, [profile, hydrateFromProfile]);
 
   return null;
 }

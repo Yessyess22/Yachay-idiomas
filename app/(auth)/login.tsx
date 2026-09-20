@@ -25,7 +25,7 @@ export default function LoginScreen() {
 
   return (
     <View style={styles.container}>
-      <Image source={Illustrations.cardYachayAzul} style={styles.brandImage} contentFit="contain" />
+      <Image source={Illustrations.logoYachayOficial} style={styles.brandImage} contentFit="contain" />
       <Text style={styles.subtitle}>Inicia sesión para continuar</Text>
 
       <TextInput

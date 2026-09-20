@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
-  ActivityIndicator,
+  Alert,
   Image,
   ScrollView,
   StyleSheet,
@@ -8,130 +8,167 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { useAuth } from '@/src/context/AuthContext';
 import { useGame } from '@/src/context/GameContext';
-import { shopService } from '@/src/services/shopService';
-import { ShopItem } from '@/src/types';
 import { YachayTopBar } from '@/components/yachay/yachay-top-bar';
 
 const TEAL = '#1B8B8C';
-const CREAM = '#FAF7F2';
+const TEAL_DARK = '#0E4D55';
+const GOLD = '#E5A00D';
+const PARCHMENT = '#F8F5EE';
+const BORDER_COLOR = '#ECE5D8';
 
-const DEFAULT_SHOP_ITEMS: ShopItem[] = [
+interface ShopItem {
+  id: string;
+  title: string;
+  description: string;
+  icon: any;
+  cost: number;
+  type: 'hearts' | 'streak_freeze' | 'double_xp' | 'outfit';
+}
+
+const SHOP_ITEMS: ShopItem[] = [
   {
-    id: 1,
-    name: 'Protector de Racha',
-    description: 'Evita perder tu racha de días consecutivo si un día no practicas Quechua.',
-    price_gems: 200,
-    item_type: 'streak_freeze',
-    icon_name: '🛡️',
+    id: 'refill_hearts',
+    title: 'Recargar Vidas (❤️ x5)',
+    description: 'Restaura todos tus corazones al instante para seguir aprendiendo sin pausa.',
+    icon: require('@/assets/images/logros/moneda_yachay_coin.png'),
+    cost: 350,
+    type: 'hearts',
   },
   {
-    id: 2,
-    name: 'Recarga de Vidas',
-    description: 'Recupera tus 5 vidas al instante para continuar practicando sin esperar.',
-    price_gems: 100,
-    item_type: 'refill_lives',
-    icon_name: '❤️',
+    id: 'streak_freeze',
+    title: 'Amuleto de Hielo ❄️',
+    description: 'Protege tu racha de días si no puedes practicar un día.',
+    icon: require('@/assets/images/logros/logro_hablante_corona.png'),
+    cost: 400,
+    type: 'streak_freeze',
   },
   {
-    id: 3,
-    name: 'Potenciador de XP (2x)',
-    description: 'Duplica el XP ganado en tus próximas 3 lecciones de Quechua.',
-    price_gems: 150,
-    item_type: 'xp_boost',
-    icon_name: '⚡',
+    id: 'double_xp',
+    title: 'Poción de Sabiduría 🧪',
+    description: 'Duplica toda la experiencia (XP) que ganes durante los próximos 15 minutos.',
+    icon: require('@/assets/images/logros/logro_maestro_sol.png'),
+    cost: 250,
+    type: 'double_xp',
+  },
+  {
+    id: 'chullo_item',
+    title: 'Chullo Sagrado de Lana 🧶',
+    description: 'Prenda tradicional andina para personalizar tu perfil de estudiante.',
+    icon: require('@/assets/images/logros/item_chullo_coleccionable.png'),
+    cost: 600,
+    type: 'outfit',
   },
 ];
 
 export default function ShopScreen() {
-  const { user } = useAuth();
-  const { gems, lives, restoreLives, consumeGems } = useGame();
-  const [items, setItems] = useState<ShopItem[]>(DEFAULT_SHOP_ITEMS);
-  const [loading, setLoading] = useState(false);
-  const [buyingId, setBuyingId] = useState<number | null>(null);
-  const [message, setMessage] = useState('');
+  const { gems, lives, spendGems, restoreLives } = useGame() as any;
+  const [buyingId, setBuyingId] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadShop();
-  }, []);
-
-  async function loadShop() {
-    setLoading(true);
-    const { data } = await shopService.fetchShopItems();
-    if (data && data.length > 0) {
-      setItems(data);
-    }
-    setLoading(false);
-  }
-
-  async function handleBuy(item: ShopItem) {
-    if (gems < item.price_gems) {
-      setMessage('💎 Gemas insuficientes. ¡Completa lecciones para ganar más!');
+  const handleBuy = (item: ShopItem) => {
+    if (gems < item.cost) {
+      Alert.alert(
+        'Gemas Insuficientes 💎',
+        `Necesitas ${item.cost} gemas para adquirir "${item.title}". ¡Sigue completando lecciones para ganar más!`
+      );
       return;
     }
 
-    setBuyingId(item.id);
-    setMessage('');
-
-    const success = consumeGems(item.price_gems);
-    if (success) {
-      if (item.item_type === 'refill_lives') {
-        restoreLives();
-      }
-      if (user) {
-        await shopService.buyItem(user.uid, item, gems);
-      }
-      setMessage(`¡Has adquirido ${item.name}! 🎉`);
-    } else {
-      setMessage('Error al procesar la compra.');
-    }
-    setBuyingId(null);
-  }
+    Alert.alert(
+      'Confirmar Compra',
+      `¿Deseas canjear ${item.cost} gemas por "${item.title}"?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Comprar',
+          onPress: () => {
+            setBuyingId(item.id);
+            if (typeof spendGems === 'function') {
+              spendGems(item.cost);
+            }
+            if (item.type === 'hearts' && typeof restoreLives === 'function') {
+              restoreLives();
+            }
+            setTimeout(() => {
+              setBuyingId(null);
+              Alert.alert('¡Adquirido con Éxito! 🎉', `Has obtenido "${item.title}".`);
+            }, 400);
+          },
+        },
+      ]
+    );
+  };
 
   return (
     <View style={styles.container}>
       <YachayTopBar />
 
-      <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.title}>Tienda de Yachay 🛒</Text>
-        <Text style={styles.subtitle}>
-          Usa tus gemas ganadas aprendiendo Quechua para obtener ventajas.
-        </Text>
-
-        {message ? (
-          <View style={styles.messageBanner}>
-            <Text style={styles.messageText}>{message}</Text>
+      {/* Banner de Tesoro Andino */}
+      <View style={styles.treasureBanner}>
+        <View style={styles.bannerInfo}>
+          <View style={styles.bannerTagBadge}>
+            <Text style={styles.bannerTagText}>🏛️ MERCADO ANDINO</Text>
           </View>
-        ) : null}
+          <Text style={styles.bannerTitle}>Tienda de Yachay</Text>
+          <Text style={styles.bannerSub}>Canjea tus gemas sagradas por potenciadores y atuendos.</Text>
+        </View>
+        <View style={styles.gemCounterBox}>
+          <Text style={styles.gemCounterEmoji}>💎</Text>
+          <Text style={styles.gemCounterValue}>{gems || 0}</Text>
+          <Text style={styles.gemCounterLabel}>Gemas</Text>
+        </View>
+        {/* Ribete textil andino */}
+        <View style={styles.andineRibbon}>
+          <Text style={styles.andineRibbonText}>▲▼▲▼ ❖ ◆ ❖ ◆ ▲▼▲▼ ❖ ◆ ❖ ◆ ▲▼▲▼</Text>
+        </View>
+      </View>
 
-        {loading ? (
-          <ActivityIndicator size="large" color="#58CC02" style={styles.loadingIndicator} />
-        ) : (
-          items.map((item) => (
-            <View key={item.id} style={styles.itemCard}>
-              <Text style={styles.itemIcon}>{item.icon_name}</Text>
-              <View style={styles.itemInfo}>
-                <Text style={styles.itemName}>{item.name}</Text>
-                <Text style={styles.itemDesc}>{item.description}</Text>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        <Text style={styles.sectionHeading}>Potenciadores y Vidas</Text>
+
+        {SHOP_ITEMS.map((item) => {
+          const canAfford = (gems || 0) >= item.cost;
+          return (
+            <View key={item.id} style={styles.shopCard}>
+              <View style={styles.itemIconBox}>
+                <Image
+                  source={item.icon}
+                  style={styles.itemIcon}
+                  resizeMode="contain"
+                />
               </View>
-              <TouchableOpacity
-                style={[
-                  styles.buyButton,
-                  gems < item.price_gems && styles.buyButtonDisabled,
-                ]}
-                onPress={() => handleBuy(item)}
-                disabled={buyingId === item.id || gems < item.price_gems}
-              >
-                {buyingId === item.id ? (
-                  <ActivityIndicator color="#FFF" size="small" />
-                ) : (
-                  <Text style={styles.buyButtonText}>💎 {item.price_gems}</Text>
-                )}
-              </TouchableOpacity>
+
+              <View style={styles.itemDetails}>
+                <Text style={styles.itemTitle}>{item.title}</Text>
+                <Text style={styles.itemDesc}>{item.description}</Text>
+
+                <View style={styles.priceRow}>
+                  <View style={styles.costBadge}>
+                    <Text style={styles.costEmoji}>💎</Text>
+                    <Text style={styles.costValue}>{item.cost}</Text>
+                  </View>
+
+                  <TouchableOpacity
+                    style={[styles.buyBtn, !canAfford && styles.buyBtnDisabled]}
+                    onPress={() => handleBuy(item)}
+                    activeOpacity={0.8}
+                    disabled={!canAfford}
+                  >
+                    <Text style={[styles.buyBtnText, !canAfford && styles.buyBtnTextDisabled]}>
+                      {canAfford ? 'Canjear' : 'Faltan Gemas'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
             </View>
-          ))
-        )}
+          );
+        })}
+
+        <View style={{ height: 40 }} />
       </ScrollView>
     </View>
   );
@@ -140,85 +177,200 @@ export default function ShopScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FAF7F2',
+    backgroundColor: PARCHMENT,
   },
-  loadingIndicator: {
-    marginTop: 20,
+  scroll: {
+    flex: 1,
   },
-  content: {
-    padding: 20,
+  scrollContent: {
+    paddingHorizontal: 16,
+    paddingTop: 8,
   },
-  title: {
-    fontSize: 26,
-    fontWeight: '800',
-    color: '#3C3C3C',
-    marginBottom: 4,
-  },
-  subtitle: {
-    fontSize: 15,
-    color: '#777777',
-    marginBottom: 20,
-    lineHeight: 20,
-  },
-  messageBanner: {
-    backgroundColor: '#E8F5E9',
-    padding: 14,
-    borderRadius: 12,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#C8E6C9',
-  },
-  messageText: {
-    color: '#2E7D32',
-    fontSize: 14,
-    fontWeight: '700',
-    textAlign: 'center',
-  },
-  itemCard: {
+
+  /* Banner de Tesoro */
+  treasureBanner: {
+    backgroundColor: '#0E4D55',
+    marginHorizontal: 16,
+    marginTop: 12,
+    marginBottom: 8,
+    borderRadius: 20,
+    overflow: 'hidden',
+    paddingTop: 16,
+    paddingHorizontal: 16,
+    paddingBottom: 28,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    padding: 16,
-    borderRadius: 20,
-    marginBottom: 16,
-    borderWidth: 2,
-    borderColor: '#E5E5E5',
-    elevation: 2,
+    justifyContent: 'space-between',
+    borderWidth: 1.5,
+    borderColor: '#1B8B8C',
+    position: 'relative',
+    shadowColor: '#0E4D55',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 3,
   },
-  itemIcon: {
-    fontSize: 38,
-    marginRight: 14,
-  },
-  itemInfo: {
+  bannerInfo: {
     flex: 1,
     paddingRight: 10,
   },
-  itemName: {
-    fontSize: 18,
+  bannerTagBadge: {
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    alignSelf: 'flex-start',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    marginBottom: 6,
+  },
+  bannerTagText: {
+    color: '#FFD768',
+    fontSize: 11,
     fontWeight: '800',
-    color: '#3C3C3C',
-    marginBottom: 4,
+    letterSpacing: 0.8,
+  },
+  bannerTitle: {
+    color: '#FFFFFF',
+    fontSize: 20,
+    fontWeight: '900',
+  },
+  bannerSub: {
+    color: '#DDF1ED',
+    fontSize: 12,
+    marginTop: 2,
+    lineHeight: 16,
+  },
+  gemCounterBox: {
+    backgroundColor: 'rgba(0,0,0,0.22)',
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 14,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
+  },
+  gemCounterEmoji: {
+    fontSize: 20,
+    marginBottom: 2,
+  },
+  gemCounterValue: {
+    color: '#FFD768',
+    fontSize: 18,
+    fontWeight: '900',
+  },
+  gemCounterLabel: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  andineRibbon: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: 'rgba(0,0,0,0.25)',
+    paddingVertical: 3,
+    alignItems: 'center',
+  },
+  andineRibbonText: {
+    color: '#FFD768',
+    fontSize: 9,
+    fontWeight: '700',
+    letterSpacing: 2,
+  },
+
+  sectionHeading: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#2C2520',
+    marginVertical: 10,
+    letterSpacing: -0.2,
+  },
+
+  /* Tarjetas de Tienda */
+  shopCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    borderWidth: 1.5,
+    borderColor: BORDER_COLOR,
+    padding: 14,
+    marginBottom: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    shadowColor: '#3A2E26',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 1,
+  },
+  itemIconBox: {
+    width: 64,
+    height: 64,
+    borderRadius: 16,
+    backgroundColor: '#F7F3EB',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 14,
+    borderWidth: 1,
+    borderColor: '#E7DFD1',
+  },
+  itemIcon: {
+    width: 44,
+    height: 44,
+  },
+  itemDetails: {
+    flex: 1,
+  },
+  itemTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#2C2520',
+    marginBottom: 2,
   },
   itemDesc: {
-    fontSize: 13,
-    color: '#777777',
-    lineHeight: 18,
+    fontSize: 11,
+    color: '#7A6E65',
+    lineHeight: 15,
+    marginBottom: 8,
   },
-  buyButton: {
-    backgroundColor: '#1B8B8C',
-    paddingVertical: 10,
+  priceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  costBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF9E6',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#FBD46D',
+  },
+  costEmoji: {
+    fontSize: 12,
+    marginRight: 4,
+  },
+  costValue: {
+    color: '#B7791F',
+    fontSize: 12,
+    fontWeight: '900',
+  },
+  buyBtn: {
+    backgroundColor: TEAL,
     paddingHorizontal: 16,
-    borderRadius: 14,
-    borderBottomWidth: 3,
-    borderBottomColor: '#136566',
+    paddingVertical: 6,
+    borderRadius: 10,
   },
-  buyButtonDisabled: {
-    backgroundColor: '#E5E5E5',
-    borderBottomColor: '#CCCCCC',
+  buyBtnDisabled: {
+    backgroundColor: '#EAE3D6',
   },
-  buyButtonText: {
+  buyBtnText: {
     color: '#FFFFFF',
-    fontSize: 15,
+    fontSize: 12,
     fontWeight: '800',
+  },
+  buyBtnTextDisabled: {
+    color: '#9C9086',
   },
 });

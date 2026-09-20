@@ -20,59 +20,65 @@ export function YachayTopBar() {
   const { profile } = useAuth();
   const router = useRouter();
   const [livesModal, setLivesModal] = useState(false);
+  const [streakModal, setStreakModal] = useState(false);
 
-  const totalXp = profile?.total_xp ?? xp ?? 0;
-  const levelName = getLevelName(totalXp);
-  const coins = totalXp + gems * 5;
+  // Live state from GameContext (hydrated from profile and updated during play)
+  const currentXp = xp ?? profile?.total_xp ?? 0;
+  const levelNumber = Math.max(1, Math.floor(currentXp / 200) + 1);
+  const streak = streakDays ?? profile?.streak_count ?? 0;
   const username = profile?.username || 'Tú';
   const initial = username.charAt(0).toUpperCase();
 
   return (
     <>
       <View style={styles.bar}>
-        {/* LOGO izquierda */}
+        {/* Adorno textil andino esquina izquierda */}
+        <Text style={styles.cornerPatternLeft}>◇◆◇</Text>
+
+        {/* LOGO izquierda con montañas */}
         <View style={styles.logoWrap}>
+          <View style={styles.mountainIconWrap}>
+            <Text style={styles.mountainIcon}>⛰️</Text>
+          </View>
           <Text style={styles.logoText}>Yachay</Text>
         </View>
 
-        {/* STATS en el centro */}
+        {/* STATS en la derecha con los colores exactos del diseño */}
         <View style={styles.statsRow}>
-          {/* Coins */}
-          <View style={styles.pill}>
-            <Image
-              source={require('@/assets/images/logros/moneda_yachay_coin.png')}
-              style={styles.pillIcon}
-            />
-            <Text style={styles.pillText}>{coins.toLocaleString()}</Text>
+          {/* XP Dinámico (Dorado suave) */}
+          <View style={[styles.pill, styles.pillXp]}>
+            <Text style={styles.pillEmojiCoin}>🪙</Text>
+            <Text style={[styles.pillText, styles.pillTextXp]}>{currentXp} XP</Text>
           </View>
 
-          {/* Nivel */}
-          <View style={styles.pill}>
-            <Image
-              source={require('@/assets/images/logros/logro_principiante_chullo.png')}
-              style={styles.pillIcon}
-            />
-            <Text style={styles.pillText}>{levelName}</Text>
-          </View>
+          {/* Vidas (Rojo suave) */}
+          <TouchableOpacity
+            style={[styles.pill, styles.pillLives]}
+            onPress={() => setLivesModal(true)}
+            activeOpacity={0.75}
+          >
+            <Text style={styles.pillEmojiHeart}>❤️</Text>
+            <Text style={[styles.pillText, styles.pillTextLives]}>{lives}</Text>
+          </TouchableOpacity>
 
-          {/* Racha + vidas (toca para ver vidas) */}
-          <TouchableOpacity style={styles.pill} onPress={() => setLivesModal(true)} activeOpacity={0.75}>
-            <Text style={styles.pillEmoji}>🔥</Text>
-            <Text style={styles.pillText}>{streakDays} días</Text>
+          {/* Racha (Melocotón / Naranja suave) */}
+          <TouchableOpacity
+            style={[styles.pill, styles.pillStreak]}
+            onPress={() => setStreakModal(true)}
+            activeOpacity={0.75}
+          >
+            <Text style={styles.pillEmojiFire}>🔥</Text>
+            <Text style={[styles.pillText, styles.pillTextStreak]}>
+              {streak} {streak === 1 ? 'día' : 'días'}
+            </Text>
           </TouchableOpacity>
         </View>
 
-        {/* Avatar derecha */}
-        <TouchableOpacity
-          style={styles.avatarCircle}
-          onPress={() => router.push('/(tabs)/profile' as any)}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.avatarInitial}>{initial}</Text>
-        </TouchableOpacity>
+        {/* Adorno textil andino esquina derecha */}
+        <Text style={styles.cornerPatternRight}>◇◆◇</Text>
       </View>
 
-      {/* Modal vidas */}
+      {/* Modal Vidas */}
       <Modal animationType="slide" transparent visible={livesModal} onRequestClose={() => setLivesModal(false)}>
         <View style={styles.overlay}>
           <View style={styles.modal}>
@@ -80,8 +86,8 @@ export function YachayTopBar() {
             <Text style={styles.modalTitle}>Vidas ({lives} / 5)</Text>
             <Text style={styles.modalDesc}>
               {lives < 5
-                ? 'Las vidas se recargan con el tiempo o puedes completarlas en la Tienda.'
-                : '¡Tus vidas están al máximo! Sigue aprendiendo Quechua.'}
+                ? `Te quedan ${lives} de 5 vidas. Pierdes 1 vida cuando fallas una pregunta en las lecciones.`
+                : '¡Tus vidas están al máximo (5/5)! Sigue aprendiendo Quechua con energía.'}
             </Text>
             {lives < 5 && (
               <TouchableOpacity
@@ -97,6 +103,27 @@ export function YachayTopBar() {
           </View>
         </View>
       </Modal>
+
+      {/* Modal Racha */}
+      <Modal animationType="slide" transparent visible={streakModal} onRequestClose={() => setStreakModal(false)}>
+        <View style={styles.overlay}>
+          <View style={styles.modal}>
+            <Text style={styles.modalEmoji}>🔥</Text>
+            <Text style={styles.modalTitle}>¡Racha de {streak} {streak === 1 ? 'día' : 'días'}!</Text>
+            <Text style={styles.modalDesc}>
+              {streak === 1
+                ? '¡Comenzaste tu primer día de práctica! Vuelve mañana para que tu llama del saber no se apague.'
+                : `¡Increíble disciplina! Llevas ${streak} días consecutivos aprendiendo Quechua.`}
+            </Text>
+            <TouchableOpacity style={styles.refillBtn} onPress={() => setStreakModal(false)}>
+              <Text style={styles.refillText}>¡A seguir aprendiendo! 🚀</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.closeBtn} onPress={() => setStreakModal(false)}>
+              <Text style={styles.closeBtnText}>Cerrar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </>
   );
 }
@@ -106,70 +133,103 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: '#FFFFFF',
-    paddingVertical: 10,
-    paddingHorizontal: 16,
+    backgroundColor: '#F9F6F0',
+    paddingVertical: 12,
+    paddingHorizontal: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#E8E2D9',
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.07,
-    shadowRadius: 4,
+    borderBottomColor: '#EAE3D6',
+    position: 'relative',
+  },
+  cornerPatternLeft: {
+    position: 'absolute',
+    left: 4,
+    top: 2,
+    fontSize: 10,
+    color: '#D2C3AA',
+    letterSpacing: 1,
+  },
+  cornerPatternRight: {
+    position: 'absolute',
+    right: 4,
+    top: 2,
+    fontSize: 10,
+    color: '#D2C3AA',
+    letterSpacing: 1,
   },
   logoWrap: {
-    flexDirection: 'row',
+    flexDirection: 'column',
     alignItems: 'center',
+    justifyContent: 'center',
+  },
+  mountainIconWrap: {
+    marginBottom: -4,
+  },
+  mountainIcon: {
+    fontSize: 14,
   },
   logoText: {
     fontSize: 22,
     fontWeight: '900',
-    color: TEAL,
+    color: '#0E4D55',
     letterSpacing: -0.5,
   },
   statsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 7,
   },
   pill: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F5F5F0',
     borderRadius: 20,
-    paddingVertical: 5,
-    paddingHorizontal: 10,
+    paddingVertical: 6,
+    paddingHorizontal: 11,
     gap: 5,
-    borderWidth: 1,
-    borderColor: '#E8E2D9',
+    borderWidth: 1.5,
   },
-  pillIcon: {
-    width: 20,
-    height: 20,
-    resizeMode: 'contain',
+  pillXp: {
+    backgroundColor: '#FFF9E6',
+    borderColor: '#EBD89F',
   },
-  pillEmoji: {
-    fontSize: 16,
+  pillNivel: {
+    backgroundColor: '#EAF7EE',
+    borderColor: '#BFDEC6',
+  },
+  pillStreak: {
+    backgroundColor: '#FFF1E8',
+    borderColor: '#F6CAB0',
+  },
+  pillLives: {
+    backgroundColor: '#FDECEC',
+    borderColor: '#F9C6C6',
+  },
+  pillEmojiCoin: {
+    fontSize: 14,
+  },
+  pillEmojiHeart: {
+    fontSize: 14,
+  },
+  pillEmojiMountain: {
+    fontSize: 14,
+  },
+  pillEmojiFire: {
+    fontSize: 14,
   },
   pillText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '800',
-    color: '#2A1A0A',
   },
-  avatarCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: TEAL,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#B2DFDB',
+  pillTextXp: {
+    color: '#5C4314',
   },
-  avatarInitial: {
-    color: '#FFFFFF',
-    fontWeight: '900',
-    fontSize: 15,
+  pillTextNivel: {
+    color: '#166231',
+  },
+  pillTextStreak: {
+    color: '#9E3C0E',
+  },
+  pillTextLives: {
+    color: '#B82828',
   },
   /* Modal */
   overlay: {

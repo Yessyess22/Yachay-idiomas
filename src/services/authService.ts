@@ -34,6 +34,9 @@ export const authService = {
         username: finalUsername,
         avatar_url: null,
         total_xp: 0,
+        streak_count: 1,
+        gems: 100,
+        lives: 5,
       });
       if (profileError) {
         console.warn('Profile creation warning:', profileError.message);
@@ -78,11 +81,11 @@ export const authService = {
         firebase_uid: uid,
         username: 'Yachachiq',
         avatar_url: null,
-        total_xp: 150,
+        total_xp: 0,
         created_at: new Date().toISOString(),
-        streak_count: 5,
-        streak_freeze_count: 1,
-        gems: 120,
+        streak_count: 1,
+        streak_freeze_count: 0,
+        gems: 100,
         lives: 5,
       };
     }
