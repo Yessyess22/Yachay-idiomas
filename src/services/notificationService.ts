@@ -1,33 +1,46 @@
 /**
  * notificationService.ts
  * Gestiona las notificaciones locales de recordatorio de racha diaria.
- * Usa expo-notifications, compatible con Android e iOS nativos.
- * En la plataforma web no hace nada (notificaciones web requieren SW).
+ * Compatible con Android e iOS nativos (APK / Standalone build).
+ * En Expo Go (Android SDK 53+) y Web se deshabilita para evitar el crash de SDK 53.
  */
 import { Platform } from 'react-native';
-import * as Notifications from 'expo-notifications';
+import { isRunningInExpoGo } from 'expo';
 
 const STREAK_CHANNEL_ID = 'yachay_racha';
 const STREAK_NOTIFICATION_ID = 'streak_reminder';
 
-// Configurar cómo se muestran las notificaciones en primer plano
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldShowBanner: true,
-    shouldShowList: true,
-    shouldPlaySound: false,
-    shouldSetBadge: false,
-  }),
-});
+// expo-notifications lanza un error fatal en Android dentro de Expo Go (SDK 53+)
+// por lo que solo se carga dinámicamente fuera de Expo Go.
+let Notifications: typeof import('expo-notifications') | null = null;
+
+const canUseNotifications = Platform.OS !== 'web' && !isRunningInExpoGo();
+
+if (canUseNotifications) {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    Notifications = require('expo-notifications');
+    Notifications?.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowAlert: true,
+        shouldShowBanner: true,
+        shouldShowList: true,
+        shouldPlaySound: false,
+        shouldSetBadge: false,
+      }),
+    });
+  } catch (err) {
+    console.warn('[notificationService] No se pudo inicializar expo-notifications:', err);
+  }
+}
 
 /**
  * Solicita permiso de notificaciones al usuario.
- * Solo actúa en plataformas nativas (Android/iOS).
+ * Solo actúa en plataformas nativas fuera de Expo Go.
  * Devuelve true si el permiso fue concedido.
  */
 export async function requestNotificationPermissions(): Promise<boolean> {
-  if (Platform.OS === 'web') return false;
+  if (!Notifications) return false;
   try {
     if (Platform.OS === 'android') {
       await Notifications.setNotificationChannelAsync(STREAK_CHANNEL_ID, {
@@ -53,7 +66,7 @@ export async function requestNotificationPermissions(): Promise<boolean> {
  * Cancela cualquier recordatorio previo antes de crear el nuevo.
  */
 export async function scheduleStreakReminder(): Promise<void> {
-  if (Platform.OS === 'web') return;
+  if (!Notifications) return;
   try {
     // Cancelar cualquier recordatorio anterior
     await cancelStreakReminder();
@@ -89,10 +102,11 @@ export async function scheduleStreakReminder(): Promise<void> {
  * Cancela el recordatorio de racha (cuando el usuario ya practicó hoy).
  */
 export async function cancelStreakReminder(): Promise<void> {
-  if (Platform.OS === 'web') return;
+  if (!Notifications) return;
   try {
     await Notifications.cancelScheduledNotificationAsync(STREAK_NOTIFICATION_ID);
   } catch {
     // Ignorar si no existía
   }
 }
+
