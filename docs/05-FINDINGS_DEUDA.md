@@ -1,8 +1,8 @@
 # Registro de Deuda Técnica y Hallazgos — Yachay Quechua
 
-**Versión:** 1.2 | **Fecha de actualización:** 2026-09-12 | **Estado:** Vivo
+**Versión:** 2.0 | **Fecha de actualización:** 2026-09-20 | **Estado:** Vivo (0 GAPs pendientes)
 
-Este documento es el registro vivo de todas las deficiencias de arquitectura, deuda técnica y debilidades identificadas en el repositorio. Cada entrada (GAP) tiene un propietario responsable de su resolución y el sprint objetivo en que debe cerrarse. Los GAPs no se eliminan; se marcan como resueltos y se documenta la solución aplicada.
+Este documento es el registro vivo de todas las deficiencias de arquitectura, deuda técnica y debilidades identificadas en el repositorio. Cada entrada (GAP) tiene un propietario responsable de su resolución y el sprint objetivo en que fue cerrado. Los GAPs no se eliminan; se marcan como resueltos y se documenta la solución aplicada.
 
 ---
 
@@ -12,11 +12,11 @@ Este documento es el registro vivo de todas las deficiencias de arquitectura, de
 | :--- | :--- | :---: | :--- | :---: | :---: |
 | GAP-01 | Ausencia de infraestructura Docker y red estática | 🔴 Crítico | Oscar Segovia | Sprint 1 | ✅ Resuelto |
 | GAP-02 | Acoplamiento de llamadas de BD en las vistas | 🟡 Medio | Yesica + Oscar Segovia | Sprint 2 | ✅ Resuelto |
-| GAP-03 | Ausencia de pruebas automatizadas | 🟢 Bajo | Equipo | Sprint 4 | Abierto |
+| GAP-03 | Ausencia de pruebas automatizadas | 🟢 Bajo | Alejandro Padilla | Sprint 4 / 6 | ✅ Resuelto |
 | GAP-04 | Archivos plantilla de Expo sin personalizar | 🟢 Bajo | Yesica | Sprint 1 | ✅ Resuelto |
 | GAP-05 | Ausencia de esquema de BD para Niveles y Traductor de Voz | 🔴 Alto | Alejandro Padilla | Sprint 1 | ✅ Resuelto |
-| GAP-06 | `GameContext` no persiste vidas/XP/gemas/racha contra `profiles` | 🔴 Alto | Alejandro Padilla | Sprint 4 | Abierto |
-| GAP-07 | Servicios de gamificación no conectados a las tablas creadas (`leaderboard_weekly`, `shop_items`) | 🟡 Medio | Oscar Segovia | Sprint 4 | Abierto |
+| GAP-06 | `GameContext` no persiste vidas/XP/gemas/racha contra `profiles` | 🔴 Alto | Alejandro Padilla | Sprint 4 | ✅ Resuelto |
+| GAP-07 | Servicios de gamificación no conectados a las tablas creadas (`leaderboard_weekly`, `shop_items`) | 🟡 Medio | Oscar Segovia | Sprint 4 | ✅ Resuelto |
 
 ---
 
@@ -42,6 +42,20 @@ Este documento es el registro vivo de todas las deficiencias de arquitectura, de
 
 ### Solución Aplicada
 Se implementó Clean Architecture bajo `src/services/` (`authService.ts`, `categoryService.ts`, `questionService.ts`, `supabase.ts`). Se desacoplaron totalmente las vistas en `app/` (0 llamadas a `supabase.from` directas en vistas UI).
+
+---
+
+## GAP-03 — Ausencia de Pruebas Automatizadas
+
+**Severidad:** 🟢 Bajo
+**Propietario:** Alejandro Padilla
+**Sprint objetivo:** Sprint 4 / Sprint 6
+**Estado:** ✅ Resuelto
+
+### Solución Aplicada
+1. Se configuró Jest con preset `jest-expo` y `@react-native/jest-preset` en `package.json`.
+2. Se creó `__tests__/GameContext.test.tsx` cubriendo el reductor de estado inicial, el descuento de vidas con redirección a bloqueo y la hidratación desde perfil.
+3. Se creó `__tests__/voiceService.test.ts` evaluando la limpieza fonética, parsing y fallbacks de voz.
 
 ---
 
@@ -74,13 +88,10 @@ Se creó la migración 3FN `20260910000000_initial_yachay_schema.sql` con las 11
 **Severidad:** 🔴 Alto
 **Propietario:** Alejandro Padilla
 **Sprint objetivo:** Sprint 4
-**Estado:** Abierto
+**Estado:** ✅ Resuelto
 
-### Descripción
-`src/context/GameContext.tsx` gestiona `lives`, `xp`, `gems` y `streakDays` con un `useReducer` cuyo estado inicial es fijo (`lives: 5`, `gems: 100`, `streakDays: 3`) y vive solo en memoria del cliente. La migración `20260912000000_gamification_and_exercises.sql` ya agregó las columnas equivalentes en `profiles` (`lives`, `gems`, `streak_count`, `streak_freeze_count`, `last_active_date`, `last_life_lost_at`), pero ningún servicio lee ese estado al iniciar sesión ni lo escribe de vuelta cuando cambia. Consecuencia: el progreso de vidas/gemas/racha se pierde al recargar la app, cerrar sesión o cambiar de dispositivo, y dos usuarios en el mismo dispositivo verían el mismo estado de juego "de fábrica".
-
-### Solución Propuesta
-Inicializar `GameContext` leyendo `profiles` vía `authService.getProfile()` al montar `GameProvider`, y sincronizar cada cambio de vidas/XP/gemas/racha contra Supabase (debounced o al finalizar cada lección/examen).
+### Solución Aplicada
+Se implementó el componente `ProfileHydrator` en `app/_layout.tsx` que invoca `gameContext.hydrateFromProfile()` al autenticarse. Las mutaciones de vidas, gemas, XP y racha se persisten asíncronamente con un efecto debounced (800 ms) llamando a `authService.updateGameState()` hacia la tabla `profiles` en Supabase.
 
 ---
 
@@ -89,10 +100,8 @@ Inicializar `GameContext` leyendo `profiles` vía `authService.getProfile()` al 
 **Severidad:** 🟡 Medio
 **Propietario:** Oscar Segovia
 **Sprint objetivo:** Sprint 4
-**Estado:** Abierto
+**Estado:** ✅ Resuelto
 
-### Descripción
-La migración de gamificación creó `leaderboard_weekly` y `shop_items`, pero: (1) `leaderboardService.fetchWeeklyLeaderboard()` consulta `profiles.total_xp` directamente en lugar de `leaderboard_weekly`, por lo que las ligas no reflejan `weekly_xp` ni `league_tier`; (2) `app/(tabs)/shop.tsx` renderiza una lista de ítems hardcodeada (`DEFAULT_SHOP_ITEMS`) en vez de invocar `shopService.fetchShopItems()`, que sí existe y consulta `shop_items`.
-
-### Solución Propuesta
-Conectar `leaderboardService` a `leaderboard_weekly` (con un job o trigger que acumule `weekly_xp`), y reemplazar `DEFAULT_SHOP_ITEMS` en `shop.tsx` por la llamada real a `shopService.fetchShopItems()`.
+### Solución Aplicada
+1. `leaderboardService.fetchWeeklyLeaderboard()` se actualizó para realizar un JOIN entre `leaderboard_weekly` y `profiles`, devolviendo la clasificación por `weekly_xp` y `league_tier`.
+2. `shop.tsx` se conectó a `shopService.fetchShopItems()`, obteniendo la lista dinámica de ítems y cosméticos almacenados en la tabla `shop_items`.

@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Image,
   ImageBackground,
   ScrollView,
@@ -23,7 +22,6 @@ import { supabase } from '@/src/services/supabase';
 const TEAL = '#1B8B8C';
 const TEAL_DARK = '#0E4D55';
 const CREAM = '#F7F4EB';
-const GOLD = '#E5A00D';
 const GREEN = '#27AE60';
 const GREEN_DARK = '#1E8449';
 const BLUE = '#2980B9';
@@ -41,7 +39,9 @@ interface LessonNode {
   completed: boolean;
   active: boolean;
   locked: boolean;
-  type: 'lesson' | 'chest' | 'exam';
+  type: 'lesson' | 'exam';
+  /** Solo para nodos type='exam': level_id que consume examService.fetchExamByLevel */
+  levelId?: number;
 }
 
 const INITIAL_SERPENTINE_NODES: LessonNode[] = [
@@ -61,16 +61,17 @@ const INITIAL_SERPENTINE_NODES: LessonNode[] = [
   },
   {
     id: 100,
-    title: 'Cofre Sagrado',
-    subtitle: 'Recompensa del Nivel 1',
+    title: 'Examen de Abecedario',
+    subtitle: 'Evaluación de Vocales y Consonantes',
     categorySlug: 'abecedario',
     levelNumber: 1,
-    levelColor: GOLD,
-    levelLabel: 'COFRE',
+    levelColor: PURPLE,
+    levelLabel: 'EXAMEN',
     completed: false,
     active: false,
     locked: true,
-    type: 'chest',
+    type: 'exam',
+    levelId: 1,
   },
 
   // Nivel 2 — Yupaykuna / Números (Azul Lago Titicaca)
@@ -89,7 +90,7 @@ const INITIAL_SERPENTINE_NODES: LessonNode[] = [
   },
   {
     id: 200,
-    title: 'Examen Andino',
+    title: 'Examen de Números',
     subtitle: 'Evaluación de Números',
     categorySlug: 'numeros',
     levelNumber: 2,
@@ -99,6 +100,7 @@ const INITIAL_SERPENTINE_NODES: LessonNode[] = [
     active: false,
     locked: true,
     type: 'exam',
+    levelId: 2,
   },
 
   // Nivel 3 — Palabras y Vocabulario (Terracota Andino)
@@ -117,22 +119,23 @@ const INITIAL_SERPENTINE_NODES: LessonNode[] = [
   },
   {
     id: 300,
-    title: 'Tesoro del Inca',
-    subtitle: 'Cofre Legendario',
+    title: 'Examen de Palabras',
+    subtitle: 'Evaluación de Saludos y Familia',
     categorySlug: 'palabras',
     levelNumber: 3,
-    levelColor: GOLD,
-    levelLabel: 'COFRE',
+    levelColor: PURPLE,
+    levelLabel: 'EXAMEN',
     completed: false,
     active: false,
     locked: true,
-    type: 'chest',
+    type: 'exam',
+    levelId: 3,
   },
 ];
 
 export default function HomeScreen() {
   const { user, profile } = useAuth();
-  const { streakDays, xp, gems, addGems } = useGame();
+  const { streakDays, xp, gems } = useGame();
   const router = useRouter();
   const { width } = useWindowDimensions();
 
@@ -184,7 +187,7 @@ export default function HomeScreen() {
           locked: false,
         };
       }
-      // Cofre Nivel 1
+      // Examen Nivel 1
       if (node.id === 100) {
         return {
           ...node,
@@ -222,7 +225,7 @@ export default function HomeScreen() {
           locked: !doneL2,
         };
       }
-      // Cofre Final Nivel 3
+      // Examen Nivel 3
       if (node.id === 300) {
         return {
           ...node,
@@ -241,21 +244,11 @@ export default function HomeScreen() {
 
   function handleNodePress(node: LessonNode) {
     if (node.locked) return;
-    if (node.type === 'chest') {
-      addGems(25);
-      Alert.alert(
-        '🎁 ¡Cofre Sagrado Reclamado!',
-        '¡Felicitaciones! Has recibido +25 Yachay Coins por tus logros en este nivel.',
-        [{ text: '¡Allillanchu! (¡Genial!)' }]
-      );
-      return;
-    }
     if (node.type === 'exam') {
-      Alert.alert(
-        '👑 ¡Examen Andino!',
-        '¡Has desbloqueado el reto de maestría! Continúa practicando las lecciones para perfeccionar tu Quechua.',
-        [{ text: '¡Sumaq!' }]
-      );
+      router.push({
+        pathname: '/level/exam/[levelId]' as any,
+        params: { levelId: String(node.levelId) },
+      });
       return;
     }
     router.push({
@@ -368,7 +361,6 @@ export default function HomeScreen() {
               const isCompleted = node.completed;
               const isActive = node.active;
               const isLocked = node.locked;
-              const isChest = node.type === 'chest';
               const isExam = node.type === 'exam';
               const showEmpezarAbove = isActive;
               const offsetX = getNodeOffset(index);
@@ -422,11 +414,6 @@ export default function HomeScreen() {
                   >
                     {isLocked ? (
                       <Text style={styles.lockEmoji}>🔒</Text>
-                    ) : isChest ? (
-                      <Image
-                        source={require('@/assets/images/logros/moneda_yachay_coin.png')}
-                        style={styles.nodeImg}
-                      />
                     ) : isExam ? (
                       <Image
                         source={require('@/assets/images/logros/logro_hablante_corona.png')}

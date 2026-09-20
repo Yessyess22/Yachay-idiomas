@@ -26,20 +26,42 @@ import { saveQuestionsToCache, loadQuestionsFromCache } from '@/src/services/off
 import { QuestionOption, QuestionWithOptions } from '@/src/types';
 import { AudioPronounceButton } from '@/components/yachay/audio-pronounce-button';
 import { PronunciationExercise } from '@/components/yachay/exercises/pronunciation-exercise';
-import { extractCorePhoneme, getQuechuaPhoneticGuide } from '@/src/utils/phoneticGuide';
-
-type Phase = 'theory' | 'quiz';
+import { extractCorePhoneme } from '@/src/utils/phoneticGuide';
 
 const TEAL = '#1B8B8C';
 const TEAL_DARK = '#136566';
 const CREAM = '#FAF7F2';
-const GOLD = '#E5A00D';
 const GREEN = '#27AE60';
 const GREEN_DARK = '#1E8449';
 const RED = '#EA5455';
 const RED_DARK = '#C0392B';
 
 type VocabCard = { quechua: string; spanish: string };
+
+/**
+ * Tarjetas de vocabulario fijas para lecciones cuyas preguntas son trivia
+ * conceptual (no traducciones palabra-a-palabra), donde buildVocabCards()
+ * no puede extraer un vocablo real con regex. Ej: lección 1 pregunta "¿Cuáles
+ * son las 3 únicas vocales fonémicas...?" no tiene una palabra quechua que
+ * extraer, y el heurístico terminaba usando el enunciado completo como si
+ * fuera la palabra a pronunciar.
+ */
+const VOCAB_OVERRIDES: Record<number, VocabCard[]> = {
+  1: [
+    { quechua: 'a', spanish: 'Vocal abierta — como en "Allin" (bueno/bien)' },
+    { quechua: 'i', spanish: 'Vocal cerrada — como en "Inti" (sol sagrado)' },
+    { quechua: 'u', spanish: 'Vocal posterior — como en "Urpi" (paloma)' },
+  ],
+  // Lección 2 (Consonantes): se usan palabras reales como blanco de audio en vez
+  // de la consonante aislada (ej. "q" o "ll" sueltas sonarían mal por TTS), pero
+  // conservando la explicación articulatoria en el texto de significado.
+  2: [
+    { quechua: 'Quri', spanish: 'Oro — la "q" se pronuncia desde la garganta (posvelar)' },
+    { quechua: 'Mishki', spanish: 'Dulce / Delicioso — con el sonido "sh"' },
+    { quechua: 'Wasi', spanish: 'Casa / Hogar' },
+    { quechua: 'Allin', spanish: 'Bueno / Bien — con la consonante palatal "ll" [ʎ]' },
+  ],
+};
 
 type Exercise =
   | {
@@ -210,16 +232,8 @@ export default function LessonScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const lessonId = parseInt(id as string, 10);
 
-  const [phase, setPhase] = useState<Phase>('theory');
-  const [vocabIndex, setVocabIndex] = useState(0);
-  const [vocabCards, setVocabCards] = useState<VocabCard[]>([]);
-
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
-
-  // Estado de auto-evaluación de pronunciación en teoría
-  const [theoryPhase, setTheoryPhase] = useState<'practice' | 'selfeval' | 'done' | null>(null);
-  const [theoryAttempts, setTheoryAttempts] = useState(0);
 
   // Estados de selección y feedback modal
   const [selectedOptionId, setSelectedOptionId] = useState<number | null>(null);
@@ -274,40 +288,12 @@ export default function LessonScreen() {
         }
       }
 
-      const vCards = buildVocabCards(qs);
-      setVocabCards(vCards);
+      const vCards = VOCAB_OVERRIDES[lessonId] ?? buildVocabCards(qs);
       setExercises(buildExerciseList(qs, vCards));
     } catch {
       setError('No se pudo cargar la lección. Verifica tu conexión a internet.');
     }
     setLoading(false);
-  }
-
-  // ─── Teoría ──────────────────────────────────────────────
-  function handleVocabNext() {
-    setTheoryPhase(null);
-    setTheoryAttempts(0);
-    if (vocabIndex + 1 < vocabCards.length) {
-      setVocabIndex((i: number) => i + 1);
-    } else {
-      setPhase('quiz');
-    }
-  }
-
-  function handleTheoryYes(corePhoneme: string) {
-    setTheoryPhase('done');
-    bounceYachi();
-  }
-
-  function handleTheoryNo() {
-    const next = theoryAttempts + 1;
-    setTheoryAttempts(next);
-    if (next >= 2) {
-      setTheoryPhase('done');
-      bounceYachi();
-    } else {
-      setTheoryPhase('practice');
-    }
   }
 
   // ─── Quiz & Ejercicios ────────────────────────────────────
@@ -439,169 +425,6 @@ export default function LessonScreen() {
         <TouchableOpacity style={styles.buttonPrimary} onPress={() => router.back()} activeOpacity={0.85}>
           <Text style={styles.buttonText}>Continuar al Inicio →</Text>
         </TouchableOpacity>
-      </View>
-    );
-  }
-
-  // ─── Fase Vocabulario / Teoría ────────────────────────────
-  if (phase === 'theory') {
-    if (vocabCards.length === 0) {
-      setPhase('quiz');
-      return null;
-    }
-    const card = vocabCards[vocabIndex];
-    const isLast = vocabIndex + 1 >= vocabCards.length;
-    const progressPct = ((vocabIndex + 1) / vocabCards.length) * 100;
-
-    return (
-      <View style={styles.container}>
-        <View style={styles.topBar}>
-          <TouchableOpacity style={styles.closeBtn} onPress={() => router.back()}>
-            <Text style={styles.closeBtnText}>✕</Text>
-          </TouchableOpacity>
-          <View style={styles.progressBarBg}>
-            <View style={[styles.progressBarFill, { width: `${progressPct}%`, backgroundColor: TEAL }]} />
-          </View>
-          <Text style={styles.phaseLabel}>VOCABULARIO</Text>
-        </View>
-
-        <ScrollView contentContainerStyle={styles.theoryContent} showsVerticalScrollIndicator={false}>
-          <Animated.View style={[styles.theoryYachiWrap, yachiAnimStyle]}>
-            <Image
-              source={Illustrations.logoYachayConLlama}
-              style={styles.theoryYachi}
-              contentFit="contain"
-            />
-          </Animated.View>
-
-          {/* Tarjeta interactiva con audio Meta MMS-TTS y Entrenador de Pronunciación */}
-          {(() => {
-            // Extraer el fonema/palabra real (si card.quechua es descripción larga, sacár el fonema)
-            const corePhoneme = extractCorePhoneme(card.quechua);
-            const guide = getQuechuaPhoneticGuide(corePhoneme);
-            const isShortWord = corePhoneme.length <= 4;
-            const quechuaFontSize = corePhoneme.length === 1 ? 72
-              : corePhoneme.length <= 3 ? 52
-              : corePhoneme.length <= 6 ? 36
-              : 24;
-            return (
-              <View style={styles.vocabCard}>
-                {/* Significado en español */}
-                <Text style={styles.vocabLabel}>Significado en español:</Text>
-                <Text style={styles.vocabSpanish}>{card.spanish}</Text>
-
-                <View style={styles.vocabDivider} />
-
-                {/* Fonema o Palabra Quechua grande */}
-                <Text style={styles.vocabLabel}>En Quechua:</Text>
-                <View style={styles.theoryWordRow}>
-                  <Text
-                    style={[styles.vocabQuechua, { fontSize: quechuaFontSize }]}
-                    numberOfLines={2}
-                    adjustsFontSizeToFit
-                  >
-                    {corePhoneme}
-                  </Text>
-                  {isShortWord && (
-                    <View style={styles.theoryIpaBadge}>
-                      <Text style={styles.theoryIpaText}>{guide.ipa}</Text>
-                    </View>
-                  )}
-                </View>
-
-                {/* Botón para escuchar síntesis auténtica */}
-                <View style={styles.audioRow}>
-                  <AudioPronounceButton text={corePhoneme} size="large" showLabel />
-                </View>
-
-                {/* Guía Fonética estilo "people → pipol" */}
-                <View style={styles.articulatoryGuideBox}>
-                  <View style={styles.articulatoryGuideHeader}>
-                    <Text style={styles.articulatoryGuideIcon}>👄</Text>
-                    <Text style={styles.articulatoryGuideTitle}>Cómo pronunciar</Text>
-                  </View>
-                  {/* Línea principal: "k → se pronuncia [k]" */}
-                  <Text style={styles.phoneticSpellingText}>{guide.phoneticSpelling}</Text>
-                  {/* Consejo breve SOLO si es significativamente distinto al phoneticSpelling */}
-                  {guide.articulatoryTip && guide.articulatoryTip !== guide.phoneticSpelling && (
-                    <Text style={styles.articulatoryGuideTip}>{guide.articulatoryTip}</Text>
-                  )}
-                </View>
-
-                {/* Entrenador Interactivo — Auto-evaluación */}
-                <View style={styles.theoryCoachSection}>
-                  {/* Fase: Práctica (inicial y tras "no pude") */}
-                  {(theoryPhase === null || theoryPhase === 'practice') && (
-                    <View style={styles.theoryPracticeBox}>
-                      <Text style={styles.theoryPracticeHint}>
-                        🎧 Escucha el audio y di la palabra en voz alta.
-                        {theoryAttempts > 0 ? '\n¡Inténtalo de nuevo!' : ''}
-                      </Text>
-                      <TouchableOpacity
-                        style={styles.theoryTriedBtn}
-                        onPress={() => setTheoryPhase('selfeval')}
-                        activeOpacity={0.85}
-                      >
-                        <Text style={styles.theoryTriedBtnText}>🎙️ Ya lo intenté →</Text>
-                      </TouchableOpacity>
-                    </View>
-                  )}
-
-                  {/* Fase: Auto-evaluación */}
-                  {theoryPhase === 'selfeval' && (
-                    <View style={styles.theorySelfevalBox}>
-                      <Text style={styles.theorySelfevalQ}>
-                        ¿Pudiste pronunciar "{corePhoneme}"?
-                      </Text>
-                      <View style={styles.theorySelfevalBtns}>
-                        <TouchableOpacity
-                          style={[styles.theorySelfevalBtn, styles.theorySelfevalYes]}
-                          onPress={() => handleTheoryYes(corePhoneme)}
-                          activeOpacity={0.85}
-                        >
-                          <Text style={styles.theorySelfevalBtnText}>✅ ¡Sí!</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                          style={[styles.theorySelfevalBtn, styles.theorySelfevalNo]}
-                          onPress={handleTheoryNo}
-                          activeOpacity={0.85}
-                        >
-                          <Text style={styles.theorySelfevalBtnText}>
-                            {theoryAttempts >= 1 ? '⏭️ Continuar' : '🔄 Practicar más'}
-                          </Text>
-                        </TouchableOpacity>
-                      </View>
-                      {theoryAttempts >= 1 && (
-                        <Text style={styles.theorySkipHint}>
-                          Puedes continuar y practicar más adelante.
-                        </Text>
-                      )}
-                    </View>
-                  )}
-
-                  {/* Fase: Completado */}
-                  {theoryPhase === 'done' && (
-                    <View style={styles.theoryDoneBox}>
-                      <Text style={styles.theoryDoneTitle}>¡Allinmi! 🌟</Text>
-                      <Text style={styles.theoryDoneText}>
-                        Pronunciación de "{corePhoneme}" practicada.
-                      </Text>
-                    </View>
-                  )}
-                </View>
-              </View>
-            );
-          })()}
-          <Text style={styles.theoryHint}>
-            Palabra {vocabIndex + 1} de {vocabCards.length} — Escucha y practica la pronunciación antes de continuar
-          </Text>
-        </ScrollView>
-
-        <View style={styles.footer}>
-          <TouchableOpacity style={styles.buttonPrimary} onPress={handleVocabNext} activeOpacity={0.85}>
-            <Text style={styles.buttonText}>{isLast ? '¡Comenzar práctica! 🚀' : 'Siguiente →'}</Text>
-          </TouchableOpacity>
-        </View>
       </View>
     );
   }
@@ -837,12 +660,6 @@ const styles = StyleSheet.create({
     backgroundColor: GREEN,
     borderRadius: 7,
   },
-  phaseLabel: {
-    fontSize: 11,
-    fontWeight: '900',
-    color: TEAL,
-    letterSpacing: 1,
-  },
   livesRow: { flexDirection: 'row', alignItems: 'center', gap: 2 },
   heartIcon: { fontSize: 16 },
   heartLost: { opacity: 0.3 },
@@ -965,249 +782,6 @@ const styles = StyleSheet.create({
   },
   buttonDisabled: { backgroundColor: '#D8D8D8', borderBottomColor: '#B0B0B0' },
   buttonText: { color: '#FFFFFF', fontSize: 17, fontWeight: '900', letterSpacing: 0.5 },
-
-  // Vocab card
-  theoryContent: {
-    flexGrow: 1,
-    alignItems: 'center',
-    padding: 24,
-    paddingBottom: 50,
-  },
-  theoryYachiWrap: { marginBottom: 20 },
-  theoryYachi: { width: 130, height: 130 },
-  vocabCard: {
-    width: '100%',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 24,
-    padding: 26,
-    borderWidth: 2,
-    borderColor: TEAL,
-    borderBottomWidth: 5,
-    marginBottom: 16,
-    alignItems: 'center',
-  },
-  vocabLabel: {
-    fontSize: 11,
-    fontWeight: '900',
-    letterSpacing: 1,
-    color: '#8A8A8A',
-    textTransform: 'uppercase',
-    marginBottom: 4,
-  },
-  vocabSpanish: {
-    fontSize: 19,
-    fontWeight: '700',
-    color: '#2A1A0A',
-    textAlign: 'center',
-  },
-  vocabDivider: {
-    width: 48,
-    height: 3,
-    backgroundColor: TEAL,
-    borderRadius: 2,
-    marginVertical: 14,
-  },
-  vocabQuechua: {
-    fontSize: 32,
-    fontWeight: '900',
-    color: TEAL,
-    textAlign: 'center',
-    letterSpacing: 0.5,
-  },
-  theoryWordRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 12,
-    marginBottom: 4,
-  },
-  theoryIpaBadge: {
-    backgroundColor: '#E0F2F1',
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    paddingVertical: 3,
-    borderWidth: 1.5,
-    borderColor: '#B2DFDB',
-  },
-  theoryIpaText: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: TEAL,
-  },
-  audioRow: {
-    marginTop: 12,
-    marginBottom: 8,
-  },
-  articulatoryGuideBox: {
-    width: '100%',
-    backgroundColor: '#FAF7F2',
-    borderRadius: 14,
-    padding: 14,
-    borderWidth: 1.5,
-    borderColor: '#E8DFD5',
-    marginVertical: 12,
-  },
-  articulatoryGuideHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 6,
-  },
-  articulatoryGuideIcon: {
-    fontSize: 18,
-  },
-  articulatoryGuideTitle: {
-    fontSize: 12,
-    fontWeight: '900',
-    color: '#6A5545',
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  articulatoryGuideTip: {
-    fontSize: 13,
-    color: '#4A3B32',
-    lineHeight: 19,
-    fontWeight: '500',
-    marginTop: 6,
-  },
-  phoneticSpellingText: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: TEAL,
-    lineHeight: 22,
-    letterSpacing: 0.2,
-    marginBottom: 4,
-  },
-  articulatoryExampleRow: {
-    marginTop: 8,
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: '#EFEAE3',
-  },
-  articulatoryExampleLabel: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: '#8A7565',
-    textTransform: 'uppercase',
-    marginBottom: 2,
-  },
-  articulatoryExampleText: {
-    fontSize: 13,
-    color: '#3A2E26',
-  },
-  theoryCoachSection: {
-    width: '100%',
-    alignItems: 'center',
-    marginTop: 8,
-  },
-
-  theoryPracticeBox: {
-    alignItems: 'center',
-    gap: 10,
-  },
-  theoryPracticeHint: {
-    fontSize: 13,
-    color: '#555555',
-    textAlign: 'center',
-    lineHeight: 19,
-  },
-  theoryTriedBtn: {
-    backgroundColor: TEAL,
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 24,
-    alignItems: 'center',
-    shadowColor: TEAL,
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 3,
-  },
-  theoryTriedBtnText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '800',
-  },
-  theorySelfevalBox: {
-    alignItems: 'center',
-    gap: 10,
-  },
-  theorySelfevalQ: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#333333',
-    textAlign: 'center',
-  },
-  theorySelfevalBtns: {
-    flexDirection: 'row',
-    gap: 10,
-    width: '100%',
-    justifyContent: 'center',
-  },
-  theorySelfevalBtn: {
-    flex: 1,
-    paddingVertical: 12,
-    paddingHorizontal: 10,
-    borderRadius: 20,
-    alignItems: 'center',
-    maxWidth: 160,
-    elevation: 2,
-  },
-  theorySelfevalYes: {
-    backgroundColor: GREEN,
-    borderBottomWidth: 3,
-    borderBottomColor: GREEN_DARK,
-  },
-  theorySelfevalNo: {
-    backgroundColor: GOLD,
-    borderBottomWidth: 3,
-    borderBottomColor: '#B7860A',
-  },
-  theorySelfevalBtnText: {
-    color: '#FFFFFF',
-    fontSize: 13,
-    fontWeight: '800',
-    textAlign: 'center',
-  },
-  theorySkipHint: {
-    fontSize: 11,
-    color: '#888888',
-    textAlign: 'center',
-    fontStyle: 'italic',
-  },
-  theoryDoneBox: {
-    width: '100%',
-    backgroundColor: '#E8F8F0',
-    borderRadius: 12,
-    padding: 12,
-    alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: GREEN,
-  },
-  theoryDoneTitle: {
-    fontSize: 16,
-    fontWeight: '900',
-    color: GREEN,
-    marginBottom: 2,
-  },
-  theoryDoneText: {
-    fontSize: 12,
-    color: '#333333',
-    textAlign: 'center',
-  },
-  feedbackPass: {
-    backgroundColor: '#E8F8F0',
-    borderColor: GREEN,
-  },
-  feedbackRetry: {
-    backgroundColor: '#FFF8E7',
-    borderColor: GOLD,
-  },
-  boldText: {
-    fontWeight: '700',
-    color: '#222222',
-  },
-  theoryHint: { fontSize: 13, color: '#7A6A5A', fontWeight: '700', marginTop: 8 },
 
   // Modal Flotante al Centro (Requisito 11)
   modalBackdrop: {

@@ -1,6 +1,6 @@
 # Plan de Sprints — Yachay Quechua
 
-**Versión:** 2.0 | **Fecha:** 2026-09-10 | **Última actualización:** 2026-09-14 | **Duración por sprint:** ~2 semanas académicas
+**Versión:** 2.2 | **Fecha:** 2026-09-10 | **Última actualización:** 2026-09-20 | **Duración por sprint:** ~2 semanas académicas
 
 ---
 
@@ -10,8 +10,10 @@
 | :--- | :--- | :--- | :--- |
 | **Sprint 1** | Diseño de BD, Infraestructura Docker y Clean Architecture | 2026-09-08 → 2026-09-19 | ✅ Completado |
 | **Sprint 2** | Auth, Capa de Datos y Módulos Abecedario/Números/Palabras | 2026-09-22 → 2026-10-03 | ✅ Completado |
-| **Sprint 3** | Gamificación Global, Exámenes de Nivel y Traductor de Voz | 2026-10-06 → 2026-10-17 | ✅ Completado (adelantado, cerrado el 2026-09-12) |
-| **Sprint 4** | Integración Final, QA y Pulido de Producto | 2026-10-20 → 2026-10-31 | ✅ Completado (cerrado el 2026-09-14) |
+| **Sprint 3** | Gamificación Global, Exámenes de Nivel y Traductor de Voz | 2026-10-06 → 2026-10-17 | ✅ Completado (cerrado el 2026-09-12) |
+| **Sprint 4** | Onboarding Inmersivo, Integración Final, QA y Pulido | 2026-10-20 → 2026-10-31 | ✅ Completado (cerrado el 2026-09-14) |
+| **Sprint 5** | Firebase Auth, Rediseño de Lecciones y Colección Insomnia | 2026-11-03 → 2026-11-14 | ✅ Completado (cerrado el 2026-09-17) |
+| **Sprint 6** | Audio Nativo (Expo Speech), Fonética Quechua, Resiliencia Offline y Notificaciones | 2026-11-17 → 2026-11-28 | ✅ Completado (cerrado el 2026-09-20) |
 
 ---
 
@@ -74,7 +76,7 @@
 | S3-T09 *(extra)* | Pantallas de Ligas (`(tabs)/leaderboard.tsx`), Tienda (`(tabs)/shop.tsx`) y Guía Gramatical (`guidebook/[id].tsx`). | Yessyess22 | ✅ |
 | S3-T10 *(extra)* | Ejercicios de banco de palabras y pares (`components/yachay/exercises/`). | Yessyess22 | ✅ |
 
-> **Nota:** `GameContext` gestiona vidas/XP/gemas/racha en memoria y todavía no persiste contra las columnas de gamificación de `profiles`; `leaderboardService` calcula el ranking desde `profiles.total_xp` en vez de `leaderboard_weekly`. Ver GAP-06 en `05-FINDINGS_DEUDA.md`.
+> **Nota:** En Sprint 4 se completó la persistencia de `GameContext` en la tabla `profiles` y la conexión de `leaderboardService` a `leaderboard_weekly`. (Ver GAPs 03, 06 y 07 cerrados).
 
 ---
 
@@ -92,3 +94,40 @@
 | S4-T04 | Conexión de `leaderboardService` a `leaderboard_weekly` y verificación de `shop.tsx` usando `shopService.fetchShopItems()` (Cierre de GAP-07). | Oscar Segovia | ✅ |
 | S4-T05 | Pruebas unitarias de `GameContext` con Jest y tests de flujo E2E (Cierre de GAP-03). | Alejandro Padilla | ✅ |
 | S4-T06 | Auditoría final de arquitectura (`grep` triple): 0 llamadas directas a Supabase en `app/`, 0 `window.alert`/`Alert.alert` en lecciones, 0 estilos inline no autorizados. | Oscar Segovia | ✅ |
+| S4-T07 | Verificar compilación limpia de TypeScript (`tsc --noEmit`) dentro del contenedor Docker. | Oscar Segovia | ✅ |
+| S4-T08 | Registrar cierre de Sprint 4 en `01-BITACORA_DESARROLLO.md`. | Equipo | ✅ |
+
+---
+
+## Sprint 5 — Firebase Auth, Rediseño de Lecciones y Colección Insomnia
+
+**Estado:** ✅ **COMPLETADO (100%)** | **Período:** 2026-11-03 → 2026-11-14 | **Cerrado:** 2026-09-17
+
+### Tareas del Sprint 5
+
+| ID | Descripción | Responsable | Estado |
+| :--- | :--- | :--- | :---: |
+| S5-T01 | Configurar SDK v12 modular de Firebase Auth (`src/services/firebase.ts`) y migrar `AuthContext.tsx` y `authService.ts`. | Alejandro Padilla | ✅ |
+| S5-T02 | Implementar persistencia de sesión con `AsyncStorage` en plataformas móviles nativas y traducción de errores de Firebase al español (`translateFirebaseError`). | Alejandro Padilla | ✅ |
+| S5-T03 | Rediseñar el flujo de lecciones en `app/lesson/[id].tsx` incorporando la fase teórica de presentación de vocabulario antes del quiz. | Yesica Escobar | ✅ |
+| S5-T04 | Mapear el identificador del usuario de `user.id` a `user.uid` en pantallas `profile.tsx`, `shop.tsx`, `lesson/[id].tsx` y `level/exam/[levelId].tsx`. | Alejandro Padilla | ✅ |
+| S5-T05 | Crear y documentar la colección Insomnia v4 con 35 endpoints REST (`docs/yachay-insomnia-collection.json`) para Firebase Auth y Supabase API. | Oscar Segovia | ✅ |
+
+---
+
+## Sprint 6 — Audio Nativo (Expo Speech), Fonética Quechua, Resiliencia Offline y Notificaciones
+
+**Estado:** ✅ **COMPLETADO (100%)** | **Período:** 2026-11-17 → 2026-11-28 | **Cerrado:** 2026-09-20
+
+### Tareas del Sprint 6
+
+| ID | Descripción | Responsable | Estado |
+| :--- | :--- | :--- | :---: |
+| S6-T01 | Integrar síntesis de voz nativa con `expo-speech` en `src/services/voiceService.ts` con opciones de voces en Android/iOS (`es-PE`, `es-US`). | Alejandro Padilla | ✅ |
+| S6-T02 | Crear la Guía de Pronunciación Fonética Andina (`src/utils/phoneticGuide.ts`) para variantes Quechua Chanka y Cusco-Collao. | Alejandro Padilla | ✅ |
+| S6-T03 | Desarrollar el ejercicio interactivo de pronunciación (`PronunciationExercise`) con captura de micrófono y porcentaje de coincidencia. | Yesica Escobar | ✅ |
+| S6-T04 | Crear el componente `AudioPronounceButton` con animación de ondas de sonido para reproducción de términos. | Yesica Escobar | ✅ |
+| S6-T05 | Implementar el servicio de resiliencia offline (`offlineCache.ts`) usando AsyncStorage y el servicio de notificaciones locales de racha (`notificationService.ts`) a las 20:00. | Oscar Segovia | ✅ |
+| S6-T06 | Construir el microservicio local de TTS en Python (`tts_service.py`) con gTTS/pyttsx3 como respaldo de voz. | Oscar Segovia | ✅ |
+| S6-T07 | Cobertura de pruebas unitarias (`__tests__/voiceService.test.ts`), feedback háptico (`expo-haptics`) e incorporación del kit visual completo en `assets/images/kit-complementos/`. | Alejandro Padilla | ✅ |
+

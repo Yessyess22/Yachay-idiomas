@@ -1,42 +1,42 @@
 # Especificación de Requerimientos — Yachay Quechua
 
-**Versión:** 2.0 | **Fecha:** 2026-09-08 | **Última actualización:** 2026-09-14 | **Estado:** Activo — Visión No Comercial v2.0, Sprint 4 en curso
+**Versión:** 2.2 | **Fecha:** 2026-09-08 | **Última actualización:** 2026-09-20 | **Estado:** Activo — Visión No Comercial v2.2, Sprints 1-6 Completados
 
 ---
 
-## 0. Declaración de Visión — No Comercial v2.0
+## 0. Declaración de Visión — No Comercial v2.2
 
 Yachay Quechua es un proyecto académico, social y comunitario de código abierto, orientado exclusivamente a la preservación y revitalización del idioma quechua (Runasimi). **No persigue fines comerciales, no cobra por funcionalidades, no vende datos y no aplica monetización de ningún tipo.**
 
-La versión 2.0 consolida los siguientes principios irrenunciables:
+La versión 2.2 consolida los siguientes principios irrenunciables:
 
 | Principio | Descripción |
 | :--- | :--- |
 | **Inclusividad** | Acceso libre para cualquier persona sin barreras económicas ni técnicas. |
 | **Gamificación Educativa** | Vidas, XP y gemas se obtienen exclusivamente por esfuerzo de estudio, nunca por compra real. |
 | **Privacidad** | Sin telemetría comercial, sin rastreo de publicidad, sin venta de información de usuarios. |
-| **Patrimonio Cultural** | El contenido refleja el Runasimi andino con respeto por su diversidad dialectal. |
+| **Patrimonio Cultural** | El contenido refleja el Runasimi andino con respeto por su diversidad dialectal y fonética. |
 | **Comunidad** | Las Ligas y los desafíos semanales fomentan el aprendizaje colaborativo, no la competencia tóxica. |
 
 ---
 
 ## 1. Alcance del Sistema
 
-Yachay Quechua es una aplicación móvil-web gamificada, inspirada en el modelo pedagógico de Duolingo, cuyo objetivo es enseñar el idioma quechua mediante ejercicios interactivos de opción múltiple estructurados en módulos temáticos, lecciones y niveles con exámenes de progreso. La aplicación opera sobre React Native Web con Expo 57, utiliza Supabase como backend local (autenticación y base de datos PostgreSQL 17) y se ejecuta dentro de un contenedor Docker aislado en la subred estática `10.10.10.0/24`.
+Yachay Quechua es una aplicación móvil-web gamificada, inspirada en el modelo pedagógico de Duolingo, cuyo objetivo es enseñar el idioma quechua mediante ejercicios interactivos de opción múltiple, banco de palabras, pares y pronunciación por voz estructurados en módulos temáticos, lecciones y niveles con exámenes de progreso. La aplicación opera sobre React Native Web con Expo 57, utiliza Firebase Auth v12 para gestión de identidades y Supabase PostgreSQL relacional en 3FN para almacenamiento de datos, ejecutándose en un contenedor Docker aislado en la subred estática `10.10.10.0/24`.
 
 El sistema cubre el ciclo completo de aprendizaje a través de los siguientes **módulos de contenido**:
 
 | Módulo | Descripción | Tipo de ejercicio |
 | :--- | :--- | :--- |
-| **Abecedario** | Letras y fonemas del quechua con pronunciación asociada. | Opción múltiple + audio de referencia |
-| **Números** | Numerales del 0 al 100 en quechua con escritura y pronunciación. | Opción múltiple + escritura |
-| **Palabras** | Vocabulario cotidiano agrupado por categorías (saludos, colores, familia, comida). | Opción múltiple + asociación imagen-palabra |
+| **Abecedario** | Letras y fonemas del quechua con guía fonética y pronunciación asociada. | Opción múltiple + audio nativo / ejercicio de voz |
+| **Números** | Numerales del 0 al 100 en quechua con escritura y pronunciación. | Opción múltiple + escritura + banco de palabras |
+| **Palabras** | Vocabulario cotidiano agrupado por categorías (saludos, colores, familia, comida). | Opción múltiple + pares + asociación imagen-palabra |
 | **Niveles con Exámenes** | Evaluaciones de bloqueo al final de cada nivel; el usuario debe superar el examen sin agotar sus vidas para desbloquear el siguiente nivel. | Motor de preguntas mixtas (todos los tipos) |
-| **Traductor de Voz con IA** | El usuario habla al micrófono; la app captura el audio, lo procesa mediante un servicio de IA y devuelve la traducción Quechua↔Español en texto y audio sintetizado. | Interacción de voz en tiempo real |
+| **Traductor de Voz con IA** | El usuario habla al micrófono; la app captura el audio, lo procesa mediante un servicio de IA y devuelve la traducción Quechua↔Español en texto y audio sintetizado. | Interacción de voz en tiempo real + Edge Function |
 
 ---
 
-## 2. Requerimientos Funcionales v2.0
+## 2. Requerimientos Funcionales v2.2
 
 ### RF-01 — Onboarding Inmersivo de 4 Pasos
 
@@ -53,11 +53,11 @@ El estado de onboarding completado se persiste en `AsyncStorage` con la clave `o
 
 ---
 
-### RF-02 — Autenticación Empática sin Fricciones
+### RF-02 — Autenticación Firebase Auth & Mapeo de Identidad
 
-El sistema debe permitir el registro e inicio de sesión mediante email y contraseña a través de Supabase Auth. Toda retroalimentación de error debe mostrarse mediante banners visuales inline; se prohíbe `window.alert` y `Alert.alert`. El flujo de alta incluye la creación del perfil en la tabla `profiles`.
+El sistema debe gestionar el registro e inicio de sesión con email y contraseña utilizando Firebase Auth (v12 modular). Toda retroalimentación de error debe mostrarse mediante banners visuales inline con traducción de errores al español (`translateFirebaseError`). La sesión se persiste con `AsyncStorage` en entornos móviles nativos y a nivel de navegador en Web. Al autenticarse, la app sincroniza la identidad en la tabla `profiles` mediante `user.uid`.
 
-**Archivos:** `app/(auth)/login.tsx`, `app/(auth)/signup.tsx`, `src/services/authService.ts`, `src/context/AuthContext.tsx`
+**Archivos:** `app/(auth)/login.tsx`, `app/(auth)/signup.tsx`, `src/services/firebase.ts`, `src/services/authService.ts`, `src/context/AuthContext.tsx`
 
 ---
 
@@ -72,8 +72,8 @@ El sistema debe mostrar en `app/(tabs)/index.tsx` una ruta de aprendizaje visual
 ### RF-04 — Motor de Lecciones en Dos Fases (Teoría → Quiz)
 
 El sistema debe presentar cada lección en dos fases consecutivas:
-1. **Fase Teórica:** tarjetas de vocabulario con imagen, palabra en quechua y traducción.
-2. **Fase Quiz:** preguntas de opción múltiple, banco de palabras o pares, con retroalimentación visual inmediata (verde/rojo).
+1. **Fase Teórica:** tarjetas de vocabulario con imagen, palabra en quechua y traducción en español antes de iniciar las preguntas.
+2. **Fase Quiz:** preguntas de opción múltiple, banco de palabras, pares o ejercicio de pronunciación, con retroalimentación visual inmediata (verde/rojo) y feedback háptico (`expo-haptics`).
 
 El XP se acumula solo en la fase quiz. Al completar la lección se registra el progreso en `lesson_progress` y se acreditan gemas al `GameContext`.
 
@@ -104,21 +104,46 @@ El sistema debe presentar exámenes de fin de nivel. El usuario debe superar el 
 
 ---
 
-### RF-07 — Traductor de Voz e IA Inclusivo
+### RF-07 — Sistema de Voz Nativo, Fonética Quechua y Microservicio TTS
 
-El sistema debe proveer un módulo de traducción de voz interactiva que capture audio del micrófono del dispositivo (Web Speech API), lo envíe a la Edge Function `translate` de Supabase y devuelva la traducción Quechua↔Español en texto y audio sintetizado (SpeechSynthesis). Todo sin `window.alert` ni diálogos del sistema.
+El sistema debe proporcionar soporte multicanal para voz y audio:
+1. **Síntesis de voz nativa (`expo-speech`):** Reproducción hablada en dispositivos Android, iOS y Web con selector de voz nativa en español peruano/latino.
+2. **Guía Fonética Andina (`src/utils/phoneticGuide.ts`):** Mapeo y normalización fonética para variantes Quechua Chanka y Cusco-Collao (fonemas glotales y aspirados).
+3. **Ejercicio de Pronunciación (`PronunciationExercise`):** Evaluación de pronunciación del usuario vía captura de micrófono con comparación y porcentaje de coincidencia.
+4. **Botón Universal `AudioPronounceButton`:** Componente de audio con animación de ondas de sonido para reproducir cualquier término en lecciones y vocabulario.
+5. **Microservicio TTS Python (`tts_service.py`):** Servidor alternativo local en Python con gTTS/pyttsx3 como respaldo de voz.
 
-**Archivo:** `app/translator/index.tsx`
+**Archivos:** `src/services/voiceService.ts`, `src/utils/phoneticGuide.ts`, `components/yachay/audio-pronounce-button.tsx`, `components/yachay/exercises/pronunciation-exercise.tsx`, `tts_service.py`
 
 ---
 
 ### RF-08 — Ligas de Constancia y Aprendizaje Colaborativo
 
-El sistema debe mostrar una tabla de líderes semanal que consulta la tabla `leaderboard_weekly` (no el XP histórico global). Los usuarios se clasifican por `weekly_xp` y se agrupan en ligas: Bronce, Plata, Oro, Esmeralda y Diamante. El objetivo es motivar la constancia, no la competencia económica.
+El sistema debe mostrar una tabla de líderes semanal que consulta la tabla `leaderboard_weekly` (JOIN `profiles`). Los usuarios se clasifican por `weekly_xp` y se agrupan en ligas: Bronce, Plata, Oro, Esmeralda y Diamante. El objetivo es motivar la constancia, no la competencia económica.
 
 **Archivo:** `src/services/leaderboardService.ts`, `app/(tabs)/leaderboard.tsx`
 
 ---
+
+### RF-09 — Resiliencia Offline, Notificaciones y Feedback Háptico
+
+El sistema debe incorporar mecanismos de resiliencia y experiencia táctil:
+1. **Caché Offline (`src/services/offlineCache.ts`):** Guardado local en AsyncStorage de lecciones, vocabulario y progreso para permitir el estudio sin conexión a internet.
+2. **Notificaciones Locales de Racha (`src/services/notificationService.ts`):** Programación de notificaciones push locales vía `expo-notifications` a las 20:00 para recordar al usuario mantener su racha activa.
+3. **Feedback Háptico (`expo-haptics`):** Vibraciones táctiles inmediatas en aciertos, desaciertos y selección de elementos.
+
+**Archivos:** `src/services/offlineCache.ts`, `src/services/notificationService.ts`
+
+---
+
+### RF-10 — Colección de Pruebas REST (Insomnia Collection)
+
+El sistema debe incluir una suite completa de pruebas de API REST documentada en `docs/yachay-insomnia-collection.json` con 35 endpoints categorizados para validar operaciones de autenticación con Firebase y consultas a Supabase PostgreSQL.
+
+**Archivo:** `docs/yachay-insomnia-collection.json`
+
+---
+
 
 ## 3. Casos de Uso Críticos
 

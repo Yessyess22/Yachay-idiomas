@@ -8,6 +8,12 @@ jest.mock('@/src/services/supabase', () => ({
     },
   },
 }));
+jest.mock('expo-audio', () => ({
+  AudioModule: { AudioRecorder: jest.fn() },
+  RecordingPresets: { HIGH_QUALITY: {} },
+  requestRecordingPermissionsAsync: jest.fn().mockResolvedValue({ granted: true }),
+  setAudioModeAsync: jest.fn().mockResolvedValue(undefined),
+}));
 
 import { evaluatePronunciation } from '@/src/services/voiceService';
 

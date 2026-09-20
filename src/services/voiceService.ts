@@ -1,5 +1,6 @@
 import { Platform } from 'react-native';
 import * as Speech from 'expo-speech';
+import { AudioModule, RecordingPresets, requestRecordingPermissionsAsync, setAudioModeAsync } from 'expo-audio';
 import { Language, TranslationRequest } from '@/src/types';
 import { supabase } from '@/src/services/supabase';
 import { extractCorePhoneme } from '@/src/utils/phoneticGuide';
@@ -15,6 +16,14 @@ export type PronunciationScore = {
   feedback: string;
   cleanedSpoken?: string;
 };
+
+/**
+ * URL del microservicio Yachay Voice Service (TTS + STT en Quechua, ver /voice-service).
+ * En desarrollo apunta a localhost; en producción debe apuntar al Space de Hugging Face
+ * (EXPO_PUBLIC_VOICE_SERVICE_URL), porque el APK/IPA compilado no tiene acceso a la
+ * máquina del desarrollador.
+ */
+const VOICE_SERVICE_URL = process.env.EXPO_PUBLIC_VOICE_SERVICE_URL || 'http://localhost:8000';
 
 const audioCache = new Map<string, string>();
 let currentAudio: HTMLAudioElement | null = null;
@@ -121,7 +130,7 @@ export async function playQuechuaAudio(text: string): Promise<void> {
     let audioUrl = audioCache.get(cleanText);
     if (!audioUrl) {
       const response = await fetch(
-        `http://localhost:8000/tts?text=${encodeURIComponent(cleanText)}`
+        `${VOICE_SERVICE_URL}/tts?text=${encodeURIComponent(cleanText)}`
       );
       if (!response.ok) throw new Error(`TTS server error ${response.status}`);
       const blob = await response.blob();
@@ -254,12 +263,13 @@ export function evaluatePronunciation(spoken: string, expected: string): Pronunc
 }
 
 /**
- * Inicia la grabación de voz y devuelve el texto real pronunciado por el usuario.
+ * Reconocimiento de voz para Español en la web, vía Web Speech API del navegador.
  * Para fonemas y consonantes (longitud <= 4), desactiva continuous para respuesta instantánea.
  * Utiliza hasta 10 alternativas fonéticas para capturar la articulación exacta.
+ * Solo se usa para Español: el motor del navegador no entiende Quechua (ver
+ * `startVoiceRecognition` para el flujo de Quechua basado en el modelo propio).
  */
-export async function startVoiceRecognition(
-  _lang: Language = 'qu',
+async function recognizeWithWebSpeechAPI(
   expectedWord?: string
 ): Promise<RecognitionResult> {
   if (typeof window === 'undefined') {
@@ -400,6 +410,110 @@ export async function startVoiceRecognition(
       reject(new Error(err?.message || 'No se pudo activar el micrófono.'));
     }
   });
+}
+
+// ─── Reconocimiento de voz en Quechua — grabación + servidor propio ───────────
+//
+// Ni el navegador (Web Speech API) ni los reconocedores nativos de Android/iOS
+// entienden Quechua: no tienen modelo de idioma para él y transcriben lo que
+// escuchan como si fuera Español. Por eso, para Quechua grabamos un clip corto
+// con expo-audio y lo enviamos al endpoint /stt de voice-service/app.py, que
+// corre un modelo wav2vec2 afinado específicamente en Quechua.
+
+/**
+ * Graba un clip de audio de duración fija usando expo-audio y devuelve su URI local.
+ * Se usa duración fija (en vez de detección de silencio) porque es la vía más
+ * simple y confiable multiplataforma; los fonemas/palabras cortas usan una
+ * ventana más corta que las frases del traductor.
+ */
+async function recordAudioClip(durationMs: number): Promise<string> {
+  const { granted } = await requestRecordingPermissionsAsync();
+  if (!granted) {
+    throw new Error('Permiso de micrófono denegado. Actívalo en los ajustes de la app.');
+  }
+  await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true });
+
+  // En web, expo-audio expone una clase distinta (AudioRecorderWeb) con la misma
+  // interfaz (prepareToRecordAsync/record/stop/uri); AudioModule.AudioRecorder solo
+  // existe en el módulo nativo y lanza "is not a constructor" si se usa en web.
+  // eslint-disable-next-line import/namespace -- ambas existen en runtime; el plugin no resuelve el tipo NativeAudioModule
+  const RecorderCtor = Platform.OS === 'web' ? (AudioModule as any).AudioRecorderWeb : AudioModule.AudioRecorder;
+  const recorder = new RecorderCtor(RecordingPresets.HIGH_QUALITY);
+  await recorder.prepareToRecordAsync();
+  recorder.record();
+  await new Promise((resolve) => setTimeout(resolve, durationMs));
+  await recorder.stop();
+
+  if (!recorder.uri) {
+    throw new Error('No se pudo grabar el audio. Intenta de nuevo.');
+  }
+  return recorder.uri;
+}
+
+/**
+ * Sube un clip de audio al servicio de voz propio y devuelve la transcripción
+ * en Quechua. En web, expo-audio graba a un blob URL (webm); en nativo, a un
+ * archivo local (m4a) — cada plataforma arma el FormData distinto.
+ */
+async function transcribeAudioClip(uri: string): Promise<RecognitionResult> {
+  const form = new FormData();
+  if (Platform.OS === 'web') {
+    const blob = await (await fetch(uri)).blob();
+    form.append('file', blob, 'clip.webm');
+  } else {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    form.append('file', { uri, name: 'clip.m4a', type: 'audio/mp4' } as any);
+  }
+
+  let response: Response;
+  try {
+    response = await fetch(`${VOICE_SERVICE_URL}/stt`, { method: 'POST', body: form });
+  } catch {
+    throw new Error(
+      'No se pudo conectar con el servidor de voz. Verifica tu conexión o valida manualmente.'
+    );
+  }
+
+  if (!response.ok) {
+    throw new Error(
+      `El servidor de voz no respondió correctamente (${response.status}). Intenta de nuevo o valida manualmente.`
+    );
+  }
+
+  const data = await response.json();
+  return {
+    transcript: typeof data.transcript === 'string' ? data.transcript.trim() : '',
+    confidence: typeof data.confidence === 'number' ? data.confidence : 0.7,
+  };
+}
+
+/**
+ * Reconocimiento de voz multiplataforma.
+ * - Español en web: Web Speech API del navegador (funciona bien, sin costo de red).
+ * - Español fuera de web: aún no soportado (pendiente un reconocedor nativo).
+ * - Quechua (web o nativo): graba con expo-audio y transcribe con el modelo
+ *   propio en voice-service/app.py.
+ */
+export async function startVoiceRecognition(
+  lang: Language = 'qu',
+  expectedWord?: string
+): Promise<RecognitionResult> {
+  if (Platform.OS === 'web' && lang === 'es') {
+    return recognizeWithWebSpeechAPI(expectedWord);
+  }
+
+  if (lang === 'es') {
+    throw new Error(
+      'El reconocimiento de voz en Español en la app nativa todavía no está disponible. Usa el modo texto.'
+    );
+  }
+
+  const coreExpected = expectedWord ? extractCorePhoneme(expectedWord).toLowerCase().trim() : '';
+  const isShortPhoneme = Boolean(coreExpected && coreExpected.length <= 4);
+  const durationMs = isShortPhoneme ? 2200 : 4000;
+
+  const uri = await recordAudioClip(durationMs);
+  return transcribeAudioClip(uri);
 }
 
 // ─── Síntesis de voz — Web Speech + expo-speech nativo ─────────────────────────

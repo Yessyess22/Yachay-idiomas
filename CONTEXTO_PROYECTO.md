@@ -1,7 +1,7 @@
 # CONTEXTO_PROYECTO — Yachay Idiomas
 
-> Documento generado el **2026-09-08** y actualizado el **2026-09-12** mediante análisis exhaustivo del repositorio.
-> Cubre configuración, código fuente, dependencias, arquitectura e infraestructura tal como existen tras el Sprint 3.
+> Documento generado el **2026-09-08** y actualizado el **2026-09-20** mediante análisis exhaustivo del repositorio.
+> Cubre configuración, código fuente, dependencias, arquitectura e infraestructura tras la finalización de los Sprints 1 al 6.
 
 ---
 
@@ -20,27 +20,30 @@
 
 ### Objetivo de la aplicación
 
-**Yachay** es una aplicación móvil gamificada (estilo Duolingo) para el aprendizaje del idioma **Quechua (Runasimi)**, con backend en Supabase (PostgreSQL en 3FN) y frontend en Clean Architecture Feature-First.
+**Yachay** es una aplicación móvil gamificada (estilo Duolingo) para el aprendizaje del idioma **Quechua (Runasimi)**, con autenticación en Firebase Auth (v12), backend PostgreSQL relacional 3FN en Supabase y frontend en Clean Architecture Feature-First.
 
-### Flujos implementados (estado tras Sprint 3)
+### Flujos implementados (estado tras Sprint 6)
 
 | Flujo | Estado |
 |---|---|
-| Portada de bienvenida (`(auth)/index.tsx`), Login y Registro con Supabase Auth | ✅ Implementado |
-| Home con categorías dinámicas y XP (`(tabs)/index.tsx`) | ✅ Implementado |
+| Onboarding inmersivo de 4 pasos con Yachi (`onboarding/index.tsx`) y persistencia AsyncStorage | ✅ Implementado |
+| Login y Registro con Firebase Auth (SDK v12) y traducción de errores al español | ✅ Implementado |
+| Dashboard cultural "Camino del Saber" (`(tabs)/index.tsx`) | ✅ Implementado |
 | Detalle de categoría con listado de lecciones (`category/[slug].tsx`) | ✅ Implementado |
-| Lección en dos fases (Teoría → Quiz) con tarjetas de vocabulario (`lesson/[id].tsx`) | ✅ Implementado |
-| Ejercicios de opción múltiple, banco de palabras y pares (`components/yachay/exercises/`) | ✅ Implementado |
-| Gamificación global: vidas, XP, gemas y racha (`src/context/GameContext.tsx`) | ✅ Implementado (estado local, no persistido) |
+| Lección en dos fases (Vocabulario Teórico → Quiz interactivo) (`lesson/[id].tsx`) | ✅ Implementado |
+| Ejercicios de opción múltiple, banco de palabras, pares y pronunciación por voz (`components/yachay/exercises/`) | ✅ Implementado |
+| Gamificación global persitiendo vidas, XP, gemas y racha en Supabase (`src/context/GameContext.tsx`) | ✅ Implementado (hidratación + sync debounced) |
 | Pantalla de bloqueo al agotar vidas (`app/blocked.tsx`) | ✅ Implementado |
 | Exámenes bloqueantes de fin de nivel con desbloqueo (`level/exam/[levelId].tsx`) | ✅ Implementado |
-| Traductor de voz Español↔Quechua (Web Speech API + Edge Function) (`translator/index.tsx`) | ✅ Implementado |
-| Guía gramatical de referencia (`guidebook/[id].tsx`) | ✅ Implementado |
-| Tabla de clasificación / Ligas (`(tabs)/leaderboard.tsx`) | ✅ Implementado (usa `total_xp` de `profiles`, no la tabla `leaderboard_weekly`) |
-| Tienda de ítems con gemas (`(tabs)/shop.tsx`) | ✅ Implementado |
+| Traductor de voz y audio nativo `expo-speech` (Español ↔ Quechua) + Edge Function (`translator/index.tsx`) | ✅ Implementado |
+| Guía fonética del Quechua y guía gramatical de referencia (`src/utils/phoneticGuide.ts`, `guidebook/[id].tsx`) | ✅ Implementado |
+| Botón de pronunciación universal `AudioPronounceButton` y microservicio local Python TTS (`tts_service.py`) | ✅ Implementado |
+| Tabla de clasificación semanal / Ligas conectada a `leaderboard_weekly` JOIN `profiles` (`(tabs)/leaderboard.tsx`) | ✅ Implementado |
+| Tienda de cosméticos e ítems dinámica conectada a `shop_items` (`(tabs)/shop.tsx`) | ✅ Implementado |
 | Perfil de usuario con estadísticas, insignias y Cerrar Sesión (`(tabs)/profile.tsx`) | ✅ Implementado |
-| Pestaña "Explorar" | ✅ Reemplazada por contenido educativo de Yachay/Quechua |
-| Modal (`app/modal.tsx`) | ⚠️ Plantilla genérica de Expo — sin personalizar |
+| Resiliencia offline (`offlineCache.ts`), Notificaciones de racha (`notificationService.ts`) y feedback háptico (`expo-haptics`) | ✅ Implementado |
+| Suite de pruebas unitarias Jest (`__tests__/GameContext.test.tsx`, `__tests__/voiceService.test.ts`) | ✅ Implementado |
+| Colección Insomnia v4 con 35 endpoints REST (`docs/yachay-insomnia-collection.json`) | ✅ Implementado |
 
 ---
 

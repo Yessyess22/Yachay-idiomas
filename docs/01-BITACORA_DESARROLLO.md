@@ -61,3 +61,26 @@ En esta fase se consolidó la base de datos local en Supabase, el sistema de aut
 | 2026-09-14 | Oscar (con asistencia de Claude Sonnet 4.6) | `src/services/leaderboardService.ts` | Cierre de GAP-07 (parte 1): `leaderboardService.fetchWeeklyLeaderboard()` ahora consulta la tabla `leaderboard_weekly` JOIN `profiles` para obtener `weekly_xp`, `league_tier`, `username` y `avatar_url`; ya no usa `profiles.total_xp` global. | Verificación de la query con datos de prueba en Supabase; mapeo correcto de `league_tier` desde la tabla. |
 | 2026-09-14 | Alejandro (con asistencia de Claude Sonnet 4.6) | `app/(tabs)/index.tsx`, `app/(tabs)/shop.tsx`, `app/(tabs)/leaderboard.tsx`, `app/(tabs)/profile.tsx`, `app/translator/index.tsx`, `app/category/[slug].tsx` | Cierre de INV-02 (cumplimiento 100%): eliminación de todos los estilos inline (`style={{ ... }}`) en los 6 archivos detectados en auditoría; refactorizados a entradas en `StyleSheet.create`. | Auditoría `grep` post-refactor confirma 0 ocurrencias de estilos inline en los archivos afectados. |
 | 2026-09-14 | Alejandro (con asistencia de Claude Sonnet 4.6) | `__tests__/GameContext.test.tsx`, `package.json`, `tsconfig.json` | Cierre de GAP-03: configuración de Jest con preset `jest-expo` y `@react-native/jest-preset`; 3 tests unitarios del `GameContext` cubren estado inicial, descuento de vidas con bloqueo, e hidratación vía HYDRATE. **Sprint 4 cerrado formalmente.** GAPs 03, 06 y 07 resueltos. | `npx jest --watchAll=false`: 3/3 PASS. `npx tsc --noEmit`: 0 errores. Ejecutado dentro del contenedor Docker `expo-web`. |
+
+---
+
+## Fase 5 — Sprint 5: Firebase Auth, Rediseño de Lecciones y Colección Insomnia API REST
+
+| Fecha | Autor | Componente / Archivo(s) | Hito alcanzado | Pruebas ejecutadas |
+| :--- | :--- | :--- | :--- | :--- |
+| 2026-09-17 | Alejandro Padilla | `src/services/firebase.ts`, `src/services/authService.ts`, `src/context/AuthContext.tsx`, `app/(auth)/*` | Migración de la capa de autenticación de Supabase Auth a Firebase Auth (SDK v12 modular). Persistencia con AsyncStorage en nativo y `getAuth` en web; función `translateFirebaseError` para mensajes en español. | Pruebas de registro, login y logout con Firebase Auth; verificación de guard de autenticación y redirección automática en `_layout.tsx`. |
+| 2026-09-17 | Alejandro Padilla | `app/lesson/[id].tsx`, `app/(tabs)/profile.tsx`, `app/(tabs)/shop.tsx`, `app/level/exam/[levelId].tsx` | Rediseño del flujo de lecciones: inclusión de fase de vocabulario previo (Quechua ↔ Español). Refactorización de identificador de usuario `user.id` a `user.uid` en todas las pantallas. | Verificación de carga de lecciones y persistencia de progreso vinculada al UID de Firebase. |
+| 2026-09-17 | Alejandro Padilla | `docs/yachay-insomnia-collection.json` | Creación de colección Insomnia v4 con 35 endpoints REST documentados y categorizados para pruebas de Firebase Auth y Supabase REST API. | Importación limpia en Insomnia v4 y ejecuciones de prueba exitosas. |
+
+---
+
+## Fase 6 — Sprint 6: Audio Nativo (Expo Speech), Fonética Quechua, Resiliencia Offline, Notificaciones y Cosméticos
+
+| Fecha | Autor | Componente / Archivo(s) | Hito alcanzado | Pruebas ejecutadas |
+| :--- | :--- | :--- | :--- | :--- |
+| 2026-09-20 | Alejandro Padilla | `src/services/voiceService.ts`, `components/yachay/audio-pronounce-button.tsx`, `tts_service.py` | Integración de síntesis de audio nativa con `expo-speech` y opciones de voz para Android/iOS (`es-PE`, `es-US`). Creación del componente `AudioPronounceButton` y microservicio local Python TTS como servidor de voz alternativo. | Pruebas de reproducción de audio en dispositivos Android, iOS y Web. |
+| 2026-09-20 | Alejandro Padilla | `src/utils/phoneticGuide.ts`, `components/yachay/exercises/pronunciation-exercise.tsx` | Guía de pronunciación fonética andina para normas Quechua Chanka/Cusco-Collao y nuevo tipo de ejercicio de pronunciación interactivo con evaluación de coincidencia por voz. | Pruebas unitarias de conversión fonética y pruebas de micrófono en el ejercicio de pronunciación. |
+| 2026-09-20 | Alejandro Padilla | `src/services/offlineCache.ts`, `src/services/notificationService.ts` | Sistema de resiliencia offline (`offlineCache.ts`) usando AsyncStorage y servicio de notificaciones locales de racha (`notificationService.ts`) usando `expo-notifications` para recordatorio diario a las 20:00. | Simulación de desconexión a red (modo avión) verificando carga de lecciones en caché; prueba de programación de notificaciones locales. |
+| 2026-09-20 | Alejandro Padilla | `__tests__/voiceService.test.ts`, `expo-haptics` | Cobertura de pruebas unitarias para el servicio de voz (`voiceService.test.ts`) e integración de feedback háptico con `expo-haptics` en interacción de lecciones. | `npx jest`: 100% PASS en suite de voz y GameContext. |
+| 2026-09-20 | Equipo | `assets/images/kit-complementos/` | Incorporación del kit gráfico completo de marca: íconos de app, navegación, expresiones emocionales de Yachi, misiones, categorías y tarjetas textiles. | Verificación visual de renderizado en todas las pantallas. |
+

@@ -78,8 +78,8 @@ export default function TranslatorScreen() {
   }
 
   async function handleVoiceInput() {
-    if (Platform.OS !== 'web') {
-      setError('El reconocimiento de voz solo está disponible en la versión web.');
+    if (Platform.OS !== 'web' && sourceLang === 'es') {
+      setError('El reconocimiento de voz en Español solo está disponible en la versión web por ahora. Prueba hablando en Quechua o usa el modo texto.');
       return;
     }
     setError('');

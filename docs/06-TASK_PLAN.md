@@ -77,3 +77,30 @@
 | S4-T06 | Auditoría final: `grep` triple (0 supabase en `app/`, 0 alerts, 0 estilos inline) | Oscar Segovia | ✅ Completado |
 | S4-T07 | Verificar compilación limpia de TypeScript (`tsc --noEmit`) dentro del contenedor Docker | Oscar Segovia | ✅ Completado |
 | S4-T08 | Registrar cierre de Sprint 4 en `01-BITACORA_DESARROLLO.md` | Equipo | ✅ Completado |
+
+---
+
+### Sprint 5 — Firebase Auth, Rediseño de Lecciones y Colección Insomnia
+
+| ID | Tarea | Responsable | Estado |
+| :--- | :--- | :--- | :---: |
+| S5-T01 | Configurar SDK v12 modular de Firebase Auth (`src/services/firebase.ts`) y migrar `AuthContext.tsx` y `authService.ts` | Alejandro Padilla | ✅ Completado |
+| S5-T02 | Implementar persistencia de sesión con `AsyncStorage` en móvil y `translateFirebaseError` en español | Alejandro Padilla | ✅ Completado |
+| S5-T03 | Rediseñar el flujo de lecciones en `app/lesson/[id].tsx` con fase teórica previa de vocabulario | Yesica Escobar | ✅ Completado |
+| S5-T04 | Refactorizar `user.id` a `user.uid` en pantallas `profile`, `shop`, `lesson` y `exam` | Alejandro Padilla | ✅ Completado |
+| S5-T05 | Crear y documentar colección Insomnia v4 con 35 endpoints REST (`docs/yachay-insomnia-collection.json`) | Oscar Segovia | ✅ Completado |
+
+---
+
+### Sprint 6 — Audio Nativo (Expo Speech), Fonética Quechua, Resiliencia Offline y Notificaciones
+
+| ID | Tarea | Responsable | Estado |
+| :--- | :--- | :--- | :---: |
+| S6-T01 | Integrar síntesis de voz nativa `expo-speech` en `voiceService.ts` con opciones de voces Android (`es-PE`) | Alejandro Padilla | ✅ Completado |
+| S6-T02 | Crear Guía Fonética Quechua (`phoneticGuide.ts`) para fonemas andinos glotales y aspirados | Alejandro Padilla | ✅ Completado |
+| S6-T03 | Crear ejercicio interactivo de pronunciación por voz (`PronunciationExercise`) | Yesica Escobar | ✅ Completado |
+| S6-T04 | Crear componente universal `AudioPronounceButton` con animación de onda de sonido | Yesica Escobar | ✅ Completado |
+| S6-T05 | Crear servicios de resiliencia offline (`offlineCache.ts`) y notificaciones locales de racha (`notificationService.ts`) | Oscar Segovia | ✅ Completado |
+| S6-T06 | Construir servidor local TTS en Python (`tts_service.py`) con gTTS/pyttsx3 | Oscar Segovia | ✅ Completado |
+| S6-T07 | Cobertura de pruebas unitarias (`__tests__/voiceService.test.ts`), feedback háptico (`expo-haptics`) y kit de assets de complementos | Alejandro Padilla | ✅ Completado |
+
