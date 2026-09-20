@@ -1,3 +1,5 @@
+import { Platform } from 'react-native';
+import * as Speech from 'expo-speech';
 import { Language, TranslationRequest } from '@/src/types';
 import { supabase } from '@/src/services/supabase';
 import { extractCorePhoneme } from '@/src/utils/phoneticGuide';
@@ -58,47 +60,50 @@ const PHONEME_VARIANTS: Record<string, string[]> = {
 
 /**
  * Reproduce audio del fonema o palabra quechua.
- * - Extrae el fonema real para no pronunciar texto explicativo en español.
- * - Fonemas y letras (≤4 chars): pronuncia la sílaba quechua exacta
- *   con velocidad clara y articulación precisa.
- * - Palabras completas: servidor MMS-TTS Quechua con fallback nativo.
+ * - En plataformas nativas (Android/iOS): usa expo-speech.
+ * - En web: usa window.speechSynthesis con fallback al servidor MMS-TTS local.
+ * - Fonemas (≤4 chars): pronuncia la sílaba fonética quechua exacta.
+ * - Palabras completas en web: intenta servidor MMS-TTS, luego fallback nativo.
  */
 export async function playQuechuaAudio(text: string): Promise<void> {
-  if (typeof window === 'undefined' || !text.trim()) return;
+  if (!text.trim()) return;
 
   // Extraer el fonema/palabra pura (evita leer 'Consonante k' o 'Letra ch')
   const core = extractCorePhoneme(text).toLowerCase().trim();
   const cleanText = core || text.trim().toLowerCase();
 
-  // Para fonemas y consonantes: pronunciar la sílaba fonética Quechua
-  if (cleanText.length <= 4) {
-    // Caso especial 'sh': la voz en español dice 'saa', la voz en-US pronuncia 'sha' [ʃa] auténtico
-    if (cleanText === 'sh') {
-      return new Promise<void>((resolve) => {
-        const synth = (window as any).speechSynthesis;
-        const Utterance = (window as any).SpeechSynthesisUtterance;
-        if (!synth || !Utterance) { resolve(); return; }
-        synth.cancel();
-        const utter = new Utterance('sha');
-        utter.lang = 'en-US';
-        utter.rate = 0.65;
-        utter.pitch = 1.0;
-        utter.volume = 1.0;
-        utter.onend = () => resolve();
-        utter.onerror = () => resolve();
-        synth.speak(utter);
+  // ── Plataforma nativa: expo-speech ──────────────────────────────────────────
+  if (Platform.OS !== 'web') {
+    const audioWord = cleanText.length <= 4
+      ? (PHONEME_AUDIO_TEXT[cleanText] ?? cleanText)
+      : cleanText;
+    return new Promise<void>((resolve) => {
+      Speech.speak(audioWord, {
+        language: cleanText === 'sh' ? 'en-US' : 'es-PE',
+        rate: 0.6,
+        pitch: 1.0,
+        onDone: resolve,
+        onError: () => resolve(),
+        onStopped: () => resolve(),
       });
-    }
+    });
+  }
 
+  // ── Web: window.speechSynthesis ─────────────────────────────────────────────
+  if (typeof window === 'undefined') return;
+
+  if (cleanText.length <= 4) {
+    // Caso especial 'sh': en-US pronuncia [ʃa] auténtico
+    const lang = cleanText === 'sh' ? 'en-US' : 'es-PE';
     const audioWord = PHONEME_AUDIO_TEXT[cleanText] ?? cleanText;
     return new Promise<void>((resolve) => {
       const synth = (window as any).speechSynthesis;
       const Utterance = (window as any).SpeechSynthesisUtterance;
       if (!synth || !Utterance) { resolve(); return; }
       synth.cancel();
-      const utter = new Utterance(audioWord);
-      utter.lang = 'es-PE'; // Acento andino peruano o es-ES
-      utter.rate = 0.60;   // Velocidad ideal para aprendizaje
+      const utter = new Utterance(cleanText === 'sh' ? 'sha' : audioWord);
+      utter.lang = lang;
+      utter.rate = 0.60;
       utter.pitch = 1.0;
       utter.volume = 1.0;
       utter.onend = () => resolve();
@@ -107,14 +112,13 @@ export async function playQuechuaAudio(text: string): Promise<void> {
     });
   }
 
-  // Para palabras más largas: intentar servidor MMS-TTS Quechua.
+  // Palabras largas en web: servidor MMS-TTS Quechua → fallback
   if (currentAudio) {
     try { currentAudio.pause(); currentAudio.currentTime = 0; } catch { /* ignore */ }
   }
 
   try {
     let audioUrl = audioCache.get(cleanText);
-
     if (!audioUrl) {
       const response = await fetch(
         `http://localhost:8000/tts?text=${encodeURIComponent(cleanText)}`
@@ -124,7 +128,6 @@ export async function playQuechuaAudio(text: string): Promise<void> {
       audioUrl = URL.createObjectURL(blob);
       audioCache.set(cleanText, audioUrl);
     }
-
     return new Promise((resolve) => {
       const audio = new Audio(audioUrl);
       currentAudio = audio;
@@ -399,9 +402,17 @@ export async function startVoiceRecognition(
   });
 }
 
-// ─── Síntesis de voz Web Speech Fallback ───────────────────────────────────────
+// ─── Síntesis de voz — Web Speech + expo-speech nativo ─────────────────────────
 
+/**
+ * Síntesis de voz multiplataforma.
+ * En nativo usa expo-speech; en web usa window.speechSynthesis.
+ */
 export function speakText(text: string, _lang: Language): void {
+  if (Platform.OS !== 'web') {
+    Speech.speak(text, { language: 'es-ES', rate: 0.7 });
+    return;
+  }
   if (typeof window === 'undefined') return;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const synth = (window as any).speechSynthesis;
@@ -411,16 +422,20 @@ export function speakText(text: string, _lang: Language): void {
   const SpeechSynthesisUtteranceImpl = (window as any).SpeechSynthesisUtterance;
   if (!SpeechSynthesisUtteranceImpl) return;
   const utter = new SpeechSynthesisUtteranceImpl(text);
-  utter.lang = 'es-ES'; // es-ES funciona en Edge, Chrome y Firefox
+  utter.lang = 'es-ES';
   utter.rate = 0.7;
   synth.speak(utter);
 }
 
 /**
- * Fallback de síntesis en español para palabras quechuas cuando falla MMS-TTS.
- * Usa velocidad lenta para mayor claridad pedagógica.
+ * Fallback de síntesis cuando falla el servidor MMS-TTS.
+ * En nativo usa expo-speech; en web usa window.speechSynthesis.
  */
 export function speakSpanishFallback(text: string): void {
+  if (Platform.OS !== 'web') {
+    Speech.speak(text, { language: 'es-PE', rate: 0.6, pitch: 1.0 });
+    return;
+  }
   if (typeof window === 'undefined') return;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const synth = (window as any).speechSynthesis;

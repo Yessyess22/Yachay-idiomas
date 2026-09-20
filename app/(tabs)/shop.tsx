@@ -62,7 +62,7 @@ const SHOP_ITEMS: ShopItem[] = [
 ];
 
 export default function ShopScreen() {
-  const { gems, lives, spendGems, restoreLives } = useGame() as any;
+  const { gems, consumeGems, restoreLives, equipOutfit } = useGame();
   const [buyingId, setBuyingId] = useState<string | null>(null);
 
   const handleBuy = (item: ShopItem) => {
@@ -83,15 +83,27 @@ export default function ShopScreen() {
           text: 'Comprar',
           onPress: () => {
             setBuyingId(item.id);
-            if (typeof spendGems === 'function') {
-              spendGems(item.cost);
+            const purchased = consumeGems(item.cost);
+            if (!purchased) {
+              Alert.alert('Error', 'No tienes suficientes gemas.');
+              setBuyingId(null);
+              return;
             }
-            if (item.type === 'hearts' && typeof restoreLives === 'function') {
+            if (item.type === 'hearts') {
               restoreLives();
+            }
+            if (item.type === 'outfit') {
+              // Equipar el accesorio cosmético en el perfil de Yachi
+              equipOutfit(item.id);
             }
             setTimeout(() => {
               setBuyingId(null);
-              Alert.alert('¡Adquirido con Éxito! 🎉', `Has obtenido "${item.title}".`);
+              Alert.alert(
+                '¡Adquirido con Éxito! 🎉',
+                item.type === 'outfit'
+                  ? `Has equipado "${item.title}" en tu perfil. ¡Visita tu perfil para verlo! 🦙`
+                  : `Has obtenido "${item.title}".`
+              );
             }, 400);
           },
         },

@@ -25,7 +25,7 @@ const BORDER_COLOR = '#ECE5D8';
 export default function ProfileScreen() {
   const router = useRouter();
   const { user, profile, signOut } = useAuth();
-  const { streakDays, xp, gems, lives } = useGame();
+  const { streakDays, xp, gems, lives, equippedOutfit } = useGame();
   const [quests, setQuests] = useState<DailyQuest[]>([]);
   const [loadingQuests, setLoadingQuests] = useState(false);
 
@@ -122,6 +122,14 @@ export default function ProfileScreen() {
                 style={styles.avatarImage}
                 resizeMode="contain"
               />
+              {/* Chullo Sagrado equipado desde la tienda */}
+              {equippedOutfit === 'chullo_item' && (
+                <Image
+                  source={require('@/assets/images/logros/item_chullo_coleccionable.png')}
+                  style={styles.chulloOverlay}
+                  resizeMode="contain"
+                />
+              )}
               <View style={styles.levelBadge}>
                 <Text style={styles.levelBadgeText}>Nv. {userLevel}</Text>
               </View>
@@ -301,6 +309,13 @@ const styles = StyleSheet.create({
   avatarImage: {
     width: 60,
     height: 60,
+  },
+  chulloOverlay: {
+    position: 'absolute',
+    top: -18,
+    width: 50,
+    height: 34,
+    zIndex: 10,
   },
   levelBadge: {
     position: 'absolute',

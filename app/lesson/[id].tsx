@@ -16,11 +16,13 @@ import Animated, {
   withSequence,
   withSpring,
 } from 'react-native-reanimated';
+import * as Haptics from 'expo-haptics';
 
 import { Illustrations } from '@/constants/illustrations';
 import { useAuth } from '@/src/context/AuthContext';
 import { useGame } from '@/src/context/GameContext';
 import { questionService } from '@/src/services/questionService';
+import { saveQuestionsToCache, loadQuestionsFromCache } from '@/src/services/offlineCache';
 import { QuestionOption, QuestionWithOptions } from '@/src/types';
 import { AudioPronounceButton } from '@/components/yachay/audio-pronounce-button';
 import { PronunciationExercise } from '@/components/yachay/exercises/pronunciation-exercise';
@@ -253,14 +255,30 @@ export default function LessonScreen() {
   async function loadLessonData() {
     setLoading(true);
     setError('');
-    const { data, error } = await questionService.fetchQuestionsByLesson(lessonId);
-    if (error) {
-      setError(error);
-    } else {
-      const qs = data ?? [];
+    try {
+      // Intentar cargar desde caché offline primero
+      let qs: QuestionWithOptions[] | null = await loadQuestionsFromCache<QuestionWithOptions[]>(String(lessonId));
+
+      if (!qs) {
+        // Sin caché válida: descargar de Supabase
+        const { data, error } = await questionService.fetchQuestionsByLesson(lessonId);
+        if (error) {
+          setError(error);
+          setLoading(false);
+          return;
+        }
+        qs = data ?? [];
+        // Guardar en caché para próxima vez sin internet
+        if (qs.length > 0) {
+          await saveQuestionsToCache(String(lessonId), qs);
+        }
+      }
+
       const vCards = buildVocabCards(qs);
       setVocabCards(vCards);
       setExercises(buildExerciseList(qs, vCards));
+    } catch {
+      setError('No se pudo cargar la lección. Verifica tu conexión a internet.');
     }
     setLoading(false);
   }
@@ -322,6 +340,12 @@ export default function LessonScreen() {
     setIsAnswered(true);
     checkAnswer(correct);
     bounceYachi();
+    // Feedback háptico diferenciado según resultado
+    if (correct) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+    } else {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
+    }
   }
 
   function handleSpeakingSuccess(score: number) {
@@ -330,6 +354,7 @@ export default function LessonScreen() {
     setIsAnswered(true);
     checkAnswer(true);
     bounceYachi();
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
   }
 
   function handleSpeakingFail() {
@@ -338,6 +363,7 @@ export default function LessonScreen() {
     setIsAnswered(true);
     checkAnswer(false);
     bounceYachi();
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
   }
 
   async function handleNextExercise() {

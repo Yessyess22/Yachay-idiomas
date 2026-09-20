@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   ViewStyle,
 } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { playQuechuaAudio } from '@/src/services/voiceService';
 
 interface AudioPronounceButtonProps {
@@ -28,6 +29,8 @@ export function AudioPronounceButton({
   async function handlePress() {
     if (isPlaying || !text) return;
     setIsPlaying(true);
+    // Feedback táctil suave al tocar el botón
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
     try {
       await playQuechuaAudio(text);
     } finally {

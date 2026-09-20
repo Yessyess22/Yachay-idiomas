@@ -1,6 +1,7 @@
 import { createContext, ReactNode, useCallback, useContext, useEffect, useReducer, useRef } from 'react';
 import { authService } from '@/src/services/authService';
 import { Profile } from '@/src/types';
+import { scheduleStreakReminder, cancelStreakReminder, requestNotificationPermissions } from '@/src/services/notificationService';
 
 const INITIAL_LIVES = 5;
 const XP_PER_CORRECT = 10;
@@ -13,6 +14,7 @@ type GameState = {
   gems: number;
   streakDays: number;
   isBlocked: boolean;
+  equippedOutfit: string | null;
 };
 
 type GameAction =
@@ -22,6 +24,7 @@ type GameAction =
   | { type: 'ADD_GEMS'; amount: number }
   | { type: 'CONSUME_GEMS'; amount: number }
   | { type: 'SET_STREAK'; streak: number }
+  | { type: 'EQUIP_OUTFIT'; outfitId: string | null }
   | { type: 'HYDRATE'; lives: number; xp: number; gems: number; streakDays: number };
 
 type GameContextType = GameState & {
@@ -31,6 +34,7 @@ type GameContextType = GameState & {
   consumeGems: (amount: number) => boolean;
   setStreak: (streak: number) => void;
   hydrateFromProfile: (profile: Profile) => void;
+  equipOutfit: (outfitId: string | null) => void;
 };
 
 function gameReducer(state: GameState, action: GameAction): GameState {
@@ -44,6 +48,8 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         streakDays: action.streakDays,
         isBlocked: action.lives <= 0,
       };
+    case 'EQUIP_OUTFIT':
+      return { ...state, equippedOutfit: action.outfitId };
     case 'CORRECT_ANSWER':
       return { ...state, xp: state.xp + XP_PER_CORRECT };
     case 'WRONG_ANSWER': {
@@ -72,10 +78,18 @@ export function GameProvider({ children }: { children: ReactNode }) {
     gems: 100,
     streakDays: 1,
     isBlocked: false,
+    equippedOutfit: null,
   });
 
   const userIdRef = useRef<string | null>(null);
   const syncTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Solicitar permisos de notificaciones al montar el proveedor
+  useEffect(() => {
+    requestNotificationPermissions().catch(() => {});
+    // Programar recordatorio diario de racha
+    scheduleStreakReminder().catch(() => {});
+  }, []);
 
   // Debounced sync to Supabase profiles table
   useEffect(() => {
@@ -113,10 +127,6 @@ export function GameProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'RESTORE_LIVES' });
   }, []);
 
-  const addGems = useCallback((amount = GEMS_PER_LESSON) => {
-    dispatch({ type: 'ADD_GEMS', amount });
-  }, []);
-
   const consumeGems = useCallback(
     (amount: number) => {
       if (state.gems >= amount) {
@@ -132,6 +142,17 @@ export function GameProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'SET_STREAK', streak });
   }, []);
 
+  const equipOutfit = useCallback((outfitId: string | null) => {
+    dispatch({ type: 'EQUIP_OUTFIT', outfitId });
+  }, []);
+
+  // Cuando el usuario gana gemas (completa lección), cancelar recordatorio de racha del día
+  const addGems = useCallback((amount = GEMS_PER_LESSON) => {
+    dispatch({ type: 'ADD_GEMS', amount });
+    // El usuario practicó hoy — cancelar el recordatorio diario
+    cancelStreakReminder().catch(() => {});
+  }, []);
+
   return (
     <GameContext.Provider
       value={{
@@ -142,6 +163,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
         consumeGems,
         setStreak,
         hydrateFromProfile,
+        equipOutfit,
       }}
     >
       {children}
