@@ -7,6 +7,7 @@ jest.mock('@/src/services/supabase', () => ({
       invoke: jest.fn().mockResolvedValue({ data: null, error: null }),
     },
   },
+
 }));
 jest.mock('expo-audio', () => ({
   AudioModule: { AudioRecorder: jest.fn() },
