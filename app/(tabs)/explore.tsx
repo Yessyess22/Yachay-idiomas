@@ -132,7 +132,7 @@ const MODULES: StudyModule[] = [
   },
 ];
 
-type MainTab = 'modules' | 'dictionary' | 'stories';
+type MainTab = 'modules' | 'dictionary' | 'stories' | 'translator';
 
 export default function ExploreScreen() {
   const router = useRouter();
@@ -151,6 +151,7 @@ export default function ExploreScreen() {
     { key: 'modules',    label: '📚 Módulos' },
     { key: 'dictionary', label: '📖 Glosario' },
     { key: 'stories',    label: '📜 Historias' },
+    { key: 'translator', label: '🎙️ Traductor' },
   ];
 
   const selectedModule = MODULES.find((m) => m.id === selectedModuleId);
@@ -166,8 +167,12 @@ export default function ExploreScreen() {
             key={t.key}
             style={[styles.tabBtn, activeTab === t.key && styles.tabBtnActive]}
             onPress={() => {
-              setActiveTab(t.key);
-              setSelectedModuleId(null);
+              if (t.key === 'translator') {
+                router.push('/translator' as any);
+              } else {
+                setActiveTab(t.key);
+                setSelectedModuleId(null);
+              }
             }}
           >
             <Text style={[styles.tabText, activeTab === t.key && styles.tabTextActive]}>

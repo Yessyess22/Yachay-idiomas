@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import {
+  ActivityIndicator,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -7,6 +8,11 @@ import {
 } from 'react-native';
 import { AudioPronounceButton } from '../audio-pronounce-button';
 import { extractCorePhoneme, getQuechuaPhoneticGuide } from '@/src/utils/phoneticGuide';
+import {
+  evaluatePronunciation,
+  PronunciationScore,
+  startVoiceRecognition,
+} from '@/src/services/voiceService';
 
 interface PronunciationExerciseProps {
   expectedText: string;
@@ -20,10 +26,12 @@ const GREEN = '#27AE60';
 const RED = '#EA5455';
 const GOLD = '#E5A00D';
 
+type Phase = 'idle' | 'recording' | 'evaluating' | 'result' | 'done';
+
 /**
- * Ejercicio de pronunciación basado en auto-evaluación del estudiante.
- * El usuario escucha el audio auténtico, practica en voz alta, y reporta
- * si lo logró o no. Este flujo es confiable en todos los navegadores.
+ * Ejercicio de pronunciación con captura e interactividad en tiempo real vía micrófono.
+ * El estudiante escucha el audio de referencia, graba su voz con el botón de micrófono,
+ * la app evalúa la coincidencia fonética y valida la respuesta automáticamente.
  */
 export function PronunciationExercise({
   expectedText,
@@ -31,27 +39,56 @@ export function PronunciationExercise({
   onSuccess,
   onFail,
 }: PronunciationExerciseProps) {
-  const [phase, setPhase] = useState<'practice' | 'selfeval' | 'done'>('practice');
+  const [phase, setPhase] = useState<Phase>('idle');
   const [attempts, setAttempts] = useState(0);
+  const [result, setResult] = useState<PronunciationScore | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const coreWord = extractCorePhoneme(expectedText);
   const phonetic = getQuechuaPhoneticGuide(coreWord);
 
-  function handleYes() {
-    setPhase('done');
-    onSuccess(100);
+  async function handleStartRecording() {
+    setError(null);
+    setPhase('recording');
+    setResult(null);
+
+    try {
+      // Iniciar reconocimiento de voz (usando el canal de voz adaptado para fonemas/palabras)
+      const recResult = await startVoiceRecognition('qu', coreWord);
+      setPhase('evaluating');
+
+      if (!recResult.transcript) {
+        setError('No logramos escuchar tu voz con claridad. Presiona el micrófono para intentar de nuevo.');
+        setPhase('result');
+        setAttempts((a) => a + 1);
+        return;
+      }
+
+      // Evaluar coincidencia fonética
+      const evalRes = evaluatePronunciation(recResult.transcript, coreWord);
+      setResult(evalRes);
+
+      if (evalRes.isPass || evalRes.score >= 60) {
+        setPhase('done');
+        onSuccess(evalRes.score);
+      } else {
+        setPhase('result');
+        setAttempts((a) => a + 1);
+      }
+    } catch (e) {
+      setPhase('result');
+      setAttempts((a) => a + 1);
+      setError(
+        e instanceof Error
+          ? e.message
+          : 'Ocurrió un inconveniente al activar el micrófono. Puedes continuar o intentar nuevamente.'
+      );
+    }
   }
 
-  function handleNo() {
-    setAttempts((a) => a + 1);
-    if (attempts >= 1) {
-      // Después de 2 intentos fallidos, validar para no bloquear al usuario
-      setPhase('done');
-      onSuccess(70);
-    } else {
-      setPhase('practice');
-    }
-    onFail?.();
+  function handleSkip() {
+    setPhase('done');
+    onSuccess(70);
   }
 
   return (
@@ -84,61 +121,95 @@ export function PronunciationExercise({
         </View>
       </View>
 
-      {/* Fase práctica */}
-      {phase === 'practice' && (
-        <View style={styles.practiceSection}>
-          <Text style={styles.practiceInstructions}>
-            🎧 Escucha el audio, luego di la palabra en voz alta.
-            {attempts > 0 ? '\n¡Inténtalo una vez más!' : ''}
+      {/* Fase 1: Reposo / Instrucciones para grabar */}
+      {phase === 'idle' && (
+        <View style={styles.actionSection}>
+          <Text style={styles.instructionsText}>
+            🎧 Escucha el audio, luego toca el micrófono y di la palabra en voz alta.
           </Text>
           <TouchableOpacity
-            style={styles.triedBtn}
-            onPress={() => setPhase('selfeval')}
+            style={styles.micBtn}
+            onPress={handleStartRecording}
             activeOpacity={0.85}
           >
-            <Text style={styles.triedBtnText}>🎙️ Ya lo intenté →</Text>
+            <Text style={styles.micIcon}>🎙️</Text>
+            <Text style={styles.micBtnText}>Toca para hablar y evaluar</Text>
           </TouchableOpacity>
         </View>
       )}
 
-      {/* Fase de autoevaluación */}
-      {phase === 'selfeval' && (
-        <View style={styles.selfevalSection}>
-          <Text style={styles.selfevalQuestion}>
-            ¿Pudiste pronunciar "{coreWord}" correctamente?
+      {/* Fase 2: Grabando audio */}
+      {phase === 'recording' && (
+        <View style={styles.actionSection}>
+          <Text style={styles.instructionsText}>
+            🔴 Habla ahora: pronuncia <Text style={styles.highlightWord}>"{coreWord}"</Text>...
           </Text>
-          <View style={styles.selfevalButtons}>
-            <TouchableOpacity
-              style={[styles.selfevalBtn, styles.selfevalYes]}
-              onPress={handleYes}
-              activeOpacity={0.85}
-            >
-              <Text style={styles.selfevalBtnText}>✅ ¡Sí lo dije!</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.selfevalBtn, styles.selfevalNo]}
-              onPress={handleNo}
-              activeOpacity={0.85}
-            >
-              <Text style={styles.selfevalBtnText}>
-                {attempts >= 1 ? '⏭️ Continuar' : '🔄 Practicar más'}
-              </Text>
-            </TouchableOpacity>
+          <View style={[styles.micBtn, styles.micBtnRecording]}>
+            <ActivityIndicator color="#FFFFFF" size="small" style={styles.spinner} />
+            <Text style={styles.micBtnText}>⏹ Escuchando tu voz...</Text>
           </View>
-          {attempts >= 1 && (
-            <Text style={styles.skipHint}>
-              Puedes continuar y practicar más adelante.
-            </Text>
-          )}
         </View>
       )}
 
-      {/* Fase completada */}
+      {/* Fase 3: Evaluando la voz */}
+      {phase === 'evaluating' && (
+        <View style={styles.actionSection}>
+          <Text style={styles.instructionsText}>Procesando tu voz...</Text>
+          <View style={[styles.micBtn, styles.micBtnEvaluating]}>
+            <ActivityIndicator color="#FFFFFF" size="small" style={styles.spinner} />
+            <Text style={styles.micBtnText}>🔍 Analizando pronunciación...</Text>
+          </View>
+        </View>
+      )}
+
+      {/* Fase 4: Resultado no satisfactorio / Error -> Permitir reintento o continuar */}
+      {phase === 'result' && (
+        <View style={styles.actionSection}>
+          {error ? (
+            <View style={styles.errorCard}>
+              <Text style={styles.errorText}>⚠️ {error}</Text>
+            </View>
+          ) : result ? (
+            <View style={styles.resultCardFail}>
+              <Text style={styles.resultTitleFail}>
+                {result.cleanedSpoken
+                  ? `Escuchamos: "${result.cleanedSpoken}"`
+                  : 'Pronunciación no detectada'}
+              </Text>
+              <Text style={styles.resultFeedbackText}>{result.feedback}</Text>
+            </View>
+          ) : null}
+
+          <View style={styles.buttonsRow}>
+            <TouchableOpacity
+              style={[styles.micBtn, styles.retryBtn]}
+              onPress={handleStartRecording}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.micIcon}>🎙️</Text>
+              <Text style={styles.micBtnText}>Volver a intentar</Text>
+            </TouchableOpacity>
+
+            {(attempts >= 1 || Boolean(error)) && (
+              <TouchableOpacity
+                style={styles.skipBtn}
+                onPress={handleSkip}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.skipBtnText}>⏭️ Continuar de todos modos</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+      )}
+
+      {/* Fase 5: Completado con éxito */}
       {phase === 'done' && (
         <View style={styles.doneCard}>
-          <Text style={styles.doneTitle}>¡Allinmi! 🌟</Text>
+          <Text style={styles.doneTitle}>¡Allinmi! 🌟 ({result?.score ?? 100}%)</Text>
           <Text style={styles.doneText}>
-            Pronunciación de "{coreWord}" registrada.
+            {result?.cleanedSpoken ? `Escuchamos "${result.cleanedSpoken}". ` : ''}
+            {result?.feedback || `¡Excelente pronunciación de "${coreWord}"!`}
           </Text>
         </View>
       )}
@@ -239,105 +310,120 @@ const styles = StyleSheet.create({
   phoneticSpelling: {
     fontSize: 15,
     fontWeight: '800',
-    color: '#1B8B8C',
+    color: TEAL,
     lineHeight: 22,
     marginBottom: 2,
-  },
-  articulatoryExample: {
-    fontSize: 12,
-    color: '#6A5545',
-    marginTop: 6,
-    paddingTop: 6,
-    borderTopWidth: 1,
-    borderTopColor: '#EFEAE3',
   },
   listenRow: {
     marginTop: 6,
   },
-  practiceSection: {
+  actionSection: {
     width: '100%',
     alignItems: 'center',
-    marginBottom: 8,
     gap: 12,
+    marginBottom: 8,
   },
-  practiceInstructions: {
+  instructionsText: {
     fontSize: 14,
     color: '#555555',
     textAlign: 'center',
     lineHeight: 20,
   },
-  triedBtn: {
-    backgroundColor: TEAL,
-    paddingVertical: 14,
-    paddingHorizontal: 32,
-    borderRadius: 30,
-    minWidth: 220,
+  highlightWord: {
+    fontWeight: '800',
+    color: TEAL,
+  },
+  micBtn: {
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    backgroundColor: TEAL,
+    paddingVertical: 16,
+    paddingHorizontal: 28,
+    borderRadius: 30,
+    minWidth: 240,
     shadowColor: TEAL,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 4,
   },
-  triedBtnText: {
+  micBtnRecording: {
+    backgroundColor: RED,
+    shadowColor: RED,
+  },
+  micBtnEvaluating: {
+    backgroundColor: GOLD,
+    shadowColor: GOLD,
+  },
+  retryBtn: {
+    backgroundColor: TEAL,
+  },
+  micIcon: {
+    fontSize: 20,
+    color: '#FFFFFF',
+  },
+  micBtnText: {
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '800',
   },
-  selfevalSection: {
+  spinner: {
+    marginRight: 4,
+  },
+  buttonsRow: {
     width: '100%',
     alignItems: 'center',
-    gap: 12,
-    marginBottom: 8,
+    gap: 10,
   },
-  selfevalQuestion: {
+  resultCardFail: {
+    width: '100%',
+    backgroundColor: '#FDF2F2',
+    borderRadius: 14,
+    padding: 14,
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: RED,
+  },
+  resultTitleFail: {
     fontSize: 15,
-    fontWeight: '700',
-    color: '#333333',
-    textAlign: 'center',
-    lineHeight: 22,
-  },
-  selfevalButtons: {
-    flexDirection: 'row',
-    gap: 12,
-    width: '100%',
-    justifyContent: 'center',
-  },
-  selfevalBtn: {
-    flex: 1,
-    paddingVertical: 14,
-    paddingHorizontal: 12,
-    borderRadius: 24,
-    alignItems: 'center',
-    maxWidth: 180,
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.25,
-    shadowRadius: 6,
-    elevation: 3,
-  },
-  selfevalYes: {
-    backgroundColor: GREEN,
-    shadowColor: GREEN,
-    borderBottomWidth: 3,
-    borderBottomColor: '#1E8449',
-  },
-  selfevalNo: {
-    backgroundColor: GOLD,
-    shadowColor: GOLD,
-    borderBottomWidth: 3,
-    borderBottomColor: '#B7860A',
-  },
-  selfevalBtnText: {
-    color: '#FFFFFF',
-    fontSize: 14,
     fontWeight: '800',
-    textAlign: 'center',
+    color: RED,
+    marginBottom: 4,
   },
-  skipHint: {
-    fontSize: 12,
-    color: '#888888',
+  resultFeedbackText: {
+    fontSize: 13,
+    color: '#555555',
     textAlign: 'center',
-    fontStyle: 'italic',
+    lineHeight: 18,
+  },
+  errorCard: {
+    width: '100%',
+    backgroundColor: '#FFF8E7',
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: GOLD,
+  },
+  errorText: {
+    fontSize: 13,
+    color: '#8A6D3B',
+    textAlign: 'center',
+    lineHeight: 18,
+  },
+  skipBtn: {
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 20,
+    backgroundColor: '#F5F5F5',
+    borderWidth: 1,
+    borderColor: '#DDDDDD',
+  },
+  skipBtnText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#666666',
   },
   doneCard: {
     width: '100%',

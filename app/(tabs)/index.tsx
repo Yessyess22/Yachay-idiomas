@@ -475,6 +475,21 @@ export default function HomeScreen() {
               {/* Decoración textil andina en base de la tarjeta */}
               <Text style={styles.llamitaDecoBottom}>◇ ◆ ◇ ◆ ◇</Text>
             </View>
+
+            {/* Acceso Directo al Traductor de Voz */}
+            <TouchableOpacity
+              style={styles.translatorShortcutCard}
+              onPress={() => router.push('/translator' as any)}
+              activeOpacity={0.85}
+            >
+              <View style={styles.translatorHeaderRow}>
+                <Text style={styles.translatorMicIcon}>🎙️</Text>
+                <Text style={styles.translatorTag}>TRADUCTOR IA</Text>
+              </View>
+              <Text style={styles.translatorCardTitle}>Español ↔ Quechua</Text>
+              <Text style={styles.translatorCardSub}>Traduce texto y voz</Text>
+              <Text style={styles.translatorActionText}>Abrir →</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </ScrollView>
@@ -887,5 +902,52 @@ const styles = StyleSheet.create({
     color: '#D4A373',
     letterSpacing: 2,
     fontWeight: '700',
+  },
+  translatorShortcutCard: {
+    marginTop: 12,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 12,
+    borderWidth: 1.5,
+    borderColor: '#B2DFDB',
+    alignItems: 'center',
+    shadowColor: TEAL,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  translatorHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginBottom: 4,
+  },
+  translatorMicIcon: {
+    fontSize: 14,
+  },
+  translatorTag: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: TEAL,
+    letterSpacing: 0.5,
+  },
+  translatorCardTitle: {
+    fontSize: 12,
+    fontWeight: '900',
+    color: '#0E4D55',
+    textAlign: 'center',
+    marginBottom: 2,
+  },
+  translatorCardSub: {
+    fontSize: 10,
+    color: '#666666',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  translatorActionText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: TEAL,
   },
 });

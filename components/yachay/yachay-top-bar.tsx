@@ -72,6 +72,16 @@ export function YachayTopBar() {
               {streak} {streak === 1 ? 'día' : 'días'}
             </Text>
           </TouchableOpacity>
+
+          {/* Traductor de Voz (Verde mar suave) */}
+          <TouchableOpacity
+            style={[styles.pill, styles.pillTranslator]}
+            onPress={() => router.push('/translator' as any)}
+            activeOpacity={0.75}
+          >
+            <Text style={styles.pillEmojiMic}>🎙️</Text>
+            <Text style={[styles.pillText, styles.pillTextTranslator]}>Traductor</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Adorno textil andino esquina derecha */}
@@ -203,6 +213,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#FDECEC',
     borderColor: '#F9C6C6',
   },
+  pillTranslator: {
+    backgroundColor: '#E0F2F1',
+    borderColor: '#80CBC4',
+  },
   pillEmojiCoin: {
     fontSize: 14,
   },
@@ -213,6 +227,9 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   pillEmojiFire: {
+    fontSize: 14,
+  },
+  pillEmojiMic: {
     fontSize: 14,
   },
   pillText: {
@@ -230,6 +247,9 @@ const styles = StyleSheet.create({
   },
   pillTextLives: {
     color: '#B82828',
+  },
+  pillTextTranslator: {
+    color: '#00695C',
   },
   /* Modal */
   overlay: {

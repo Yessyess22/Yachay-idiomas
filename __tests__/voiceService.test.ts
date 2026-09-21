@@ -15,7 +15,7 @@ jest.mock('expo-audio', () => ({
   setAudioModeAsync: jest.fn().mockResolvedValue(undefined),
 }));
 
-import { evaluatePronunciation } from '@/src/services/voiceService';
+import { evaluatePronunciation, translateText } from '@/src/services/voiceService';
 
 describe('voiceService - Evaluación de Pronunciación', () => {
   test('Evalúa coincidencia exacta con 100% de score', () => {
@@ -90,6 +90,28 @@ describe('voiceService - Evaluación de Pronunciación', () => {
     const r6 = evaluatePronunciation('ya', 'll');
     expect(r6.score).toBe(100);
     expect(r6.isPass).toBe(true);
+  });
+});
+
+describe('voiceService - Traducción de Texto (Español ↔ Quechua)', () => {
+  test('Traduce palabras comunes de Español a Quechua en el diccionario local', async () => {
+    const r1 = await translateText({ source_lang: 'es', target_lang: 'qu', source_text: 'hola' });
+    expect(r1.translatedText).toBe('Allinllachu');
+    expect(r1.error).toBeNull();
+
+    const r2 = await translateText({ source_lang: 'es', target_lang: 'qu', source_text: 'gracias' });
+    expect(r2.translatedText).toBe('Añay');
+
+    const r3 = await translateText({ source_lang: 'es', target_lang: 'qu', source_text: 'casa' });
+    expect(r3.translatedText).toBe('Wasi');
+  });
+
+  test('Traduce palabras comunes de Quechua a Español en el diccionario local', async () => {
+    const r1 = await translateText({ source_lang: 'qu', target_lang: 'es', source_text: 'Inti' });
+    expect(r1.translatedText).toBe('Sol');
+
+    const r2 = await translateText({ source_lang: 'qu', target_lang: 'es', source_text: 'Allqo' });
+    expect(r2.translatedText).toBe('Perro');
   });
 });
 
