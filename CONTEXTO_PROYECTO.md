@@ -343,3 +343,11 @@ Ver el detalle completo de columnas y políticas en `docs/09-BD-SPEC.md`.
 | 4 | Triple definición de tokens de color (`constants/theme.ts`, `constants/yachay-theme.ts`, `src/constants/theme.ts`). | 🟢 Baja |
 | 5 | El modal (`app/modal.tsx`) sigue siendo la plantilla genérica de Expo sin personalizar. | 🟢 Baja |
 | 6 | No existen pruebas automatizadas (ni de unidad ni de integración) — GAP-03, abierto para Sprint 4. | 🟢 Baja |
+
+
+
+
+
+actualizar la apk cada ves que haya cambios
+npx eas update --branch preview --message "Se actualizó la pantalla de inicio"
+
