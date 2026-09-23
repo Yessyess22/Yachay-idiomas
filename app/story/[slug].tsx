@@ -2,19 +2,16 @@ import React, { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withSequence,
-  withSpring,
-} from 'react-native-reanimated';
+import Animated from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 
 import { Illustrations } from '@/constants/illustrations';
 import { AudioPronounceButton } from '@/components/yachay/audio-pronounce-button';
+import { SparkleBurst } from '@/components/yachay/sparkle-burst';
 import { playQuechuaAudio } from '@/src/services/voiceService';
 import { playCorrectSound, playIncorrectSound, playTapSound } from '@/src/services/soundService';
 import { STORIES } from '@/src/content/stories';
+import { useYachiBounce } from '@/hooks/use-yachi-bounce';
 
 const TEAL = '#1B8B8C';
 const CREAM = '#FAF7F2';
@@ -35,18 +32,9 @@ export default function StoryScreen() {
   const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
   const [isAnswered, setIsAnswered] = useState(false);
   const [finished, setFinished] = useState(false);
+  const [sparkleKey, setSparkleKey] = useState(0);
 
-  const yachiScale = useSharedValue(1);
-  const yachiAnimStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: yachiScale.value }],
-  }));
-
-  function bounceYachi() {
-    yachiScale.value = withSequence(
-      withSpring(1.25, { damping: 4, stiffness: 300 }),
-      withSpring(1, { damping: 6, stiffness: 200 })
-    );
-  }
+  const { style: yachiAnimStyle, bounce: bounceYachi, celebrate: celebrateYachi } = useYachiBounce();
 
   const turn = story?.turns[turnIndex];
 
@@ -74,6 +62,8 @@ export default function StoryScreen() {
       setTurnIndex((i) => i + 1);
     } else {
       setFinished(true);
+      celebrateYachi();
+      setSparkleKey((k) => k + 1);
     }
   }
 
@@ -81,12 +71,14 @@ export default function StoryScreen() {
     if (isAnswered) return;
     setSelectedIdx(idx);
     setIsAnswered(true);
-    bounceYachi();
     playTapSound();
     if (correct) {
+      celebrateYachi();
+      setSparkleKey((k) => k + 1);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
       playCorrectSound();
     } else {
+      bounceYachi();
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
       playIncorrectSound();
     }
@@ -95,9 +87,12 @@ export default function StoryScreen() {
   if (finished) {
     return (
       <View style={styles.centered}>
-        <Animated.View style={yachiAnimStyle}>
-          <Image source={Illustrations.llamaSigueAsi} style={styles.finishLlama} contentFit="contain" />
-        </Animated.View>
+        <View style={styles.finishLlamaWrap}>
+          <SparkleBurst key={sparkleKey} />
+          <Animated.View style={yachiAnimStyle}>
+            <Image source={Illustrations.llamaSigueAsi} style={styles.finishLlama} contentFit="contain" />
+          </Animated.View>
+        </View>
         <Text style={styles.finishTitle}>¡Historia completada! 🎉</Text>
         <Text style={styles.finishSub}>Practicaste un saludo completo en Quechua.</Text>
         <TouchableOpacity style={styles.buttonPrimary} onPress={() => router.back()} activeOpacity={0.85}>
@@ -238,7 +233,8 @@ const styles = StyleSheet.create({
   },
   buttonDisabled: { backgroundColor: '#D8D8D8', borderBottomColor: '#B0B0B0' },
   buttonText: { color: '#FFFFFF', fontSize: 17, fontWeight: '900', letterSpacing: 0.5 },
-  finishLlama: { width: 140, height: 145, marginBottom: 16 },
+  finishLlamaWrap: { marginBottom: 16 },
+  finishLlama: { width: 140, height: 145 },
   finishTitle: { fontSize: 24, fontWeight: '900', color: '#2A1A0A', marginBottom: 8, textAlign: 'center' },
   finishSub: { fontSize: 15, color: '#7A6A5A', marginBottom: 24, textAlign: 'center' },
   errorText: { color: RED, fontSize: 16, textAlign: 'center', marginBottom: 20, fontWeight: '700' },

@@ -19,12 +19,9 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withSequence,
-  withSpring,
-} from 'react-native-reanimated';
+import Animated from 'react-native-reanimated';
+
+import { useYachiBounce } from '@/hooks/use-yachi-bounce';
 
 type Mode = 'text' | 'voice';
 
@@ -41,17 +38,7 @@ export default function TranslatorScreen() {
 
   const targetLang: Language = sourceLang === 'es' ? 'qu' : 'es';
 
-  const yachiScale = useSharedValue(1);
-  const yachiStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: yachiScale.value }],
-  }));
-
-  function bounceYachi() {
-    yachiScale.value = withSequence(
-      withSpring(1.2, { damping: 4, stiffness: 280 }),
-      withSpring(1, { damping: 6, stiffness: 180 })
-    );
-  }
+  const { style: yachiStyle, bounce: bounceYachi } = useYachiBounce();
 
   function swapLanguages() {
     setSourceLang(targetLang);

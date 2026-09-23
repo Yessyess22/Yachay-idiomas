@@ -10,12 +10,12 @@ import {
 } from 'react-native';
 import { useGame } from '@/src/context/GameContext';
 import { YachayTopBar } from '@/components/yachay/yachay-top-bar';
+import { Card } from '@/components/yachay/card';
 
 const TEAL = '#1B8B8C';
 const TEAL_DARK = '#0E4D55';
 const GOLD = '#E5A00D';
 const PARCHMENT = '#F8F5EE';
-const BORDER_COLOR = '#ECE5D8';
 
 interface ShopItem {
   id: string;
@@ -145,7 +145,7 @@ export default function ShopScreen() {
         {SHOP_ITEMS.map((item) => {
           const canAfford = (gems || 0) >= item.cost;
           return (
-            <View key={item.id} style={styles.shopCard}>
+            <Card key={item.id} padding={14} style={styles.shopCard}>
               <View style={styles.itemIconBox}>
                 <Image
                   source={item.icon}
@@ -176,7 +176,7 @@ export default function ShopScreen() {
                   </TouchableOpacity>
                 </View>
               </View>
-            </View>
+            </Card>
           );
         })}
 
@@ -300,19 +300,9 @@ const styles = StyleSheet.create({
 
   /* Tarjetas de Tienda */
   shopCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 18,
-    borderWidth: 1.5,
-    borderColor: BORDER_COLOR,
-    padding: 14,
     marginBottom: 12,
     flexDirection: 'row',
     alignItems: 'center',
-    shadowColor: '#3A2E26',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    elevation: 1,
   },
   itemIconBox: {
     width: 64,

@@ -28,7 +28,7 @@ export default function WelcomePortadaScreen() {
           </View>
         </View>
 
-        <Text style={styles.subtitleGreen}>Aprende quechua,</Text>
+        <Text style={styles.subtitleTeal}>Aprende quechua,</Text>
         <Text style={styles.subtitleNavy}>habla con confianza.</Text>
       </View>
 
@@ -101,10 +101,10 @@ const styles = StyleSheet.create({
     height: 12,
     borderRadius: 2,
   },
-  subtitleGreen: {
+  subtitleTeal: {
     fontSize: 22,
     fontWeight: '800',
-    color: '#28B473',
+    color: '#1B8B8C',
     textAlign: 'center',
     lineHeight: 28,
   },
@@ -120,13 +120,13 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   primaryButton: {
-    backgroundColor: '#28B473',
+    backgroundColor: '#1B8B8C',
     height: 56,
     borderRadius: 18,
     justifyContent: 'center',
     alignItems: 'center',
     borderBottomWidth: 4,
-    borderBottomColor: '#20965F',
+    borderBottomColor: '#0E4D55',
     elevation: 3,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -151,7 +151,7 @@ const styles = StyleSheet.create({
     borderBottomColor: '#D1D5DB',
   },
   secondaryButtonText: {
-    color: '#28B473',
+    color: '#1B8B8C',
     fontSize: 18,
     fontWeight: '900',
     letterSpacing: 1,

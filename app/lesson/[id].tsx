@@ -11,12 +11,7 @@ import {
 } from 'react-native';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withSequence,
-  withSpring,
-} from 'react-native-reanimated';
+import Animated from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 
 import { Illustrations } from '@/constants/illustrations';
@@ -26,7 +21,12 @@ import { questionService } from '@/src/services/questionService';
 import { saveQuestionsToCache, loadQuestionsFromCache } from '@/src/services/offlineCache';
 import { QuestionOption, QuestionWithOptions } from '@/src/types';
 import { AudioPronounceButton } from '@/components/yachay/audio-pronounce-button';
+import { Button } from '@/components/yachay/button';
+import { ConfettiBurst } from '@/components/yachay/confetti-burst';
+import { SparkleBurst } from '@/components/yachay/sparkle-burst';
+import { ProgressBar } from '@/components/yachay/progress-bar';
 import { PronunciationExercise } from '@/components/yachay/exercises/pronunciation-exercise';
+import { useYachiBounce } from '@/hooks/use-yachi-bounce';
 import { extractCorePhoneme } from '@/src/utils/phoneticGuide';
 import { playQuechuaAudio } from '@/src/services/voiceService';
 import {
@@ -44,7 +44,6 @@ const CREAM = '#FAF7F2';
 const GREEN = '#27AE60';
 const GREEN_DARK = '#1E8449';
 const RED = '#EA5455';
-const RED_DARK = '#C0392B';
 
 type VocabCard = { quechua: string; spanish: string };
 
@@ -417,23 +416,14 @@ export default function LessonScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [soundOn, setSoundOn] = useState(true);
+  const [sparkleKey, setSparkleKey] = useState(0);
 
   const { user, refreshProfile } = useAuth();
-  const { lives, xp, checkAnswer, addGems } = useGame();
+  const { lives, xp, streakDays, checkAnswer, addGems } = useGame();
   const router = useRouter();
 
-  // Animación de rebote para Yachi
-  const yachiScale = useSharedValue(1);
-  const yachiAnimStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: yachiScale.value }],
-  }));
-
-  function bounceYachi() {
-    yachiScale.value = withSequence(
-      withSpring(1.25, { damping: 4, stiffness: 300 }),
-      withSpring(1, { damping: 6, stiffness: 200 })
-    );
-  }
+  // Animación de la mascota Yachi (rebote/celebración)
+  const { style: yachiAnimStyle, bounce: bounceYachi, celebrate: celebrateYachi } = useYachiBounce();
 
   useEffect(() => {
     if (lessonId) loadLessonData();
@@ -524,12 +514,14 @@ export default function LessonScreen() {
     setIsCorrect(correct);
     setIsAnswered(true);
     checkAnswer(correct);
-    bounceYachi();
-    // Feedback háptico y sonoro diferenciado según resultado
+    // Feedback háptico, sonoro y de mascota diferenciado según resultado
     if (correct) {
+      celebrateYachi();
+      setSparkleKey((k) => k + 1);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
       playCorrectSound();
     } else {
+      bounceYachi();
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
       playIncorrectSound();
     }
@@ -540,7 +532,8 @@ export default function LessonScreen() {
     setIsCorrect(true);
     setIsAnswered(true);
     checkAnswer(true);
-    bounceYachi();
+    celebrateYachi();
+    setSparkleKey((k) => k + 1);
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
     playCorrectSound();
   }
@@ -571,6 +564,8 @@ export default function LessonScreen() {
       setCurrentIndex((prev) => prev + 1);
     } else {
       setCompleted(true);
+      celebrateYachi();
+      setSparkleKey((k) => k + 1);
       playCompleteSound();
       addGems(15);
       const uid = user?.uid || (user as any)?.id;
@@ -596,9 +591,7 @@ export default function LessonScreen() {
         <Text style={styles.errorText}>
           {error || 'No se encontraron preguntas en esta lección.'}
         </Text>
-        <TouchableOpacity style={styles.buttonPrimary} onPress={() => router.back()}>
-          <Text style={styles.buttonText}>Volver</Text>
-        </TouchableOpacity>
+        <Button label="Volver" onPress={() => router.back()} />
       </View>
     );
   }
@@ -607,15 +600,24 @@ export default function LessonScreen() {
   if (completed) {
     return (
       <View style={styles.centered}>
-        <Animated.View style={yachiAnimStyle}>
-          <Image
-            source={Illustrations.llamaSigueAsi}
-            style={styles.congratsLlama}
-            contentFit="contain"
-          />
-        </Animated.View>
+        <ConfettiBurst />
+        <View style={styles.congratsLlamaWrap}>
+          <SparkleBurst key={sparkleKey} />
+          <Animated.View style={yachiAnimStyle}>
+            <Image
+              source={Illustrations.llamaSigueAsi}
+              style={styles.congratsLlama}
+              contentFit="contain"
+            />
+          </Animated.View>
+        </View>
         <Text style={styles.congratsTitle}>¡Lección Completada! 🎉</Text>
         <Text style={styles.congratsSub}>¡Sumaste +10 XP y +15 Yachay Coins!</Text>
+        <View style={styles.streakBadge}>
+          <Text style={styles.streakBadgeText}>
+            🔥 {Math.max(1, streakDays)} {Math.max(1, streakDays) === 1 ? 'día' : 'días'} de racha
+          </Text>
+        </View>
         <View style={styles.statRow}>
           <View style={styles.statChip}>
             <Text style={styles.statBadge}>❤️ {lives}</Text>
@@ -627,9 +629,7 @@ export default function LessonScreen() {
             <Text style={styles.statBadge}>🪙 +15 Coins</Text>
           </View>
         </View>
-        <TouchableOpacity style={styles.buttonPrimary} onPress={() => router.back()} activeOpacity={0.85}>
-          <Text style={styles.buttonText}>Continuar al Inicio →</Text>
-        </TouchableOpacity>
+        <Button label="Continuar al Inicio →" onPress={() => router.back()} />
       </View>
     );
   }
@@ -644,9 +644,13 @@ export default function LessonScreen() {
         <TouchableOpacity style={styles.closeBtn} onPress={() => router.back()}>
           <Text style={styles.closeBtnText}>✕</Text>
         </TouchableOpacity>
-        <View style={styles.progressBarBg}>
-          <View style={[styles.progressBarFill, { width: `${progressPercent}%` }]} />
-        </View>
+        <ProgressBar
+          progress={progressPercent}
+          height={14}
+          color={GREEN}
+          trackColor="#E8E2D9"
+          style={styles.progressBarBg}
+        />
         <View style={styles.livesRow}>
           {Array.from({ length: 5 }).map((_, i) => (
             <Text key={i} style={[styles.heartIcon, i >= lives && styles.heartLost]}>
@@ -877,16 +881,7 @@ export default function LessonScreen() {
           {(() => {
             const isDisabled =
               currentExercise.kind === 'text_input' ? !typedAnswer.trim() : !selectedOptionId;
-            return (
-              <TouchableOpacity
-                style={[styles.buttonPrimary, isDisabled && styles.buttonDisabled]}
-                onPress={handleCheckAnswer}
-                disabled={isDisabled}
-                activeOpacity={0.85}
-              >
-                <Text style={styles.buttonText}>COMPROBAR</Text>
-              </TouchableOpacity>
-            );
+            return <Button label="COMPROBAR" onPress={handleCheckAnswer} disabled={isDisabled} />;
           })()}
         </View>
       )}
@@ -906,13 +901,16 @@ export default function LessonScreen() {
             ]}
           >
             {/* Llama Yachi animada */}
-            <Animated.View style={yachiAnimStyle}>
-              <Image
-                source={isCorrect ? Illustrations.llamaExcelente : Illustrations.llamaPiensa}
-                style={styles.modalLlama}
-                contentFit="contain"
-              />
-            </Animated.View>
+            <View style={styles.modalLlamaWrap}>
+              {isCorrect && <SparkleBurst key={sparkleKey} />}
+              <Animated.View style={yachiAnimStyle}>
+                <Image
+                  source={isCorrect ? Illustrations.llamaExcelente : Illustrations.llamaPiensa}
+                  style={styles.modalLlama}
+                  contentFit="contain"
+                />
+              </Animated.View>
+            </View>
 
             {/* Título de feedback */}
             <Text
@@ -949,18 +947,12 @@ export default function LessonScreen() {
             ) : null}
 
             {/* Botón de acción centrado */}
-            <TouchableOpacity
-              style={[
-                styles.modalButton,
-                isCorrect ? styles.modalBtnSuccess : styles.modalBtnDanger,
-              ]}
+            <Button
+              label={isCorrect ? '¡Continuar! →' : 'Entendido'}
               onPress={handleNextExercise}
-              activeOpacity={0.85}
-            >
-              <Text style={styles.modalButtonText}>
-                {isCorrect ? '¡Continuar! →' : 'Entendido'}
-              </Text>
-            </TouchableOpacity>
+              variant={isCorrect ? 'primary' : 'danger'}
+              style={styles.modalButton}
+            />
           </View>
         </View>
       </Modal>
@@ -990,15 +982,6 @@ const styles = StyleSheet.create({
   soundToggleIcon: { fontSize: 18 },
   progressBarBg: {
     flex: 1,
-    height: 14,
-    backgroundColor: '#E8E2D9',
-    borderRadius: 7,
-    overflow: 'hidden',
-  },
-  progressBarFill: {
-    height: '100%',
-    backgroundColor: GREEN,
-    borderRadius: 7,
   },
   livesRow: { flexDirection: 'row', alignItems: 'center', gap: 2 },
   heartIcon: { fontSize: 16 },
@@ -1274,17 +1257,6 @@ const styles = StyleSheet.create({
     borderColor: '#E8E2D9',
     backgroundColor: '#FFFFFF',
   },
-  buttonPrimary: {
-    backgroundColor: GREEN,
-    paddingVertical: 16,
-    borderRadius: 16,
-    alignItems: 'center',
-    borderBottomWidth: 4,
-    borderBottomColor: GREEN_DARK,
-  },
-  buttonDisabled: { backgroundColor: '#D8D8D8', borderBottomColor: '#B0B0B0' },
-  buttonText: { color: '#FFFFFF', fontSize: 17, fontWeight: '900', letterSpacing: 0.5 },
-
   // Modal Flotante al Centro (Requisito 11)
   modalBackdrop: {
     flex: 1,
@@ -1313,10 +1285,12 @@ const styles = StyleSheet.create({
   modalCardDanger: {
     borderColor: RED,
   },
+  modalLlamaWrap: {
+    marginBottom: 12,
+  },
   modalLlama: {
     width: 80,
     height: 80,
-    marginBottom: 12,
   },
   modalTitle: {
     fontSize: 22,
@@ -1356,29 +1330,23 @@ const styles = StyleSheet.create({
   },
   modalButton: {
     width: '100%',
-    paddingVertical: 15,
-    borderRadius: 16,
-    alignItems: 'center',
-    borderBottomWidth: 4,
-  },
-  modalBtnSuccess: {
-    backgroundColor: GREEN,
-    borderBottomColor: GREEN_DARK,
-  },
-  modalBtnDanger: {
-    backgroundColor: RED,
-    borderBottomColor: RED_DARK,
-  },
-  modalButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '900',
   },
 
   // Congrats screen
-  congratsLlama: { width: 140, height: 145, marginBottom: 16 },
+  congratsLlamaWrap: { marginBottom: 16 },
+  congratsLlama: { width: 140, height: 145 },
   congratsTitle: { fontSize: 26, fontWeight: '900', color: '#2A1A0A', marginBottom: 6 },
-  congratsSub: { fontSize: 15, color: '#7A6A5A', marginBottom: 20, textAlign: 'center' },
+  congratsSub: { fontSize: 15, color: '#7A6A5A', marginBottom: 14, textAlign: 'center' },
+  streakBadge: {
+    backgroundColor: '#FFF4E0',
+    borderWidth: 1.5,
+    borderColor: '#F5C87A',
+    borderRadius: 14,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    marginBottom: 16,
+  },
+  streakBadgeText: { fontSize: 15, fontWeight: '900', color: '#B7791F' },
   statRow: { flexDirection: 'row', gap: 10, marginBottom: 24 },
   statChip: {
     backgroundColor: '#FFFFFF',

@@ -17,6 +17,8 @@ import { categoryService } from '@/src/services/categoryService';
 import { questionService } from '@/src/services/questionService';
 import { Category } from '@/src/types';
 import { YachayTopBar } from '@/components/yachay/yachay-top-bar';
+import { Card } from '@/components/yachay/card';
+import { ProgressBar } from '@/components/yachay/progress-bar';
 import { supabase } from '@/src/services/supabase';
 
 const TEAL = '#1B8B8C';
@@ -314,22 +316,21 @@ export default function HomeScreen() {
         <View style={styles.columnsWrapper}>
           {/* ── COLUMNA IZQUIERDA: Meta Diaria ── */}
           <View style={[styles.sideColLeft, { width: sideCardWidth }]}>
-            <View style={styles.metaCard}>
+            <Card radius={20} padding={12} style={styles.metaCard}>
               <Text style={styles.metaTitle}>Meta Diaria</Text>
               <Text style={styles.metaSub}>
                 {currentCompleted} de {nodes.length} lecciones hoy
               </Text>
 
               {/* Barra de progreso con punto indicador al extremo */}
-              <View style={styles.metaProgTrack}>
-                <View style={[styles.metaProgFill, { width: `${Math.max(6, progPct)}%` }]} />
-                <View
-                  style={[
-                    styles.metaProgDot,
-                    { left: `${Math.max(0, Math.min(92, progPct - 4))}%` },
-                  ]}
-                />
-              </View>
+              <ProgressBar
+                progress={Math.max(6, progPct)}
+                height={6}
+                color={GREEN}
+                trackColor="#EAE3D6"
+                showDot
+                style={styles.metaProgTrack}
+              />
 
               {/* Stats con iconos claros */}
               <View style={styles.metaStatLine}>
@@ -352,7 +353,7 @@ export default function HomeScreen() {
               <View style={styles.metaMountainFooter}>
                 <Text style={styles.metaMountainDeco}>🏔️ ⛰️ 🏔️</Text>
               </View>
-            </View>
+            </Card>
           </View>
 
           {/* ── COLUMNA CENTRAL: Camino del Saber ── */}
@@ -459,7 +460,7 @@ export default function HomeScreen() {
 
           {/* ── COLUMNA DERECHA: Llamita Motivacional (Yachi) ── */}
           <View style={[styles.sideColRight, { width: sideCardWidth }]}>
-            <View style={styles.llamitaCard}>
+            <Card radius={20} padding={10} style={styles.llamitaCard}>
               <Image
                 source={require('@/assets/images/llamita/06_emocionado.png')}
                 style={styles.llamitaImg}
@@ -474,7 +475,7 @@ export default function HomeScreen() {
 
               {/* Decoración textil andina en base de la tarjeta */}
               <Text style={styles.llamitaDecoBottom}>◇ ◆ ◇ ◆ ◇</Text>
-            </View>
+            </Card>
 
             {/* Acceso Directo al Traductor de Voz */}
             <TouchableOpacity
@@ -590,13 +591,6 @@ const styles = StyleSheet.create({
     top: 12,
   },
   metaCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 12,
-    borderWidth: 1.5,
-    borderColor: '#ECE5D8',
-    shadowColor: '#3A2E26',
-    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
     shadowRadius: 4,
     elevation: 2,
@@ -615,27 +609,7 @@ const styles = StyleSheet.create({
     lineHeight: 14,
   },
   metaProgTrack: {
-    height: 6,
-    backgroundColor: '#EAE3D6',
-    borderRadius: 3,
-    position: 'relative',
     marginBottom: 10,
-    justifyContent: 'center',
-  },
-  metaProgFill: {
-    height: '100%',
-    backgroundColor: GREEN,
-    borderRadius: 3,
-  },
-  metaProgDot: {
-    position: 'absolute',
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: GREEN,
-    borderWidth: 1.5,
-    borderColor: '#FFFFFF',
-    top: -2,
   },
   metaStatLine: {
     flexDirection: 'row',
@@ -851,14 +825,7 @@ const styles = StyleSheet.create({
     top: 12,
   },
   llamitaCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 10,
-    borderWidth: 1.5,
-    borderColor: '#ECE5D8',
     alignItems: 'center',
-    shadowColor: '#3A2E26',
-    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
     shadowRadius: 4,
     elevation: 2,

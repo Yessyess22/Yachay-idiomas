@@ -15,12 +15,13 @@ import { useGame } from '@/src/context/GameContext';
 import { questService } from '@/src/services/questService';
 import { DailyQuest } from '@/src/types';
 import { YachayTopBar } from '@/components/yachay/yachay-top-bar';
+import { Card } from '@/components/yachay/card';
+import { ProgressBar } from '@/components/yachay/progress-bar';
 
 const TEAL = '#1B8B8C';
 const TEAL_DARK = '#0E4D55';
 const GOLD = '#E5A00D';
 const PARCHMENT = '#F8F5EE';
-const BORDER_COLOR = '#ECE5D8';
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -114,7 +115,7 @@ export default function ProfileScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* Tarjeta de Perfil Andina */}
-        <View style={styles.profileCard}>
+        <Card radius={22} style={styles.profileCard}>
           <View style={styles.avatarSection}>
             <View style={styles.avatarContainer}>
               <Image
@@ -171,14 +172,14 @@ export default function ProfileScreen() {
           <View style={styles.cardRibbon}>
             <Text style={styles.cardRibbonText}>❖ ◆ ❖ ◆ ❖ ◆ ❖ ◆ ❖ ◆ ❖ ◆ ❖</Text>
           </View>
-        </View>
+        </Card>
 
         {/* Sección: Misiones Diarias */}
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>🎯 Misiones de Hoy</Text>
         </View>
 
-        <View style={styles.cardWrapper}>
+        <Card padding={14} style={styles.cardWrapper}>
           {loadingQuests ? (
             <ActivityIndicator size="small" color={TEAL} style={{ marginVertical: 20 }} />
           ) : quests.length > 0 ? (
@@ -191,9 +192,7 @@ export default function ProfileScreen() {
                   <Text style={styles.questEmoji}>⚔️</Text>
                   <View style={styles.questInfo}>
                     <Text style={styles.questTitle}>{q.title}</Text>
-                    <View style={styles.progressBarBg}>
-                      <View style={[styles.progressBarFill, { width: `${progressPct}%` }]} />
-                    </View>
+                    <ProgressBar progress={progressPct} height={6} color={TEAL} trackColor="#EAE3D6" style={styles.progressBarBg} />
                     <Text style={styles.questProgressText}>
                       {current} / {target} {progressPct >= 100 ? '• ¡Completado!' : ''}
                     </Text>
@@ -211,7 +210,7 @@ export default function ProfileScreen() {
               <Text style={styles.emptyQuestSub}>Vuelve mañana para nuevos desafíos en Quechua.</Text>
             </View>
           )}
-        </View>
+        </Card>
 
         {/* Sección: Medallas Coleccionables */}
         <View style={styles.sectionHeader}>
@@ -220,7 +219,7 @@ export default function ProfileScreen() {
 
         <View style={styles.badgesGrid}>
           {badges.map((b) => (
-            <View key={b.id} style={[styles.badgeCard, !b.unlocked && styles.badgeCardLocked]}>
+            <Card key={b.id} padding={12} style={[styles.badgeCard, !b.unlocked && styles.badgeCardLocked]}>
               <View style={[styles.badgeIconBox, !b.unlocked && styles.badgeIconBoxLocked]}>
                 <Image
                   source={b.icon}
@@ -240,7 +239,7 @@ export default function ProfileScreen() {
                   {b.unlocked ? '✓ Obtenida' : 'Bloqueada'}
                 </Text>
               </View>
-            </View>
+            </Card>
           ))}
         </View>
 
@@ -274,13 +273,7 @@ const styles = StyleSheet.create({
 
   /* Perfil Card */
   profileCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 22,
-    borderWidth: 1.5,
-    borderColor: BORDER_COLOR,
-    padding: 16,
     paddingBottom: 22,
-    shadowColor: '#3A2E26',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.06,
     shadowRadius: 10,
@@ -418,17 +411,7 @@ const styles = StyleSheet.create({
 
   /* Misiones */
   cardWrapper: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 18,
-    borderWidth: 1.5,
-    borderColor: BORDER_COLOR,
-    padding: 14,
     marginBottom: 18,
-    shadowColor: '#3A2E26',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
-    elevation: 1,
   },
   questRow: {
     flexDirection: 'row',
@@ -452,16 +435,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   progressBarBg: {
-    height: 6,
-    backgroundColor: '#EAE3D6',
-    borderRadius: 4,
-    overflow: 'hidden',
     marginBottom: 3,
-  },
-  progressBarFill: {
-    height: '100%',
-    backgroundColor: TEAL,
-    borderRadius: 4,
   },
   questProgressText: {
     fontSize: 11,
@@ -510,18 +484,8 @@ const styles = StyleSheet.create({
   },
   badgeCard: {
     width: '48%',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 18,
-    borderWidth: 1.5,
-    borderColor: BORDER_COLOR,
-    padding: 12,
     alignItems: 'center',
     marginBottom: 12,
-    shadowColor: '#3A2E26',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
-    elevation: 1,
   },
   badgeCardLocked: {
     backgroundColor: '#F7F3EB',

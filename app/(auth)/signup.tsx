@@ -33,7 +33,7 @@ export default function SignupScreen() {
 
   return (
     <View style={styles.container}>
-      <Image source={Illustrations.logoYachayOficial} style={styles.brandImage} contentFit="contain" />
+      <Image source={Illustrations.appIconCircularMontana} style={styles.brandImage} contentFit="contain" />
       <Text style={styles.title}>Crear cuenta</Text>
       <Text style={styles.subtitle}>Empieza a aprender quechua en Yachay</Text>
 
@@ -86,7 +86,7 @@ const styles = StyleSheet.create({
     padding: 14, marginBottom: 12, fontSize: 16, color: '#000',
   },
   button: {
-    backgroundColor: '#58cc02', borderRadius: 12, padding: 16,
+    backgroundColor: '#1B8B8C', borderRadius: 12, padding: 16,
     alignItems: 'center', marginTop: 10,
   },
   buttonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
