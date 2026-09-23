@@ -1,8 +1,9 @@
 import { useAuth } from '@/src/context/AuthContext';
 import { categoryService } from '@/src/services/categoryService';
+import { STORIES } from '@/src/content/stories';
 import { Category, LessonWithProgress } from '@/src/types';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -27,9 +28,15 @@ export default function CategoryDetailScreen() {
   const { user } = useAuth();
   const router = useRouter();
 
-  useEffect(() => {
-    if (slug) loadData();
-  }, [slug]);
+  // useFocusEffect (no useEffect) para que el progreso se vuelva a pedir cada
+  // vez que se regresa a esta pantalla (ej. al volver de una lección recién
+  // completada), ya que expo-router mantiene montada la pantalla anterior
+  // al hacer router.back() y un useEffect normal no se re-ejecutaría.
+  useFocusEffect(
+    useCallback(() => {
+      if (slug) loadData();
+    }, [slug, user])
+  );
 
   async function loadData() {
     setLoading(true);
@@ -97,6 +104,30 @@ export default function CategoryDetailScreen() {
       </View>
 
       <View style={styles.andineBorder} />
+
+      {/* Accesos a Modo Historia / Práctica rápida */}
+      {(Boolean(STORIES[slug as string]) || lessons.some((l) => l.progress?.completed)) && (
+        <View style={styles.actionsRow}>
+          {STORIES[slug as string] && (
+            <TouchableOpacity
+              style={styles.actionBtn}
+              onPress={() => router.push({ pathname: '/story/[slug]', params: { slug: slug as string } })}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.actionBtnText}>📖 Modo Historia</Text>
+            </TouchableOpacity>
+          )}
+          {lessons.some((l) => l.progress?.completed) && (
+            <TouchableOpacity
+              style={styles.actionBtn}
+              onPress={() => router.push({ pathname: '/practice/[slug]', params: { slug: slug as string } })}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.actionBtnText}>⏱️ Práctica rápida</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
 
       {/* Lista de Lecciones */}
       <FlatList
@@ -224,6 +255,27 @@ const styles = StyleSheet.create({
   andineBorder: {
     height: 4,
     backgroundColor: GOLD,
+  },
+  actionsRow: {
+    flexDirection: 'row',
+    gap: 10,
+    paddingHorizontal: 16,
+    paddingTop: 14,
+  },
+  actionBtn: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    borderWidth: 2,
+    borderColor: '#E8E2D9',
+    borderBottomWidth: 4,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  actionBtnText: {
+    fontSize: 13,
+    fontWeight: '900',
+    color: TEAL,
   },
   list: {
     padding: 16,

@@ -14,6 +14,12 @@ interface AudioPronounceButtonProps {
   size?: 'small' | 'medium' | 'large';
   style?: ViewStyle;
   showLabel?: boolean;
+  /** Reproduce a velocidad reducida (práctica de pronunciación difícil). */
+  slow?: boolean;
+  /** Ícono a mostrar en vez del parlante por defecto. */
+  icon?: string;
+  /** Texto de la etiqueta en reposo (por defecto "Escuchar"). */
+  label?: string;
 }
 
 const TEAL = '#1B8B8C';
@@ -23,6 +29,9 @@ export function AudioPronounceButton({
   size = 'medium',
   style,
   showLabel = false,
+  slow = false,
+  icon,
+  label,
 }: AudioPronounceButtonProps) {
   const [isPlaying, setIsPlaying] = useState(false);
 
@@ -32,7 +41,7 @@ export function AudioPronounceButton({
     // Feedback táctil suave al tocar el botón
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
     try {
-      await playQuechuaAudio(text);
+      await playQuechuaAudio(text, { slow });
     } finally {
       setTimeout(() => {
         setIsPlaying(false);
@@ -60,12 +69,12 @@ export function AudioPronounceButton({
         <ActivityIndicator size="small" color="#FFFFFF" />
       ) : (
         <Text style={[styles.iconText, isSmall && styles.iconSmall, isLarge && styles.iconLarge]}>
-          🔊
+          {icon ?? '🔊'}
         </Text>
       )}
       {showLabel && (
         <Text style={[styles.labelText, isPlaying && styles.labelPlaying]}>
-          {isPlaying ? 'Pronunciando...' : 'Escuchar'}
+          {isPlaying ? 'Pronunciando...' : label ?? 'Escuchar'}
         </Text>
       )}
     </TouchableOpacity>

@@ -17,6 +17,8 @@ import {
 interface PronunciationExerciseProps {
   expectedText: string;
   translation?: string;
+  /** Cuando es true, expectedText es una frase completa: no se trunca con extractCorePhoneme. */
+  isPhrase?: boolean;
   onSuccess: (score: number) => void;
   onFail?: () => void;
 }
@@ -36,6 +38,7 @@ type Phase = 'idle' | 'recording' | 'evaluating' | 'result' | 'done';
 export function PronunciationExercise({
   expectedText,
   translation,
+  isPhrase = false,
   onSuccess,
   onFail,
 }: PronunciationExerciseProps) {
@@ -44,7 +47,7 @@ export function PronunciationExercise({
   const [result, setResult] = useState<PronunciationScore | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const coreWord = extractCorePhoneme(expectedText);
+  const coreWord = isPhrase ? expectedText.trim() : extractCorePhoneme(expectedText);
   const phonetic = getQuechuaPhoneticGuide(coreWord);
 
   async function handleStartRecording() {
@@ -53,8 +56,8 @@ export function PronunciationExercise({
     setResult(null);
 
     try {
-      // Iniciar reconocimiento de voz (usando el canal de voz adaptado para fonemas/palabras)
-      const recResult = await startVoiceRecognition('qu', coreWord);
+      // Iniciar reconocimiento de voz (usando el canal de voz adaptado para fonemas/palabras/frases)
+      const recResult = await startVoiceRecognition('qu', coreWord, { isPhrase });
       setPhase('evaluating');
 
       if (!recResult.transcript) {
@@ -65,7 +68,7 @@ export function PronunciationExercise({
       }
 
       // Evaluar coincidencia fonética
-      const evalRes = evaluatePronunciation(recResult.transcript, coreWord);
+      const evalRes = evaluatePronunciation(recResult.transcript, coreWord, { isPhrase });
       setResult(evalRes);
 
       if (evalRes.isPass || evalRes.score >= 60) {
@@ -125,7 +128,7 @@ export function PronunciationExercise({
       {phase === 'idle' && (
         <View style={styles.actionSection}>
           <Text style={styles.instructionsText}>
-            🎧 Escucha el audio, luego toca el micrófono y di la palabra en voz alta.
+            🎧 Escucha el audio, luego toca el micrófono y di {isPhrase ? 'la frase' : 'la palabra'} en voz alta.
           </Text>
           <TouchableOpacity
             style={styles.micBtn}

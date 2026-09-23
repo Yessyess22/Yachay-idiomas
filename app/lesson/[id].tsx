@@ -5,6 +5,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -27,6 +28,15 @@ import { QuestionOption, QuestionWithOptions } from '@/src/types';
 import { AudioPronounceButton } from '@/components/yachay/audio-pronounce-button';
 import { PronunciationExercise } from '@/components/yachay/exercises/pronunciation-exercise';
 import { extractCorePhoneme } from '@/src/utils/phoneticGuide';
+import { playQuechuaAudio } from '@/src/services/voiceService';
+import {
+  isSoundEnabled,
+  setSoundEnabled,
+  playCorrectSound,
+  playIncorrectSound,
+  playCompleteSound,
+  playTapSound,
+} from '@/src/services/soundService';
 
 const TEAL = '#1B8B8C';
 const TEAL_DARK = '#136566';
@@ -86,7 +96,55 @@ type Exercise =
       targetWord: string;
       translation: string;
       correctAnswer: string;
+      isPhrase: boolean;
+    }
+  | {
+      kind: 'fill_blank';
+      id: string;
+      prompt: string;
+      clueText: string;
+      targetWord: string;
+      options: { id: number; text: string; is_correct: boolean }[];
+      correctAnswer: string;
+    }
+  | {
+      kind: 'text_input';
+      id: string;
+      prompt: string;
+      clueText: string;
+      targetWord: string;
+      correctAnswer: string;
+    }
+  | {
+      kind: 'true_false';
+      id: string;
+      prompt: string;
+      statement: string;
+      targetWord: string;
+      options: { id: number; text: string; is_correct: boolean }[];
+      correctAnswer: string;
+    }
+  | {
+      kind: 'image_match';
+      id: string;
+      prompt: string;
+      targetWord: string;
+      options: { id: number; text: string; is_correct: boolean }[];
+      correctAnswer: string;
     };
+
+/**
+ * Emojis usados como "imagen" en el ejercicio de emparejar audio-imagen,
+ * para vocabulario con un significado concreto y representable visualmente
+ * (números, familia, objetos). Solo se genera el ejercicio cuando hay al
+ * menos 2 palabras de la lección con emoji definido aquí.
+ */
+const VOCAB_EMOJI: Record<string, string> = {
+  huk: '1️⃣', iskay: '2️⃣', kimsa: '3️⃣', tawa: '4️⃣', pichqa: '5️⃣',
+  suqta: '6️⃣', qanchis: '7️⃣', pusaq: '8️⃣', isqon: '9️⃣', chunka: '🔟',
+  mama: '👩', tayta: '👨', tura: '🧑', pana: '👧', awicha: '👵',
+  wasi: '🏠', quri: '🥇', mishki: '🍬',
+};
 
 /**
  * Detecta si un texto corresponde a vocabulario o explicaciones en español.
@@ -176,6 +234,20 @@ function buildVocabCards(questions: QuestionWithOptions[]): VocabCard[] {
   return cards;
 }
 
+/**
+ * Normaliza texto para comparar respuestas escritas por el usuario contra la
+ * respuesta esperada (minúsculas, sin tildes ni signos, sin espacios extra).
+ */
+function normalizeAnswer(text: string): string {
+  return text
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .replace(/['".,¡!¿?]/g, '')
+    .replace(/\s+/g, ' ');
+}
+
 function buildExerciseList(questions: QuestionWithOptions[], vocabCards: VocabCard[]): Exercise[] {
   const list: Exercise[] = [];
 
@@ -191,37 +263,136 @@ function buildExerciseList(questions: QuestionWithOptions[], vocabCards: VocabCa
     });
   });
 
-  // 2. Intercalar ejercicio de Listening con vocabulario
-  if (vocabCards.length > 0) {
-    const firstVocab = vocabCards[0];
-    const otherVocabs = vocabCards.slice(1).map((v) => v.quechua);
+  // 2. Intercalar ejercicio(s) de Listening con vocabulario.
+  // Con suficiente vocabulario (≥3 tarjetas) se generan 2 ejercicios de
+  // listening en vez de 1, dejando la última tarjeta libre para "speaking".
+  const listeningTargetCount = vocabCards.length >= 3 ? 2 : vocabCards.length > 0 ? 1 : 0;
+  for (let t = 0; t < listeningTargetCount; t++) {
+    const targetVocab = vocabCards[t];
+    const otherVocabs = vocabCards
+      .filter((_, idx) => idx !== t)
+      .map((v) => v.quechua);
     const distractors = otherVocabs.length >= 2 ? otherVocabs.slice(0, 2) : ['Urpi', 'Inti'];
     const listeningOptions = [
-      { id: 101, text: firstVocab.quechua, is_correct: true },
+      { id: 101, text: targetVocab.quechua, is_correct: true },
       ...distractors.map((d, i) => ({ id: 102 + i, text: d, is_correct: false })),
     ].sort(() => Math.random() - 0.5);
 
     list.push({
       kind: 'listening',
-      id: `listening-${firstVocab.quechua}`,
+      id: `listening-${targetVocab.quechua}`,
       prompt: 'Escucha el audio y selecciona la palabra correcta en Quechua:',
-      targetWord: firstVocab.quechua,
+      targetWord: targetVocab.quechua,
       options: listeningOptions,
-      correctAnswer: firstVocab.quechua,
+      correctAnswer: targetVocab.quechua,
     });
   }
 
-  // 3. Agregar ejercicio de Pronunciación / Speaking
+  // 2.5 Agregar ejercicio de "Completa la palabra" (fill-in-the-blank), usando
+  // una tarjeta de vocabulario distinta a las ya usadas en Listening cuando sea posible.
+  if (vocabCards.length > 0) {
+    const blankIdx = listeningTargetCount < vocabCards.length ? listeningTargetCount : 0;
+    const targetVocab = vocabCards[blankIdx];
+    const otherVocabs = vocabCards
+      .filter((_, idx) => idx !== blankIdx)
+      .map((v) => v.quechua);
+    const distractors = otherVocabs.length >= 2 ? otherVocabs.slice(0, 2) : ['Sumaq', 'Kawsay'];
+    const blankOptions = [
+      { id: 201, text: targetVocab.quechua, is_correct: true },
+      ...distractors.map((d, i) => ({ id: 202 + i, text: d, is_correct: false })),
+    ].sort(() => Math.random() - 0.5);
+
+    list.push({
+      kind: 'fill_blank',
+      id: `fillblank-${targetVocab.quechua}`,
+      prompt: 'Completa la palabra que falta en Quechua:',
+      clueText: targetVocab.spanish,
+      targetWord: targetVocab.quechua,
+      options: blankOptions,
+      correctAnswer: targetVocab.quechua,
+    });
+  }
+
+  // 2.6 Agregar ejercicio de "Traducir" (texto libre), usando otra tarjeta
+  // de vocabulario distinta a Listening/Fill-blank cuando sea posible.
+  if (vocabCards.length > 0) {
+    const blankIdx = listeningTargetCount < vocabCards.length ? listeningTargetCount : 0;
+    const textIdx = blankIdx + 1 < vocabCards.length ? blankIdx + 1 : 0;
+    const targetVocab = vocabCards[textIdx];
+    list.push({
+      kind: 'text_input',
+      id: `textinput-${targetVocab.quechua}`,
+      prompt: 'Escribe la palabra en Quechua:',
+      clueText: targetVocab.spanish,
+      targetWord: targetVocab.quechua,
+      correctAnswer: targetVocab.quechua,
+    });
+  }
+
+  // 2.7 Agregar ejercicio de "Verdadero o Falso": requiere al menos 2
+  // tarjetas de vocabulario para poder armar un enunciado falso creíble.
+  if (vocabCards.length >= 2) {
+    const blankIdx = listeningTargetCount < vocabCards.length ? listeningTargetCount : 0;
+    const textIdx = blankIdx + 1 < vocabCards.length ? blankIdx + 1 : 0;
+    const tfIdx = (textIdx + 1) % vocabCards.length;
+    const targetVocab = vocabCards[tfIdx];
+    const isStatementTrue = Math.random() < 0.5;
+    const shownSpanish = isStatementTrue
+      ? targetVocab.spanish
+      : vocabCards[(tfIdx + 1) % vocabCards.length].spanish;
+
+    list.push({
+      kind: 'true_false',
+      id: `truefalse-${targetVocab.quechua}`,
+      prompt: '¿Verdadero o falso?',
+      statement: `"${targetVocab.quechua}" significa: ${shownSpanish}`,
+      targetWord: targetVocab.quechua,
+      options: [
+        { id: 401, text: 'Verdadero', is_correct: isStatementTrue },
+        { id: 402, text: 'Falso', is_correct: !isStatementTrue },
+      ],
+      correctAnswer: targetVocab.quechua,
+    });
+  }
+
+  // 2.8 Agregar ejercicio de "Emparejar con imagen" (audio → pictograma),
+  // solo si al menos 2 palabras de la lección tienen un emoji representativo.
+  const emojiCards = vocabCards.filter((v) => VOCAB_EMOJI[v.quechua.toLowerCase()]);
+  if (emojiCards.length >= 2) {
+    const target = emojiCards[0];
+    const distractorPool = emojiCards.slice(1).map((v) => VOCAB_EMOJI[v.quechua.toLowerCase()]);
+    const distractors = distractorPool.length >= 2 ? distractorPool.slice(0, 2) : [...distractorPool, '❓'];
+    const imageOptions = [
+      { id: 501, text: VOCAB_EMOJI[target.quechua.toLowerCase()], is_correct: true },
+      ...distractors.map((d, i) => ({ id: 502 + i, text: d, is_correct: false })),
+    ].sort(() => Math.random() - 0.5);
+
+    list.push({
+      kind: 'image_match',
+      id: `imagematch-${target.quechua}`,
+      prompt: 'Escucha el audio y toca la imagen correcta:',
+      targetWord: target.quechua,
+      options: imageOptions,
+      correctAnswer: target.quechua,
+    });
+  }
+
+  // 3. Agregar ejercicio de Pronunciación / Speaking. Si el vocabulario
+  // objetivo es una frase (ej. saludos de varias palabras), se evalúa
+  // completa en vez de truncarla con extractCorePhoneme (pensado para
+  // fonemas/palabras sueltas).
   if (vocabCards.length > 0) {
     const target = vocabCards[vocabCards.length - 1];
-    const coreTarget = extractCorePhoneme(target.quechua);
+    const isPhrase = target.quechua.trim().includes(' ');
+    const coreTarget = isPhrase ? target.quechua.trim() : extractCorePhoneme(target.quechua);
     list.push({
       kind: 'speaking',
       id: `speaking-${coreTarget}`,
-      prompt: 'Pronuncia en voz alta en Quechua:',
+      prompt: isPhrase ? 'Pronuncia esta frase en voz alta en Quechua:' : 'Pronuncia en voz alta en Quechua:',
       targetWord: coreTarget,
       translation: target.spanish,
       correctAnswer: coreTarget,
+      isPhrase,
     });
   }
 
@@ -237,6 +408,7 @@ export default function LessonScreen() {
 
   // Estados de selección y feedback modal
   const [selectedOptionId, setSelectedOptionId] = useState<number | null>(null);
+  const [typedAnswer, setTypedAnswer] = useState('');
   const [isAnswered, setIsAnswered] = useState(false);
   const [isCorrect, setIsCorrect] = useState(false);
   const [correctAnswerText, setCorrectAnswerText] = useState('');
@@ -244,6 +416,7 @@ export default function LessonScreen() {
   const [completed, setCompleted] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [soundOn, setSoundOn] = useState(true);
 
   const { user, refreshProfile } = useAuth();
   const { lives, xp, checkAnswer, addGems } = useGame();
@@ -265,6 +438,16 @@ export default function LessonScreen() {
   useEffect(() => {
     if (lessonId) loadLessonData();
   }, [lessonId]);
+
+  useEffect(() => {
+    isSoundEnabled().then(setSoundOn);
+  }, []);
+
+  async function toggleSound() {
+    const next = !soundOn;
+    setSoundOn(next);
+    await setSoundEnabled(next);
+  }
 
   async function loadLessonData() {
     setLoading(true);
@@ -299,9 +482,17 @@ export default function LessonScreen() {
   // ─── Quiz & Ejercicios ────────────────────────────────────
   const currentExercise = exercises[currentIndex];
 
+  // Reproduce automáticamente el audio la primera vez que aparece un ejercicio de listening
+  useEffect(() => {
+    if (currentExercise?.kind === 'listening') {
+      playQuechuaAudio(currentExercise.targetWord).catch(() => {});
+    }
+  }, [currentExercise?.id]);
+
   function handleSelectOption(optId: number) {
     if (isAnswered) return;
     setSelectedOptionId(optId);
+    playTapSound();
   }
 
   function handleCheckAnswer() {
@@ -315,9 +506,17 @@ export default function LessonScreen() {
       correct = selected?.is_correct ?? false;
       const rightOpt = currentExercise.options.find((o) => o.is_correct);
       targetAnswer = rightOpt?.option_text || '';
-    } else if (currentExercise.kind === 'listening') {
+    } else if (
+      currentExercise.kind === 'listening' ||
+      currentExercise.kind === 'fill_blank' ||
+      currentExercise.kind === 'true_false' ||
+      currentExercise.kind === 'image_match'
+    ) {
       const selected = currentExercise.options.find((o) => o.id === selectedOptionId);
       correct = selected?.is_correct ?? false;
+      targetAnswer = currentExercise.targetWord;
+    } else if (currentExercise.kind === 'text_input') {
+      correct = normalizeAnswer(typedAnswer) === normalizeAnswer(currentExercise.correctAnswer);
       targetAnswer = currentExercise.targetWord;
     }
 
@@ -326,11 +525,13 @@ export default function LessonScreen() {
     setIsAnswered(true);
     checkAnswer(correct);
     bounceYachi();
-    // Feedback háptico diferenciado según resultado
+    // Feedback háptico y sonoro diferenciado según resultado
     if (correct) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+      playCorrectSound();
     } else {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
+      playIncorrectSound();
     }
   }
 
@@ -341,6 +542,7 @@ export default function LessonScreen() {
     checkAnswer(true);
     bounceYachi();
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+    playCorrectSound();
   }
 
   function handleSpeakingFail() {
@@ -350,11 +552,13 @@ export default function LessonScreen() {
     checkAnswer(false);
     bounceYachi();
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
+    playIncorrectSound();
   }
 
   async function handleNextExercise() {
     setIsAnswered(false);
     setSelectedOptionId(null);
+    setTypedAnswer('');
     setCorrectAnswerText('');
     // Nota: NO cambiar isCorrect a false aquí para evitar que el Modal muestre "Casi lo logras" durante la animación de cierre
 
@@ -367,6 +571,7 @@ export default function LessonScreen() {
       setCurrentIndex((prev) => prev + 1);
     } else {
       setCompleted(true);
+      playCompleteSound();
       addGems(15);
       const uid = user?.uid || (user as any)?.id;
       if (uid) {
@@ -450,6 +655,9 @@ export default function LessonScreen() {
           ))}
           <Text style={styles.livesCountText}>{lives}</Text>
         </View>
+        <TouchableOpacity style={styles.soundToggleBtn} onPress={toggleSound}>
+          <Text style={styles.soundToggleIcon}>{soundOn ? '🔊' : '🔇'}</Text>
+        </TouchableOpacity>
       </View>
 
       <ScrollView contentContainerStyle={styles.exerciseScroll} showsVerticalScrollIndicator={false}>
@@ -468,6 +676,14 @@ export default function LessonScreen() {
                 ? '🎧 COMPRENSIÓN AUDITIVA'
                 : currentExercise.kind === 'speaking'
                 ? '🎙️ PRÁCTICA DE PRONUNCIACIÓN'
+                : currentExercise.kind === 'fill_blank'
+                ? '✍️ COMPLETA LA PALABRA'
+                : currentExercise.kind === 'text_input'
+                ? '⌨️ TRADUCIR'
+                : currentExercise.kind === 'true_false'
+                ? '✅ VERDADERO O FALSO'
+                : currentExercise.kind === 'image_match'
+                ? '🖼️ EMPAREJAR CON IMAGEN'
                 : '📝 PREGUNTA INTERACTIVA'}
             </Text>
             <Text style={styles.speechText}>{currentExercise.prompt}</Text>
@@ -503,7 +719,17 @@ export default function LessonScreen() {
           <View style={styles.listeningContainer}>
             <View style={styles.listeningPromptBox}>
               <Text style={styles.listeningHint}>Toca para escuchar la voz Quechua:</Text>
-              <AudioPronounceButton text={currentExercise.targetWord} size="large" showLabel />
+              <View style={styles.listeningAudioRow}>
+                <AudioPronounceButton text={currentExercise.targetWord} size="large" showLabel />
+                <AudioPronounceButton
+                  text={currentExercise.targetWord}
+                  size="medium"
+                  slow
+                  icon="🐢"
+                  label="Más lento"
+                  showLabel
+                />
+              </View>
             </View>
 
             <View style={styles.optionsList}>
@@ -526,12 +752,118 @@ export default function LessonScreen() {
           </View>
         )}
 
+        {/* ── 2.5 EJERCICIO FILL-IN-THE-BLANK (COMPLETA LA PALABRA) ── */}
+        {currentExercise.kind === 'fill_blank' && (
+          <View style={styles.blankContainer}>
+            <View style={styles.blankClueBox}>
+              <Text style={styles.blankClueLabel}>Significa:</Text>
+              <Text style={styles.blankClueText}>{currentExercise.clueText}</Text>
+              <View style={styles.blankLine}>
+                <Text style={styles.blankLineText}>
+                  {selectedOptionId
+                    ? currentExercise.options.find((o) => o.id === selectedOptionId)?.text
+                    : '_____'}
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.wordBankRow}>
+              {currentExercise.options.map((opt) => {
+                const isSelected = selectedOptionId === opt.id;
+                return (
+                  <TouchableOpacity
+                    key={opt.id}
+                    style={[styles.wordChip, isSelected && styles.wordChipSelected]}
+                    onPress={() => handleSelectOption(opt.id)}
+                    activeOpacity={0.85}
+                  >
+                    <Text style={[styles.wordChipText, isSelected && styles.wordChipTextSelected]}>
+                      {opt.text}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+        )}
+
+        {/* ── 2.6 EJERCICIO TEXT INPUT (TRADUCIR CON TECLADO) ── */}
+        {currentExercise.kind === 'text_input' && (
+          <View style={styles.textInputContainer}>
+            <View style={styles.blankClueBox}>
+              <Text style={styles.blankClueLabel}>Significa:</Text>
+              <Text style={styles.blankClueText}>{currentExercise.clueText}</Text>
+            </View>
+            <TextInput
+              style={[styles.textInputBox, isAnswered && styles.textInputDisabled]}
+              placeholder="Escribe en Quechua..."
+              placeholderTextColor="#B8AFA3"
+              value={typedAnswer}
+              onChangeText={setTypedAnswer}
+              editable={!isAnswered}
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+          </View>
+        )}
+
+        {/* ── 2.7 EJERCICIO VERDADERO O FALSO ── */}
+        {currentExercise.kind === 'true_false' && (
+          <View style={styles.tfContainer}>
+            <View style={styles.tfStatementBox}>
+              <Text style={styles.tfStatementText}>{currentExercise.statement}</Text>
+            </View>
+            <View style={styles.tfOptionsRow}>
+              {currentExercise.options.map((opt) => {
+                const isSelected = selectedOptionId === opt.id;
+                const isTrueOpt = opt.text === 'Verdadero';
+                return (
+                  <TouchableOpacity
+                    key={opt.id}
+                    style={[styles.tfButton, isSelected && styles.tfButtonSelected]}
+                    onPress={() => handleSelectOption(opt.id)}
+                    activeOpacity={0.85}
+                  >
+                    <Text style={styles.tfButtonText}>{isTrueOpt ? '✅ Verdadero' : '❌ Falso'}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+        )}
+
+        {/* ── 2.8 EJERCICIO EMPAREJAR CON IMAGEN (AUDIO → PICTOGRAMA) ── */}
+        {currentExercise.kind === 'image_match' && (
+          <View style={styles.imageMatchContainer}>
+            <View style={styles.listeningPromptBox}>
+              <Text style={styles.listeningHint}>Toca para escuchar la voz Quechua:</Text>
+              <AudioPronounceButton text={currentExercise.targetWord} size="large" showLabel />
+            </View>
+            <View style={styles.imageGrid}>
+              {currentExercise.options.map((opt) => {
+                const isSelected = selectedOptionId === opt.id;
+                return (
+                  <TouchableOpacity
+                    key={opt.id}
+                    style={[styles.imageTile, isSelected && styles.imageTileSelected]}
+                    onPress={() => handleSelectOption(opt.id)}
+                    activeOpacity={0.85}
+                  >
+                    <Text style={styles.imageTileEmoji}>{opt.text}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+        )}
+
         {/* ── 3. EJERCICIO SPEAKING (PRONUNCIACIÓN CON MIC) ── */}
         {currentExercise.kind === 'speaking' && (
           <View style={styles.speakingContainer}>
             <PronunciationExercise
               expectedText={currentExercise.targetWord}
               translation={currentExercise.translation}
+              isPhrase={currentExercise.isPhrase}
               onSuccess={handleSpeakingSuccess}
               onFail={handleSpeakingFail}
             />
@@ -539,17 +871,23 @@ export default function LessonScreen() {
         )}
       </ScrollView>
 
-      {/* Footer inferior (botón comprobar solo para quiz y listening) */}
+      {/* Footer inferior (botón comprobar para todos los tipos excepto speaking) */}
       {currentExercise.kind !== 'speaking' && (
         <View style={styles.footer}>
-          <TouchableOpacity
-            style={[styles.buttonPrimary, !selectedOptionId && styles.buttonDisabled]}
-            onPress={handleCheckAnswer}
-            disabled={!selectedOptionId}
-            activeOpacity={0.85}
-          >
-            <Text style={styles.buttonText}>COMPROBAR</Text>
-          </TouchableOpacity>
+          {(() => {
+            const isDisabled =
+              currentExercise.kind === 'text_input' ? !typedAnswer.trim() : !selectedOptionId;
+            return (
+              <TouchableOpacity
+                style={[styles.buttonPrimary, isDisabled && styles.buttonDisabled]}
+                onPress={handleCheckAnswer}
+                disabled={isDisabled}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.buttonText}>COMPROBAR</Text>
+              </TouchableOpacity>
+            );
+          })()}
         </View>
       )}
 
@@ -648,6 +986,8 @@ const styles = StyleSheet.create({
   },
   closeBtn: { padding: 4 },
   closeBtnText: { fontSize: 22, color: '#7A6A5A', fontWeight: '900' },
+  soundToggleBtn: { padding: 4, marginLeft: 2 },
+  soundToggleIcon: { fontSize: 18 },
   progressBarBg: {
     flex: 1,
     height: 14,
@@ -754,11 +1094,173 @@ const styles = StyleSheet.create({
     borderBottomWidth: 4,
     gap: 12,
   },
+  listeningAudioRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
   listeningHint: {
     fontSize: 14,
     fontWeight: '700',
     color: '#6B7280',
   },
+
+  // Fill-in-the-blank
+  blankContainer: {
+    gap: 16,
+  },
+  blankClueBox: {
+    backgroundColor: '#FFFFFF',
+    marginHorizontal: 20,
+    borderRadius: 20,
+    padding: 20,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#E8E2D9',
+    borderBottomWidth: 4,
+    gap: 10,
+  },
+  blankClueLabel: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#6B7280',
+    letterSpacing: 0.5,
+  },
+  blankClueText: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#2A1A0A',
+    textAlign: 'center',
+  },
+  blankLine: {
+    borderBottomWidth: 3,
+    borderBottomColor: TEAL,
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    minWidth: 140,
+    alignItems: 'center',
+  },
+  blankLineText: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: TEAL_DARK,
+    letterSpacing: 1,
+  },
+  wordBankRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 10,
+    paddingHorizontal: 20,
+  },
+  wordChip: {
+    paddingVertical: 12,
+    paddingHorizontal: 18,
+    borderRadius: 14,
+    borderWidth: 2,
+    borderColor: '#E8E2D9',
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 4,
+  },
+  wordChipSelected: {
+    borderColor: TEAL,
+    backgroundColor: '#E0F2F1',
+    borderBottomColor: TEAL_DARK,
+  },
+  wordChipText: { fontSize: 16, fontWeight: '800', color: '#2A1A0A' },
+  wordChipTextSelected: { color: TEAL_DARK },
+
+  // Text input (traducir)
+  textInputContainer: {
+    gap: 16,
+    paddingHorizontal: 20,
+  },
+  textInputBox: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: '#E8E2D9',
+    borderBottomWidth: 4,
+    paddingHorizontal: 18,
+    paddingVertical: 14,
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#2A1A0A',
+  },
+  textInputDisabled: {
+    opacity: 0.6,
+  },
+
+  // Verdadero o Falso
+  tfContainer: {
+    paddingHorizontal: 20,
+    gap: 20,
+  },
+  tfStatementBox: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 22,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#E8E2D9',
+    borderBottomWidth: 4,
+  },
+  tfStatementText: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: '#2A1A0A',
+    textAlign: 'center',
+    lineHeight: 24,
+  },
+  tfOptionsRow: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  tfButton: {
+    flex: 1,
+    paddingVertical: 18,
+    borderRadius: 16,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderBottomWidth: 4,
+    backgroundColor: '#FFFFFF',
+    borderColor: '#E8E2D9',
+  },
+  tfButtonSelected: {
+    borderColor: TEAL,
+    backgroundColor: '#E0F2F1',
+    borderBottomColor: TEAL_DARK,
+  },
+  tfButtonText: { fontSize: 16, fontWeight: '900', color: '#2A1A0A' },
+
+  // Emparejar con imagen
+  imageMatchContainer: {
+    gap: 16,
+  },
+  imageGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 14,
+    paddingHorizontal: 20,
+  },
+  imageTile: {
+    width: 96,
+    height: 96,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+    borderWidth: 2,
+    borderColor: '#E8E2D9',
+    borderBottomWidth: 4,
+  },
+  imageTileSelected: {
+    borderColor: TEAL,
+    backgroundColor: '#E0F2F1',
+    borderBottomColor: TEAL_DARK,
+  },
+  imageTileEmoji: { fontSize: 44 },
 
   // Speaking
   speakingContainer: {

@@ -20,6 +20,8 @@ import Animated, {
   withSequence,
   withSpring,
 } from 'react-native-reanimated';
+import * as Haptics from 'expo-haptics';
+import { playCorrectSound, playIncorrectSound, playCompleteSound } from '@/src/services/soundService';
 
 export default function LevelExamScreen() {
   const { levelId } = useLocalSearchParams<{ levelId: string }>();
@@ -79,6 +81,13 @@ export default function LevelExamScreen() {
     setIsCorrect(correct);
     if (correct) setCorrectCount((n) => n + 1);
     bounceYachi();
+    if (correct) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+      playCorrectSound();
+    } else {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
+      playIncorrectSound();
+    }
   }
 
   async function handleNext() {
@@ -95,6 +104,7 @@ export default function LevelExamScreen() {
       const score = Math.round((correctCount / total) * 100);
       const didPass = score >= exam.pass_threshold;
       setPassed(didPass);
+      didPass ? playCompleteSound() : playIncorrectSound();
 
       if (user?.uid) {
         await progressService.recordExamResult(user.uid, parsedLevelId, score, exam.pass_threshold);

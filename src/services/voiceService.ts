@@ -67,6 +67,11 @@ const PHONEME_VARIANTS: Record<string, string[]> = {
   sh: ['sha', 'cha', 'sa', 'sh', 'she', 'xa', 'letra sh', 'letra sha', 'consonante sh', 'tsha', 'ya', 'ja', 'ch', 'ese', 'hache', 'se', 'si', 'sí', 'es', 'che', 'shh', 'chi', 'sho', 'asi', 'así'],
 };
 
+export type PlayQuechuaAudioOptions = {
+  /** Reproduce a velocidad reducida, útil para practicar pronunciación difícil. */
+  slow?: boolean;
+};
+
 /**
  * Reproduce audio del fonema o palabra quechua.
  * - En plataformas nativas (Android/iOS): usa expo-speech.
@@ -74,8 +79,9 @@ const PHONEME_VARIANTS: Record<string, string[]> = {
  * - Fonemas (≤4 chars): pronuncia la sílaba fonética quechua exacta.
  * - Palabras completas en web: intenta servidor MMS-TTS, luego fallback nativo.
  */
-export async function playQuechuaAudio(text: string): Promise<void> {
+export async function playQuechuaAudio(text: string, options?: PlayQuechuaAudioOptions): Promise<void> {
   if (!text.trim()) return;
+  const rate = options?.slow ? 0.35 : 0.6;
 
   // Extraer el fonema/palabra pura (evita leer 'Consonante k' o 'Letra ch')
   const core = extractCorePhoneme(text).toLowerCase().trim();
@@ -89,7 +95,7 @@ export async function playQuechuaAudio(text: string): Promise<void> {
     return new Promise<void>((resolve) => {
       Speech.speak(audioWord, {
         language: cleanText === 'sh' ? 'en-US' : 'es-PE',
-        rate: 0.6,
+        rate,
         pitch: 1.0,
         onDone: resolve,
         onError: () => resolve(),
@@ -112,7 +118,7 @@ export async function playQuechuaAudio(text: string): Promise<void> {
       synth.cancel();
       const utter = new Utterance(cleanText === 'sh' ? 'sha' : audioWord);
       utter.lang = lang;
-      utter.rate = 0.60;
+      utter.rate = rate;
       utter.pitch = 1.0;
       utter.volume = 1.0;
       utter.onend = () => resolve();
@@ -139,6 +145,7 @@ export async function playQuechuaAudio(text: string): Promise<void> {
     }
     return new Promise((resolve) => {
       const audio = new Audio(audioUrl);
+      audio.playbackRate = options?.slow ? 0.7 : 1.0;
       currentAudio = audio;
       audio.onended = () => resolve();
       audio.onerror = () => { speakSpanishFallback(cleanText); resolve(); };
@@ -154,11 +161,41 @@ export function clearAudioCache(): void {
   audioCache.clear();
 }
 
+export type EvaluatePronunciationOptions = {
+  /** Cuando es true, `expected` es una frase completa: se compara palabra por palabra sin truncar. */
+  isPhrase?: boolean;
+};
+
+/**
+ * Distancia de Levenshtein normalizada (0 a 1, donde 1 es coincidencia perfecta).
+ */
+function levenshteinSimilarity(a: string, b: string): number {
+  const m = a.length;
+  const n = b.length;
+  if (m === 0 && n === 0) return 1;
+  const dp: number[][] = Array.from({ length: m + 1 }, () => Array(n + 1).fill(0));
+  for (let i = 0; i <= m; i++) dp[i][0] = i;
+  for (let j = 0; j <= n; j++) dp[0][j] = j;
+  for (let i = 1; i <= m; i++) {
+    for (let j = 1; j <= n; j++) {
+      dp[i][j] = a[i - 1] === b[j - 1]
+        ? dp[i - 1][j - 1]
+        : 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
+    }
+  }
+  const maxLength = Math.max(m, n);
+  return maxLength === 0 ? 1 : Math.max(0, 1 - dp[m][n] / maxLength);
+}
+
 /**
  * Evalúa fonéticamente la similitud entre la voz transcrita y el texto Quechua esperado.
  * Utiliza normalización lingüística, variantes fonéticas y distancia Levenshtein.
  */
-export function evaluatePronunciation(spoken: string, expected: string): PronunciationScore {
+export function evaluatePronunciation(
+  spoken: string,
+  expected: string,
+  options?: EvaluatePronunciationOptions
+): PronunciationScore {
   if (!spoken || !spoken.trim()) {
     return {
       score: 0,
@@ -172,8 +209,10 @@ export function evaluatePronunciation(spoken: string, expected: string): Pronunc
     .trim()
     .replace(/[.,/#!$%^&*;:{}=\-_`~()¡!¿?'"’“”«»]/g, '');
 
-  // Extraer el fonema o palabra central para evitar que frases como "Consonante K" penalicen la evaluación
-  const coreExpected = extractCorePhoneme(expected).toLowerCase().trim();
+  // Para frases completas no se trunca con extractCorePhoneme (pensado para fonemas/palabras sueltas)
+  const coreExpected = options?.isPhrase
+    ? expected.toLowerCase().trim()
+    : extractCorePhoneme(expected).toLowerCase().trim();
   const cleanExpected = coreExpected.replace(/[.,/#!$%^&*;:{}=\-_`~()¡!¿?'"’“”«»]/g, '');
 
   const noSpaceSpoken = cleanSpoken.replace(/\s+/g, '');
@@ -186,6 +225,27 @@ export function evaluatePronunciation(spoken: string, expected: string): Pronunc
       feedback: '¡Allinmi! Pronunciación excelente.',
       cleanedSpoken: cleanSpoken,
     };
+  }
+
+  // Frases completas (≥2 palabras): comparar palabra por palabra en vez de
+  // usar Levenshtein sobre la cadena completa, que penaliza demasiado un
+  // solo desfase de palabras.
+  const expectedWords = cleanExpected.split(/\s+/).filter(Boolean);
+  if (options?.isPhrase && expectedWords.length >= 2) {
+    const spokenWords = cleanSpoken.split(/\s+/).filter(Boolean);
+    const wordCount = Math.max(expectedWords.length, spokenWords.length);
+    let totalSimilarity = 0;
+    for (let i = 0; i < wordCount; i++) {
+      totalSimilarity += levenshteinSimilarity(spokenWords[i] ?? '', expectedWords[i] ?? '');
+    }
+    const score = Math.round((totalSimilarity / wordCount) * 100);
+    const isPass = score >= 60;
+    let feedback: string;
+    if (score === 100) feedback = '¡Allinmi! Pronunciación de la frase excelente.';
+    else if (score >= 80) feedback = '¡Allinmi! Muy buena entonación en toda la frase.';
+    else if (score >= 60) feedback = '¡Allinmi! Sigue practicando la frase completa.';
+    else feedback = `Escuchamos "${spoken}". Practica escuchando el audio de referencia y vuelve a intentar la frase completa.`;
+    return { score, isPass, feedback, cleanedSpoken: cleanSpoken };
   }
 
   // Verificación fonética avanzada para consonantes y fonemas del Achahala
@@ -225,26 +285,7 @@ export function evaluatePronunciation(spoken: string, expected: string): Pronunc
   }
 
   // Levenshtein distance para palabras completas
-  const m = cleanSpoken.length;
-  const n = cleanExpected.length;
-  const dp: number[][] = Array.from({ length: m + 1 }, () => Array(n + 1).fill(0));
-
-  for (let i = 0; i <= m; i++) dp[i][0] = i;
-  for (let j = 0; j <= n; j++) dp[0][j] = j;
-
-  for (let i = 1; i <= m; i++) {
-    for (let j = 1; j <= n; j++) {
-      if (cleanSpoken[i - 1] === cleanExpected[j - 1]) {
-        dp[i][j] = dp[i - 1][j - 1];
-      } else {
-        dp[i][j] = 1 + Math.min(dp[i - 1][j], dp[i][j - 1], dp[i - 1][j - 1]);
-      }
-    }
-  }
-
-  const distance = dp[m][n];
-  const maxLength = Math.max(m, n);
-  const similarity = Math.max(0, 1 - distance / maxLength);
+  const similarity = levenshteinSimilarity(cleanSpoken, cleanExpected);
   const score = Math.round(similarity * 100);
   const isPass = score >= 60;
 
@@ -493,7 +534,8 @@ async function transcribeAudioClip(uri: string): Promise<RecognitionResult> {
  */
 export async function startVoiceRecognition(
   lang: Language = 'qu',
-  expectedWord?: string
+  expectedWord?: string,
+  options?: { isPhrase?: boolean }
 ): Promise<RecognitionResult> {
   // 1. Si Web Speech API está disponible en el entorno web (Chrome, Edge, Safari):
   if (Platform.OS === 'web' && typeof window !== 'undefined') {
@@ -505,9 +547,11 @@ export async function startVoiceRecognition(
   }
 
   // 2. En dispositivos móviles (Android/iOS nativo) o navegadores sin WebSpeech:
-  const coreExpected = expectedWord ? extractCorePhoneme(expectedWord).toLowerCase().trim() : '';
+  const coreExpected = expectedWord
+    ? (options?.isPhrase ? expectedWord : extractCorePhoneme(expectedWord)).toLowerCase().trim()
+    : '';
   const isShortPhoneme = Boolean(coreExpected && coreExpected.length <= 4);
-  const durationMs = isShortPhoneme ? 2200 : 4000;
+  const durationMs = options?.isPhrase ? 6000 : isShortPhoneme ? 2200 : 4000;
 
   const uri = await recordAudioClip(durationMs);
   try {

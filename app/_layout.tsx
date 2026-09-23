@@ -63,6 +63,8 @@ function RootLayoutNav() {
       <Stack.Screen name="lesson/[id]" options={{ headerShown: false }} />
       <Stack.Screen name="category/[slug]" options={{ headerShown: false }} />
       <Stack.Screen name="level/exam/[levelId]" options={{ headerShown: false }} />
+      <Stack.Screen name="story/[slug]" options={{ headerShown: false }} />
+      <Stack.Screen name="practice/[slug]" options={{ headerShown: false }} />
       <Stack.Screen name="blocked" options={{ headerShown: false, gestureEnabled: false }} />
       <Stack.Screen name="translator/index" options={{ headerShown: false }} />
     </Stack>
