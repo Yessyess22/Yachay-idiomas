@@ -1,6 +1,87 @@
 # Yachay Idiomas — Aprendizaje de Quechua 🇵🇪
 
-**Yachay** es una aplicación móvil universal (iOS, Android, Web) desarrollada con Expo y React Native para la enseñanza interactiva del idioma Quechua (Runasimi). Integra Firebase Auth (v12) para autenticación de usuarios, Supabase PostgreSQL en 3FN como backend relacional y Clean Architecture en el frontend.
+**Yachay Simi** es una aplicación móvil universal (iOS, Android, Web) desarrollada con Expo y React Native para la enseñanza interactiva del idioma Quechua (Runasimi). Integra Firebase Auth (v12) para autenticación de usuarios, Supabase PostgreSQL en 3FN como backend relacional, síntesis fonética nativa y Clean Architecture en el frontend.
+
+---
+
+## 🌟 Bitácora de Modificaciones Realizadas Hoy
+
+A continuación se detalla el registro integral de las modificaciones, mejoras de arquitectura, corrección de inconsistencias e innovaciones implementadas en la sesión de hoy:
+
+### 1. Reestructuración de la Navegación Principal (4 Pestañas)
+Se rediseñó la barra de navegación inferior en [`app/(tabs)/_layout.tsx`](file:///c:/Users/alejandro/Desktop/Yachai-idiomas/app/%28tabs%29/_layout.tsx) para resolver de forma definitiva la confusión conceptual entre lecciones y exploración libre, dejando la estructura oficial en 4 pestañas:
+
+```
+┌───────────────┬───────────────┬───────────────┬───────────────┐
+│   🏠 Inicio   │  📚 Explorar  │ 🔄 Traductor  │   👤 Perfil   │
+└───────────────┴───────────────┴───────────────┴───────────────┘
+```
+
+- **🏠 Inicio (`index.tsx`)**: La *Carrera Universitaria*. Malla curricular secuencial estructurada por niveles (Nivel 1 ➡️ Examen ➡️ Nivel 2), desafíos diarios, vidas y exámenes formales bloqueantes.
+- **📚 Explorar (`explore.tsx`)**: La *Biblioteca Andina*. Estanterías abiertas con buscador universal en vivo, cuentos ancestrales, tradiciones, gastronomía, modismos y fauna/flora sagrada (sin vidas, sin bloqueos ni exámenes).
+- **🔄 Traductor (`translator.tsx`)**: El *Diccionario de Bolsillo*. Ahora es una sección/tab independiente en la barra de navegación con reconocimiento por voz, traducción instantánea y reproducción fonética nativa.
+- **👤 Perfil (`profile.tsx`)**: El *Expediente del Alumno*. Panel de control integral con avatar, estadísticas de racha/XP/vidas y la integración de **Logros, Medallas y la Liga Andina**.
+
+---
+
+### 2. Creación de la "Biblioteca Andina" en Explorar
+Se rediseñó por completo [`app/(tabs)/explore.tsx`](file:///c:/Users/alejandro/Desktop/Yachai-idiomas/app/%28tabs%29/explore.tsx) y se creó [`src/content/libraryData.ts`](file:///c:/Users/alejandro/Desktop/Yachai-idiomas/src/content/libraryData.ts):
+- **Buscador Universal en Tiempo Real**: Filtrado interactivo por términos en quechua, traducción al español, descripción y notas culturales, con botón de limpieza rápida (`✕`).
+- **Estanterías Abiertas por Pastillas Temáticas**:
+  - ✨ **Todo**: Vista integrada de todo el catálogo cultural.
+  - 📖 **Cuentos del Ayllu**: Carrusel interactivo enlazado a [`app/story/[slug].tsx`](file:///c:/Users/alejandro/Desktop/Yachai-idiomas/app/story/%5Bslug%5D.tsx). Se agregaron a [`src/content/stories.ts`](file:///c:/Users/alejandro/Desktop/Yachai-idiomas/src/content/stories.ts) las historias ancestrales:
+    - *El Zorro y el Cóndor* (`el-zorro-y-el-condor`)
+    - *La Leyenda de Manco Cápac y Mama Ocllo* (`manco-capac`)
+    - *El Buen Vivir / Sumaq Kawsay* (`sumaq-kawsay`)
+    - *Contando con Yachi* (`numeros`), *Una Casa Quechua* (`abecedario`) y *Un Saludo con Yachi* (`palabras`).
+  - 🏔️ **Cultura & Tradición**: Gastronomía andina (*Pachamanca, Kankacho, Kinwa, Sara, Chuño*), Vestimenta (*Chullo, Lliclla, Chumpi con iconografía pallay*), Música (*Charango, Quena, Siku/Zampoña, Huayno*) y Lugares/Principios Sagrados (*Apus, Pachamama, Ayni, Minka*).
+  - 💬 **Quechua Cotidiano**: Saludos por horario (*Allin p'unchaw, Allin suka, Allin tuta*), fórmulas de cortesía (*Allillanchu?, Allillanmi, Añay, Yupaychani, Munakuyki, Sonqoy*) y la Trilogía Moral Incaica (*Ama Suwa, Ama Llulla, Ama Qilla*).
+  - 🦙 **Mundo Andino**: Fauna sagrada (*Cóndor, Puma, Serpiente/Amaru, Vicuña*) y Flora medicinal (*Coca, Muña, Chachacoma, Flor de la Cantuta*).
+  - 💡 **Secretos Lingüísticos**: Explicación del sistema trivocálico (A, I, U), la aglutinación de sufijos, la dualidad de "nosotros" (*inclusivo vs. exclusivo*) y los sufijos de afecto (*-cha*).
+  - 📜 **Guías Lingüísticas**: Preservación al 100% de los 4 módulos pedagógicos de fonética Achahala, gramática, vocabulario y diálogos con tablas y audios interactivos.
+- **Audio y Traducción Rápida en cada elemento**: Cada tarjeta incluye [`AudioPronounceButton`](file:///c:/Users/alejandro/Desktop/Yachai-idiomas/components/yachay/audio-pronounce-button.tsx) y botón directo `🔄` para abrir el traductor con la frase precargada.
+
+---
+
+### 3. Pestaña de Traductor (`app/(tabs)/translator.tsx`)
+- Se implementó la nueva pantalla de pestaña [`app/(tabs)/translator.tsx`](file:///c:/Users/alejandro/Desktop/Yachai-idiomas/app/%28tabs%29/translator.tsx).
+- Cuenta con barra superior [`YachayTopBar`](file:///c:/Users/alejandro/Desktop/Yachai-idiomas/components/yachay/yachay-top-bar.tsx), selector de idiomas con intercambio rápido (`⇌`), dictado por micrófono, síntesis fonética nativa Meta MMS-TTS y chip de frases frecuentes.
+- En [`app/translator/index.tsx`](file:///c:/Users/alejandro/Desktop/Yachai-idiomas/app/translator/index.tsx), se implementó una redirección automática y segura hacia `/(tabs)/translator`, garantizando que cualquier enlace existente mantenga compatibilidad y conserve los parámetros recibidos.
+
+---
+
+### 4. Integración de Logros, Medallas y Liga dentro de Perfil
+Se reestructuró [`app/(tabs)/profile.tsx`](file:///c:/Users/alejandro/Desktop/Yachai-idiomas/app/%28tabs%29/profile.tsx) con un control segmentado de 3 secciones:
+1. 👤 **Expediente**:
+   - Tarjeta del alumno con avatar, nivel, racha 🔥, XP ⚡, gemas 💎 y vidas ❤️.
+   - Visualización del *Chullo Sagrado* sobre Yachi si está adquirido en la tienda.
+   - Tarjeta resumen de logros con barra de progreso global.
+   - Misiones de hoy interactivas con botón para **Reclamar recompensas**.
+   - Acceso directo a la Tienda de Yachi y botón de Cerrar Sesión.
+2. 🏆 **Logros & Medallas**:
+   - Catálogo de 6 logros con medallas andinas: *Principiante Quechua, Hablante Activo, Maestro del Sol, Tesorero Inca, Coleccionista Andino, Explorador del Tawantinsuyu*.
+   - Barras de progreso porcentual individuales y estados: `✓ Obtenido` (Verde), `En progreso (X%)` (Dorado) y `🔒 Bloqueado` (Gris).
+3. 👑 **Liga Andina**:
+   - Podio de Honor con 🥇 1º (Oro), 🥈 2º (Plata) y 🥉 3º (Bronce).
+   - Tabla de posiciones semanal de estudiantes con el usuario resaltado en tiempo real.
+- La pantalla `leaderboard.tsx` quedó oculta de la barra inferior (`href: null`), evitando duplicidad.
+
+---
+
+### 5. Puente Virtuoso (Cross-Linking)
+- **Desde la Lección hacia la Biblioteca**: En [`app/lesson/[id].tsx`](file:///c:/Users/alejandro/Desktop/Yachai-idiomas/app/lesson/%5Bid%5D.tsx), al finalizar exitosamente una lección, se muestra una tarjeta que invita a profundizar en la Biblioteca Andina sin riesgo de perder vidas.
+- **Desde la Biblioteca hacia el Traductor**: Al tocar el botón `🔄` en cualquier tarjeta cultural de Explorar, el usuario pasa al Traductor con el texto y lengua precargados.
+
+---
+
+### 6. Corrección de Inconsistencias y Seguridad Técnica
+- **Seguridad en Supabase**: Se eliminaron los tokens JWT hardcodeados en texto plano en [`src/services/supabase.ts`](file:///c:/Users/alejandro/Desktop/Yachai-idiomas/src/services/supabase.ts), forzando el uso de variables de entorno `.env`.
+- **Sincronización RLS**: Se implementó `syncSupabaseSession(firebaseUser)` en [`src/services/authService.ts`](file:///c:/Users/alejandro/Desktop/Yachai-idiomas/src/services/authService.ts) para autorizar las operaciones en Supabase usando la sesión de Firebase.
+- **Tolerancia a Fallos y Modo Offline**: Se implementó un sistema de colas en [`src/services/questionService.ts`](file:///c:/Users/alejandro/Desktop/Yachai-idiomas/src/services/questionService.ts) y `progressService.ts` (`@yachay_pending_lesson_progress`) que guarda el progreso offline y lo sube automáticamente cuando regresa la conexión (`syncPendingProgress()`).
+- **Malla Curricular en Inicio**: Se corrigió [`app/(tabs)/index.tsx`](file:///c:/Users/alejandro/Desktop/Yachai-idiomas/app/%28tabs%29/index.tsx) para exigir aprobar las lecciones 1 y 2 antes del Examen 1, y aprobar el Examen 1 con $\ge 70\%$ para desbloquear el Nivel 2.
+- **Ejercicios de Pares**: En [`matching-pairs-exercise.tsx`](file:///c:/Users/alejandro/Desktop/Yachai-idiomas/components/yachay/exercises/matching-pairs-exercise.tsx), se sustituyó el `Math.random()` impuro por un barajado determinista con `useMemo`, eliminando loops de renderizado infinito.
+- **Pantalla de Guía**: Se creó [`app/guidebook/[id].tsx`](file:///c:/Users/alejandro/Desktop/Yachai-idiomas/app/guidebook/%5Bid%5D.tsx) con fonética Achahala y vocabulario, eliminando pantallas en blanco.
+- **Tienda y Vidas**: Se implementó la deducción real de gemas al rellenar vidas en [`app/(tabs)/shop.tsx`](file:///c:/Users/alejandro/Desktop/Yachai-idiomas/app/%28tabs%29/shop.tsx), junto con la persistencia del traje en `GameContext`.
 
 ---
 
@@ -10,109 +91,72 @@
 Yachay/
 ├── app/                       # Rutas e interfaz UI (Expo Router)
 │   ├── (auth)/                # Login y Registro con Firebase Auth
-│   ├── (tabs)/                # Navegación por pestañas: Aprender, Explorar, Ligas, Tienda, Perfil
-│   ├── onboarding/            # Carrusel interactivo de Onboarding de 4 pasos con Yachi
-│   ├── category/[slug].tsx    # Lecciones de una categoría
-│   ├── lesson/[id].tsx        # Motor interactivo de ejercicios (Teoría → Quiz)
-│   ├── level/exam/[levelId].tsx  # Examen bloqueante de fin de nivel
-│   ├── guidebook/[id].tsx     # Guía gramatical de referencia del Quechua
-│   ├── translator/index.tsx   # Traductor de voz e IA (Español ↔ Quechua)
+│   ├── (tabs)/                # 4 Pestañas: Inicio, Explorar, Traductor, Perfil
+│   │   ├── _layout.tsx        # Configuración del Tab Bar de 4 secciones
+│   │   ├── index.tsx          # Tab 1: Inicio (Carrera secuencial formal)
+│   │   ├── explore.tsx        # Tab 2: Explorar (Biblioteca Andina Abierta)
+│   │   ├── translator.tsx     # Tab 3: Traductor (Voz y texto interactivo)
+│   │   ├── profile.tsx        # Tab 4: Perfil (Expediente, Logros, Liga Andina)
+│   │   ├── leaderboard.tsx    # Oculto del tab bar (integrado en Perfil)
+│   │   └── shop.tsx           # Tienda de Yachi (accesible desde Perfil e Inicio)
+│   ├── onboarding/            # Carrusel interactivo con Yachi
+│   ├── category/[slug].tsx    # Lecciones por categoría
+│   ├── lesson/[id].tsx        # Motor de ejercicios con puente a Biblioteca
+│   ├── level/exam/[levelId].tsx  # Examen formal bloqueante
+│   ├── guidebook/[id].tsx     # Guía gramatical y fonética
+│   ├── translator/index.tsx   # Redirección a /(tabs)/translator
 │   └── blocked.tsx            # Pantalla de bloqueo al agotar vidas
 ├── src/                       # Capa de lógica de negocio y servicios
+│   ├── content/               # Contenido estático y biblioteca
+│   │   ├── libraryData.ts     # Estanterías de la Biblioteca Andina
+│   │   └── stories.ts         # Cuentos ancestrales interactivos con Yachi
 │   ├── context/               # Contextos globales (AuthContext, GameContext)
-│   ├── services/              # Servicios API (auth, category, question, exam, progress,
-│   │                          # leaderboard, quest, shop, voice, firebase, offlineCache, notificationService)
-│   ├── types/                 # Interfaces TypeScript de dominio
-│   ├── utils/                 # Funciones utilitarias (phoneticGuide.ts)
-│   └── assets/images/         # Re-exports semánticos de imágenes (Yachi, tarjetas)
-├── components/yachay/         # Componentes de marca (header, top bar, tarjetas, audio pronounce)
-│   └── exercises/             # Ejercicios: opción múltiple, banco de palabras, pares, pronunciación
-├── constants/                 # Tokens de marca (theme.ts) e ilustraciones
-├── assets/images/kit-complementos/ # Kit visual completo de marca y accesorios
-├── supabase/
-│   ├── migrations/            # Migraciones SQL versionadas (DDL en 3FN + extensiones)
-│   └── seed.sql               # Datos iniciales (Categorías, Lecciones, Preguntas Quechua)
-├── docs/                      # Documentación de gobernanza y colección Insomnia (35 endpoints)
-├── tts_service.py             # Microservicio local de TTS en Python (gTTS/pyttsx3)
-├── Dockerfile                 # Imagen Docker node:20-alpine
-└── docker-compose.yml         # Configuración de red estática 10.10.10.0/24
+│   ├── services/              # Servicios API (auth, category, question, progress,
+│   │                          # leaderboard, quest, shop, voice, firebase, offlineCache)
+│   ├── types/                 # Tipos e interfaces TypeScript de dominio
+│   └── utils/                 # Utilidades fonéticas y de formateo
+├── components/yachay/         # Componentes visuales y de diseño andino
+│   ├── exercises/             # Ejercicios interactivos (quiz, pares, voz, banco)
+│   ├── yachay-top-bar.tsx     # Barra superior sincronizada (racha, XP, gemas, vidas)
+│   └── audio-pronounce-button.tsx # Botón universal de audio nativo Quechua
+└── supabase/
+    ├── migrations/            # Migraciones SQL normalizadas (3FN intacta)
+    └── seed.sql               # Banco inicial de preguntas y categorías
 ```
 
 ---
 
-## 📊 Estado de los Sprints
+## 📊 Estado de Calidad y Tests
 
-- ✅ **Sprint 1 (100%)**: DDL en 3FN, Migraciones SQL, Seed Quechua (30 preguntas), Docker y Clean Architecture.
-- ✅ **Sprint 2 (100%)**: Capa de Servicios (`src/services/`), AuthContext, Pantallas de Categorías, Lección Quiz interactiva y Perfil de Usuario con Logout.
-- ✅ **Sprint 3 (100%)**: `GameContext` (vidas, XP, gemas, racha), Exámenes de Fin de Nivel, Traductor de Voz con IA, Tienda (`shop.tsx`), Ligas/Leaderboard, Guía Gramatical, Ejercicios de banco de palabras y pares.
-- ✅ **Sprint 4 (100%)**: Onboarding inmersivo de 4 pasos, Dashboard "Camino del Saber", persistencia de `GameContext` en Supabase (Cierre GAP-06), `leaderboard_weekly` (Cierre GAP-07), pruebas Jest (Cierre GAP-03) y auditoría sin estilos inline.
-- ✅ **Sprint 5 (100%)**: Migración a Firebase Auth (SDK v12 modular), persistencia de sesión AsyncStorage, mensajes traducidos al español, rediseño de lecciones con vocabulario previo y colección Insomnia con 35 endpoints REST.
-- ✅ **Sprint 6 (100%)**: Sistema de Audio Nativo (`expo-speech` + voces Android), Guía Fonética Quechua (`phoneticGuide.ts`), ejercicio de pronunciación por voz, `AudioPronounceButton`, microservicio local Python TTS (`tts_service.py`), resiliencia offline (`offlineCache.ts`), notificaciones de racha (`notificationService.ts`) y feedback háptico (`expo-haptics`).
-
-### ✨ Funcionalidades Implementadas
-
-| Módulo | Pantalla(s) / Componente(s) | Descripción |
+| Verificación | Herramienta | Resultado |
 | :--- | :--- | :--- |
-| **Onboarding** | `app/onboarding/index.tsx` | Carrusel interactivo de 4 pasos guiado por Yachi con persistencia en AsyncStorage |
-| **Autenticación** | `app/(auth)/` | Login y Registro con Firebase Auth (SDK v12), traducción de errores y mapeo de UID a `profiles` |
-| **Aprendizaje** | `app/(tabs)/index.tsx`, `app/category/[slug].tsx`, `app/lesson/[id].tsx` | Camino del Saber, categorías y lecciones en dos fases (Vocabulario → Quiz) con opción múltiple, banco de palabras, pares y pronunciación |
-| **Audio y Voz Nativa** | `src/services/voiceService.ts`, `components/yachay/audio-pronounce-button.tsx`, `tts_service.py` | Reproducción con `expo-speech` (voces Android `es-PE`), botón universal de audio y microservicio TTS local Python |
-| **Fonética Quechua** | `src/utils/phoneticGuide.ts`, `components/yachay/exercises/pronunciation-exercise.tsx` | Guía fonética Chanka/Cusco-Collao y ejercicio interactivo de pronunciación con captura de micrófono |
-| **Gamificación** | `src/context/GameContext.tsx` | Vidas (5), XP, gemas y racha de días hidratados y sincronizados asíncronamente en Supabase; bloqueo automático a `/blocked` |
-| **Niveles y Exámenes** | `app/level/exam/[levelId].tsx` | Examen de fin de nivel con umbral de aprobación y desbloqueo del siguiente nivel |
-| **Ligas** | `app/(tabs)/leaderboard.tsx` | Clasificación semanal por `weekly_xp` y ligas (Bronce a Diamante) desde `leaderboard_weekly` JOIN `profiles` |
-| **Tienda** | `app/(tabs)/shop.tsx` | Canje de gemas por recarga de vidas, cosméticos y congelador de racha consumiendo `shop_items` |
-| **Traductor de Voz** | `app/translator/index.tsx` | Reconocimiento y síntesis de voz (Web Speech API / Expo Speech) + Edge Function `translate` |
-| **Resiliencia & UX** | `offlineCache.ts`, `notificationService.ts`, `expo-haptics` | Guardado offline de lecciones, notificaciones push de racha a las 20:00 y vibración táctil háptica |
-| **Pruebas API REST** | `docs/yachay-insomnia-collection.json` | Suite de 35 endpoints REST interactivos para pruebas de Firebase Auth y Supabase PostgreSQL |
+| **Tipado Estático** | `npx tsc --noEmit` | **0 errores** ✅ |
+| **Linter Oficial** | `npm run lint` | **0 errores, 0 advertencias** ✅ |
+| **Pruebas Unitarias** | `npm test` | **12/12 pruebas aprobadas (100%)** ✅ |
+| **Servidor Metro** | Expo CLI | **Activo y operativo (HTTP 200)** ✅ |
+| **Control de Versiones** | Git Local | **3 commits locales creados, 0 pushes remotos** ✅ |
 
 ---
 
-## 🛠️ Instrucciones de Inicio
+## 🛠️ Instrucciones de Ejecución
 
-### 1. Instalación de dependencias
-
+### 1. Instalar dependencias
 ```bash
 npm install
 ```
 
-### 2. Ejecutar servidor de desarrollo local
-
+### 2. Iniciar el servidor de desarrollo
 ```bash
 npx expo start -c
 ```
 
-### 3. Ejecutar pruebas unitarias (Jest)
-
+### 3. Ejecutar las pruebas unitarias
 ```bash
 npm test
 ```
 
-### 4. Ejecutar servidor TTS local en Python (opcional para desarrollo)
-
+### 4. Verificar calidad de código y tipos
 ```bash
-python tts_service.py
+npx tsc --noEmit
+npm run lint
 ```
-
-### 5. Ejecutar con Docker
-
-```bash
-docker compose up -d
-```
-Acceso web en `http://10.10.10.10:8081` o `http://localhost:8081`.
-
----
-
-## 📚 Documentación Adicional
-
-Para más detalles sobre la gobernanza y arquitectura del proyecto, consulta la carpeta [/docs](file:///Users/alex/Documents/Yesikita/Yachay/docs/):
-- [01-BITACORA_DESARROLLO.md](file:///Users/alex/Documents/Yesikita/Yachay/docs/01-BITACORA_DESARROLLO.md) — registro cronológico de hitos técnicos
-- [02-SESSION_MEM.md](file:///Users/alex/Documents/Yesikita/Yachay/docs/02-SESSION_MEM.md) — estado actual del proyecto y de la sesión activa
-- [03-REQUERIMIENTOS.md](file:///Users/alex/Documents/Yesikita/Yachay/docs/03-REQUERIMIENTOS.md) — especificación completa de requerimientos y casos de uso
-- [04-SPRINTS.md](file:///Users/alex/Documents/Yesikita/Yachay/docs/04-SPRINTS.md) — roadmap y tareas por sprint (Sprints 1 al 6)
-- [05-FINDINGS_DEUDA.md](file:///Users/alex/Documents/Yesikita/Yachay/docs/05-FINDINGS_DEUDA.md) — registro de deuda técnica y resolución de GAPs
-- [06-TASK_PLAN.md](file:///Users/alex/Documents/Yesikita/Yachay/docs/06-TASK_PLAN.md) — distribución de tareas del equipo
-- [07-PROMPT_DESARROLLO.md](file:///Users/alex/Documents/Yesikita/Yachay/docs/07-PROMPT_DESARROLLO.md) — protocolo de arranque para asistentes de IA
-- [08-CONTROL_SESION.md](file:///Users/alex/Documents/Yesikita/Yachay/docs/08-CONTROL_SESION.md) — checklist de verificación y cierre de sesión
-- [09-BD-SPEC.md](file:///Users/alex/Documents/Yesikita/Yachay/docs/09-BD-SPEC.md) — especificación del esquema relacional 3FN e integración Firebase+Supabase
-- [yachay-insomnia-collection.json](file:///Users/alex/Documents/Yesikita/Yachay/docs/yachay-insomnia-collection.json) — colección Insomnia v4 con 35 endpoints REST
