@@ -9,6 +9,7 @@ import {
 import { supabase } from '@/src/services/supabase';
 import { Profile } from '@/src/types';
 import { auth } from './firebase';
+import { leaderboardService } from './leaderboardService';
 
 function translateFirebaseError(code: string): string {
   const map: Record<string, string> = {
@@ -57,6 +58,16 @@ export const authService = {
       if (profileError) {
         console.warn('Profile creation warning:', profileError.message);
       }
+      // Inicializar también en leaderboard_weekly para sincronización en tiempo real
+      try {
+        await supabase.from('leaderboard_weekly').upsert({
+          firebase_uid: user.uid,
+          weekly_xp: 0,
+          league_tier: 'bronze',
+          updated_at: new Date().toISOString(),
+        });
+      } catch {}
+
       return { user, error: null };
     } catch (e: any) {
       return { user: null, error: translateFirebaseError(e.code) };
@@ -127,6 +138,9 @@ export const authService = {
       .from('profiles')
       .update(payload)
       .eq('firebase_uid', uid);
+
+    // Sincronizar automáticamente en la tabla de clasificación semanal
+    await leaderboardService.syncUserTotalXp(uid, data.xp).catch(() => {});
   },
 
   onAuthStateChange(callback: (user: User | null) => void): () => void {

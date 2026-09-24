@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
@@ -10,6 +10,8 @@ import { categoryService } from '@/src/services/categoryService';
 import { questionService } from '@/src/services/questionService';
 import { QuestionWithOptions } from '@/src/types';
 import { playCorrectSound, playIncorrectSound, playTapSound } from '@/src/services/soundService';
+import { leaderboardService } from '@/src/services/leaderboardService';
+import { questService } from '@/src/services/questService';
 
 const DURATION_SEC = 60;
 const MAX_QUESTIONS = 15;
@@ -92,13 +94,23 @@ export default function PracticeScreen() {
     };
   }, [slug, user]);
 
+  const handleFinishPractice = useCallback((count: number) => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    setFinished(true);
+    const uid = user?.uid || (user as any)?.id;
+    if (uid && count > 0) {
+      const earned = count * XP_PER_CORRECT;
+      leaderboardService.recordWeeklyXp(uid, earned).catch(() => {});
+      questService.updateQuestProgress(uid, 'xp_gain', earned).catch(() => {});
+    }
+  }, [user]);
+
   useEffect(() => {
     if (loading || finished || error) return;
     timerRef.current = setInterval(() => {
       setTimeLeft((t) => {
         if (t <= 1) {
-          if (timerRef.current) clearInterval(timerRef.current);
-          setFinished(true);
+          handleFinishPractice(correctCount);
           return 0;
         }
         return t - 1;
@@ -107,7 +119,7 @@ export default function PracticeScreen() {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [loading, finished, error]);
+  }, [loading, finished, error, correctCount, handleFinishPractice]);
 
   const currentQuestion = questions[currentIndex];
 
@@ -140,8 +152,7 @@ export default function PracticeScreen() {
     if (currentIndex + 1 < questions.length) {
       setCurrentIndex((i) => i + 1);
     } else {
-      if (timerRef.current) clearInterval(timerRef.current);
-      setFinished(true);
+      handleFinishPractice(correctCount);
     }
   }
 

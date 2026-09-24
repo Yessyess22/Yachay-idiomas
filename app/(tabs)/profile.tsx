@@ -1,7 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
+  ActivityIndicator,
   Alert,
   Image,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -52,12 +54,14 @@ const DEFAULT_LEADERBOARD: LeaderboardEntry[] = [
 
 export default function ProfileScreen() {
   const router = useRouter();
-  const { user, profile, signOut } = useAuth();
+  const { user, profile, signOut, refreshProfile } = useAuth();
   const { streakDays, xp, gems, lives, equippedOutfit, addGems, addXp } = useGame();
 
   const [activeTab, setActiveTab] = useState<ProfileTab>('expediente');
   const [quests, setQuests] = useState<DailyQuest[]>([]);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>(DEFAULT_LEADERBOARD);
+  const [loadingLeaderboard, setLoadingLeaderboard] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
   const userStreak = Math.max(1, streakDays ?? profile?.streak_count ?? 1);
   const userXp = xp ?? profile?.total_xp ?? 0;
@@ -124,6 +128,24 @@ export default function ProfileScreen() {
 
   const unlockedCount = achievements.filter((a) => a.status === 'unlocked').length;
 
+  const loadLeaderboardData = useCallback(async () => {
+    setLoadingLeaderboard(true);
+    const uid = user?.uid || (user as any)?.id;
+    const { data } = await leaderboardService.fetchWeeklyLeaderboard(uid, userXp);
+    if (data && data.length > 0) {
+      setLeaderboard(data);
+    }
+    setLoadingLeaderboard(false);
+  }, [user, userXp]);
+
+  const loadQuestsData = useCallback(async () => {
+    const uid = user?.uid || (user as any)?.id;
+    if (uid) {
+      const { data } = await questService.fetchDailyQuests(uid);
+      setQuests(data || []);
+    }
+  }, [user]);
+
   useEffect(() => {
     let isMounted = true;
     const uid = user?.uid || (user as any)?.id;
@@ -131,13 +153,13 @@ export default function ProfileScreen() {
       questService
         .fetchDailyQuests(uid)
         .then(({ data }) => {
-          if (isMounted) setQuests(data || []);
+          if (isMounted && data) setQuests(data);
         })
         .catch(() => {});
     }
 
     leaderboardService
-      .fetchWeeklyLeaderboard()
+      .fetchWeeklyLeaderboard(uid, userXp)
       .then(({ data }) => {
         if (isMounted && data && data.length > 0) {
           setLeaderboard(data);
@@ -148,7 +170,17 @@ export default function ProfileScreen() {
     return () => {
       isMounted = false;
     };
-  }, [user]);
+  }, [user, userXp, activeTab]);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await Promise.all([
+      refreshProfile(),
+      loadQuestsData(),
+      loadLeaderboardData(),
+    ]);
+    setRefreshing(false);
+  };
 
   const handleClaimQuest = async (q: DailyQuest) => {
     const uid = user?.uid || (user as any)?.id;
@@ -156,10 +188,13 @@ export default function ProfileScreen() {
     const res = await questService.claimQuestReward(uid, q.id);
     if (res.success) {
       if (res.gemReward > 0) addGems(res.gemReward);
-      if (res.xpReward > 0) addXp(res.xpReward);
+      if (res.xpReward > 0) {
+        addXp(res.xpReward);
+        leaderboardService.recordWeeklyXp(uid, res.xpReward).catch(() => {});
+      }
       Alert.alert('¡Recompensa Reclamada! 🎉', `+${res.xpReward} XP y +${res.gemReward} Gemas 💎`);
-      const { data } = await questService.fetchDailyQuests(uid);
-      setQuests(data || []);
+      loadQuestsData();
+      loadLeaderboardData();
     }
   };
 
@@ -191,6 +226,14 @@ export default function ProfileScreen() {
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={handleRefresh}
+            colors={[TEAL]}
+            tintColor={TEAL}
+          />
+        }
       >
         {/* Tarjeta Superior de Identidad del Alumno */}
         <Card radius={22} style={styles.profileCard}>
@@ -480,10 +523,15 @@ export default function ProfileScreen() {
             <View style={styles.leagueBanner}>
               <Text style={styles.leagueBannerEmoji}>👑</Text>
               <View style={styles.leagueBannerInfo}>
-                <Text style={styles.leagueBannerTag}>COMPETICIÓN SEMANAL</Text>
-                <Text style={styles.leagueBannerTitle}>Liga de Oro • Tawantinsuyu</Text>
+                <View style={styles.bannerTagRow}>
+                  <Text style={styles.leagueBannerTag}>COMPETICIÓN SEMANAL</Text>
+                  <View style={styles.syncStatusBadge}>
+                    <Text style={styles.syncStatusText}>🟢 Sincronizado en tiempo real</Text>
+                  </View>
+                </View>
+                <Text style={styles.leagueBannerTitle}>Liga Andina • Tawantinsuyu</Text>
                 <Text style={styles.leagueBannerDesc}>
-                  Los 3 mejores estudiantes ascienden de división y reciben gemas sagradas cada domingo.
+                  Los estudiantes con mayor XP ascienden de división y reciben gemas sagradas cada semana.
                 </Text>
               </View>
             </View>
@@ -494,9 +542,9 @@ export default function ProfileScreen() {
               <View style={[styles.podiumColumn, styles.podiumSecond]}>
                 <Text style={styles.podiumMedal}>🥈</Text>
                 <Text style={styles.podiumName} numberOfLines={1}>
-                  {leaderboard[1]?.username || 'Kuntur Inca'}
+                  {leaderboard[1]?.username || 'Por clasificar'}
                 </Text>
-                <Text style={styles.podiumXp}>{leaderboard[1]?.weekly_xp || 380} XP</Text>
+                <Text style={styles.podiumXp}>{leaderboard[1]?.weekly_xp ?? 0} XP</Text>
                 <View style={[styles.podiumBlock, { height: 60, backgroundColor: '#D1D5DB' }]}>
                   <Text style={styles.podiumRankNum}>#2</Text>
                 </View>
@@ -506,9 +554,9 @@ export default function ProfileScreen() {
               <View style={[styles.podiumColumn, styles.podiumFirst]}>
                 <Text style={styles.podiumMedal}>🥇</Text>
                 <Text style={styles.podiumName} numberOfLines={1}>
-                  {leaderboard[0]?.username || 'Yachay Master'}
+                  {leaderboard[0]?.username || 'Por clasificar'}
                 </Text>
-                <Text style={styles.podiumXp}>{leaderboard[0]?.weekly_xp || 450} XP</Text>
+                <Text style={styles.podiumXp}>{leaderboard[0]?.weekly_xp ?? 0} XP</Text>
                 <View style={[styles.podiumBlock, { height: 85, backgroundColor: GOLD }]}>
                   <Text style={[styles.podiumRankNum, { color: '#FFFFFF' }]}>#1</Text>
                 </View>
@@ -518,9 +566,9 @@ export default function ProfileScreen() {
               <View style={[styles.podiumColumn, styles.podiumThird]}>
                 <Text style={styles.podiumMedal}>🥉</Text>
                 <Text style={styles.podiumName} numberOfLines={1}>
-                  {leaderboard[2]?.username || 'Amaru'}
+                  {leaderboard[2]?.username || 'Por clasificar'}
                 </Text>
-                <Text style={styles.podiumXp}>{leaderboard[2]?.weekly_xp || 310} XP</Text>
+                <Text style={styles.podiumXp}>{leaderboard[2]?.weekly_xp ?? 0} XP</Text>
                 <View style={[styles.podiumBlock, { height: 45, backgroundColor: '#FDBA74' }]}>
                   <Text style={styles.podiumRankNum}>#3</Text>
                 </View>
@@ -532,10 +580,19 @@ export default function ProfileScreen() {
               <Text style={styles.sectionTitle}>📊 Tabla Semanal de Posiciones</Text>
             </View>
 
-            <Card padding={10} style={styles.cardWrapper}>
-              {leaderboard.map((entry, idx) => {
+            {loadingLeaderboard && leaderboard.length === 0 ? (
+              <View style={styles.loadingLeaderboardWrap}>
+                <ActivityIndicator size="small" color={TEAL} />
+                <Text style={styles.loadingLeaderboardText}>
+                  Sincronizando clasificación con la base de datos...
+                </Text>
+              </View>
+            ) : (
+              <Card padding={10} style={styles.cardWrapper}>
+                {leaderboard.map((entry, idx) => {
                   const isCurrentUser =
                     entry.firebase_uid === user?.uid ||
+                    (user as any)?.id === entry.firebase_uid ||
                     entry.username === username;
 
                   return (
@@ -556,17 +613,18 @@ export default function ProfileScreen() {
                             isCurrentUser && styles.leaderboardUsernameCurrent,
                           ]}
                         >
-                          {entry.username} {isCurrentUser ? '(Tú)' : ''}
+                          {entry.username} {isCurrentUser ? '🌟 (Tú)' : ''}
                         </Text>
                         <Text style={styles.leaderboardTier}>
                           División {entry.league_tier ? entry.league_tier.toUpperCase() : 'ORO'}
                         </Text>
                       </View>
-                      <Text style={styles.leaderboardXpText}>{entry.weekly_xp} XP</Text>
+                      <Text style={styles.leaderboardXpText}>{entry.weekly_xp ?? 0} XP</Text>
                     </View>
                   );
                 })}
-            </Card>
+              </Card>
+            )}
           </View>
         )}
 
@@ -1183,5 +1241,33 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '900',
     color: GOLD_DARK,
+  },
+  bannerTagRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  syncStatusBadge: {
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+  },
+  syncStatusText: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#D1FAE5',
+  },
+  loadingLeaderboardWrap: {
+    paddingVertical: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  loadingLeaderboardText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: TEXT_MUTED,
   },
 });

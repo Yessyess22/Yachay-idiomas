@@ -131,7 +131,8 @@ export default function LogrosScreen() {
     let isMounted = true;
     (async () => {
       try {
-        const { data } = await leaderboardService.fetchWeeklyLeaderboard();
+        const uid = user?.uid || (user as any)?.id;
+        const { data } = await leaderboardService.fetchWeeklyLeaderboard(uid, userXp);
         if (isMounted && data && data.length > 0) {
           setEntries(data);
         }
@@ -142,7 +143,7 @@ export default function LogrosScreen() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [user, userXp, activeTab]);
 
   return (
     <View style={styles.container}>

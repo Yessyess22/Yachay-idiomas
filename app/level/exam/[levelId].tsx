@@ -1,8 +1,11 @@
 import { Illustrations } from '@/constants/illustrations';
 import { BrandColors } from '@/src/constants/theme';
 import { useAuth } from '@/src/context/AuthContext';
+import { useGame } from '@/src/context/GameContext';
 import { examService } from '@/src/services/examService';
 import { progressService } from '@/src/services/progressService';
+import { leaderboardService } from '@/src/services/leaderboardService';
+import { questService } from '@/src/services/questService';
 import { ExamWithQuestions, QuestionOption } from '@/src/types';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -36,6 +39,7 @@ export default function LevelExamScreen() {
   const [error, setError] = useState('');
 
   const { user } = useAuth();
+  const { addXp, addGems } = useGame();
   const router = useRouter();
 
   const { style: yachiAnimStyle, bounce: bounceYachi, celebrate: celebrateYachi } = useYachiBounce();
@@ -94,6 +98,8 @@ export default function LevelExamScreen() {
       if (didPass) {
         celebrateYachi();
         playCompleteSound();
+        addXp(50);
+        addGems(30);
       } else {
         playIncorrectSound();
       }
@@ -102,6 +108,8 @@ export default function LevelExamScreen() {
         await progressService.recordExamResult(user.uid, parsedLevelId, score, exam.pass_threshold);
         if (didPass) {
           await progressService.unlockNextLevel(user.uid, parsedLevelId + 1);
+          leaderboardService.recordWeeklyXp(user.uid, 50).catch(() => {});
+          questService.updateQuestProgress(user.uid, 'xp_gain', 50).catch(() => {});
         }
       }
 
@@ -156,6 +164,11 @@ export default function LevelExamScreen() {
         <Text style={styles.resultThreshold}>
           Mínimo requerido: {exam.pass_threshold}%
         </Text>
+        {passed && (
+          <Text style={styles.rewardsText}>
+            🎉 Recompensa: +50 XP • +30 Gemas 💎
+          </Text>
+        )}
         <TouchableOpacity
           style={[styles.btn, passed ? styles.btnSuccess : styles.btnDanger]}
           onPress={() => router.replace('/(tabs)')}
@@ -344,7 +357,17 @@ const styles = StyleSheet.create({
   resultYachi: { width: 150, height: 150, marginBottom: 20 },
   resultTitle: { fontSize: 28, fontWeight: 'bold', color: '#222', marginBottom: 12 },
   resultScore: { fontSize: 18, color: '#444', marginBottom: 6 },
-  resultThreshold: { fontSize: 14, color: '#888', marginBottom: 24 },
+  resultThreshold: { fontSize: 14, color: '#888', marginBottom: 16 },
+  rewardsText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#0E5A60',
+    backgroundColor: '#DDF1ED',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    marginBottom: 20,
+  },
   savingText: { marginTop: 12, fontSize: 15, color: '#666' },
   errorText: { color: BrandColors.danger, fontSize: 16, marginBottom: 16, textAlign: 'center' },
 });

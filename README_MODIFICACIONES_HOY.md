@@ -152,14 +152,44 @@ Colección completa de 6 insignias y reliquias andinas con seguimiento en tiempo
 
 ---
 
-## 7. 🗄️ Estado de la Base de Datos
 
-- **Integridad del Esquema (DDL)**: **100% INTACTO**. Ninguna tabla, columna o relación de las migraciones SQL de Supabase fue modificada o eliminada.
-- **Relaciones y Claves Foráneas**: Todas las relaciones en Tercera Forma Normal (3FN) (`categories` ➡️ `lessons` ➡️ `questions` ➡️ `question_options`, `levels` ➡️ `exams`, `profiles` ➡️ `lesson_progress`, `user_quests`, `user_badges`) continúan respetando las restricciones de integridad y borrado en cascada (`ON DELETE CASCADE`).
+## 7. 🔄 Sincronización en Tiempo Real de la Liga Andina con Supabase
+
+Se resolvió la desincronización que existía entre la Liga Andina y los usuarios reales de la base de datos de Supabase:
+
+### A. Sincronización Automática entre `profiles` y `leaderboard_weekly`
+- Anteriormente, la tabla `leaderboard_weekly` en Supabase no contenía registros de usuarios, por lo que la interfaz mostraba usuarios mock (`Yachay Master`, `Kuntur Inca`, etc.).
+- Se actualizó [`src/services/leaderboardService.ts`](file:///c:/Users/alejandro/Desktop/Yachai-idiomas/src/services/leaderboardService.ts) para realizar una reconciliación inteligente en tiempo real:
+  1. Consulta todos los usuarios registrados en la tabla `profiles`.
+  2. Consulta la tabla `leaderboard_weekly`.
+  3. Mapea todos los perfiles de la base de datos calculando dinámicamente su división según XP ($\ge 1000$: Oro, $\ge 250$: Plata, $< 250$: Bronce).
+  4. Sincroniza en segundo plano cualquier perfil faltante o actualizado hacia `leaderboard_weekly` vía `upsert`.
+  5. Si el usuario activo tiene XP reciente en sesión (`useGame`), se le otorga prioridad para reflejar su posición instantáneamente.
+
+### B. Propagación Completa de XP en Toda la App
+- **Lecciones** ([`app/lesson/[id].tsx`](file:///c:/Users/alejandro/Desktop/Yachai-idiomas/app/lesson/%5Bid%5D.tsx)): registra progreso en `lesson_progress`, suma 10 XP semanales con `leaderboardService.recordWeeklyXp` y actualiza misiones diarias.
+- **Exámenes de Nivel** ([`app/level/exam/[levelId].tsx`](file:///c:/Users/alejandro/Desktop/Yachai-idiomas/app/level/exam/%5BlevelId%5D.tsx)): al aprobar ($\ge 70\%$), se otorgan **+50 XP** y **+30 Gemas** vía `useGame`, sincronizando inmediatamente con `leaderboard_weekly` y misiones.
+- **Modo Práctica** ([`app/practice/[slug].tsx`](file:///c:/Users/alejandro/Desktop/Yachai-idiomas/app/practice/%5Bslug%5D.tsx)): al finalizar, los XP ganados por respuestas correctas se sincronizan de inmediato con `recordWeeklyXp`.
+- **Misiones Diarias Reclamadas** ([`app/(tabs)/profile.tsx`](file:///c:/Users/alejandro/Desktop/Yachai-idiomas/app/%28tabs%29/profile.tsx)): al reclamar misiones con recompensa de XP, se persiste en la liga semanal y se recarga el ranking.
+- **Actualización de Estado Global** ([`src/services/authService.ts`](file:///c:/Users/alejandro/Desktop/Yachai-idiomas/src/services/authService.ts)): `updateGameState` ahora sincroniza de manera automática `profiles` y `leaderboard_weekly` simultáneamente.
+- **Registro de Nuevos Usuarios**: al crear una cuenta en `authService.signUp`, se inicializa de inmediato su fila en `leaderboard_weekly` con 0 XP y división Bronce.
+
+### C. Experiencia de Usuario y Podio en `profile.tsx`
+- **Podio con Usuarios Reales**: el 1º, 2º y 3º puesto ahora muestran directamente a los usuarios de la base de datos (`Yess` con 1090 XP 🥇, `Alejandro Segovia` con 320 XP 🥈, `ale` con su XP real 🥉).
+- **Corrección de Bug de Fallback Falsy**: se sustituyó el operador `||` por `?? 0`, corrigiendo el error que provocaba que usuarios con 0 XP mostraran números ficticios como 380 XP o 450 XP.
+- **Pull-to-Refresh**: se implementó `RefreshControl` nativo en el `ScrollView` de Perfil para permitir al usuario deslizar hacia abajo y refrescar en cualquier momento su perfil, misiones y Liga Andina directamente desde Supabase.
+- **Insignia de Estado en Vivo**: se incorporó en el banner de la Liga la etiqueta `🟢 Sincronizado en tiempo real`.
 
 ---
 
-## 8. 🧪 Métricas de Calidad y Validación
+## 8. 🗄️ Estado de la Base de Datos
+
+- **Integridad del Esquema (DDL)**: **100% INTACTO**. Ninguna tabla, columna o relación de las migraciones SQL de Supabase fue modificada o eliminada.
+- **Relaciones y Claves Foráneas**: Todas las relaciones en Tercera Forma Normal (3FN) (`categories` ➡️ `lessons` ➡️ `questions` ➡️ `question_options`, `levels` ➡️ `exams`, `profiles` ➡️ `lesson_progress`, `user_quests`, `user_badges`, `leaderboard_weekly`) continúan respetando las restricciones de integridad y borrado en cascada (`ON DELETE CASCADE`).
+
+---
+
+## 9. 🧪 Métricas de Calidad y Validación
 
 - **TypeScript**: `npx tsc --noEmit` ➡️ **0 errores** ✅
 - **ESLint**: `npm run lint` ➡️ **0 errores y 0 advertencias** ✅
