@@ -21,7 +21,6 @@ const GOLD = '#E5A00D';
 const PARCHMENT = '#F8F5EE';
 const BORDER_COLOR = '#ECE5D8';
 
-/* ─── Logros estáticos ─── */
 interface Achievement {
   id: number;
   title: string;
@@ -30,45 +29,6 @@ interface Achievement {
   status: 'unlocked' | 'progress' | 'locked';
   progress?: number;
 }
-
-const ACHIEVEMENTS: Achievement[] = [
-  {
-    id: 1,
-    title: 'Principiante Quechua',
-    description: 'Completaste las primeras 5 lecciones',
-    icon: require('@/assets/images/logros/logro_principiante_chullo.png'),
-    status: 'unlocked',
-  },
-  {
-    id: 2,
-    title: 'Hablante Activo',
-    description: 'Mantén una racha de 10 días o más',
-    icon: require('@/assets/images/logros/logro_hablante_corona.png'),
-    status: 'unlocked',
-  },
-  {
-    id: 3,
-    title: 'Maestro Yachay',
-    description: 'Domina 100 palabras de vocabulario',
-    icon: require('@/assets/images/logros/logro_maestro_sol.png'),
-    status: 'progress',
-    progress: 65,
-  },
-  {
-    id: 4,
-    title: 'Gran Ahorrador',
-    description: 'Acumula 1,000 Yachay Coins en tu tesoro',
-    icon: require('@/assets/images/logros/moneda_yachay_coin.png'),
-    status: 'unlocked',
-  },
-  {
-    id: 5,
-    title: 'Chullo Coleccionable',
-    description: 'Completa todos los niveles del Abecedario',
-    icon: require('@/assets/images/logros/item_chullo_coleccionable.png'),
-    status: 'locked',
-  },
-];
 
 type Tab = 'achievements' | 'leaderboard';
 
@@ -118,7 +78,7 @@ export default function LogrosScreen() {
   const { user, profile } = useAuth();
   const [activeTab, setActiveTab] = useState<Tab>('achievements');
   const [entries, setEntries] = useState<LeaderboardEntry[]>(DEFAULT_LEADERBOARD);
-  const [loading, setLoading] = useState(false);
+  const [loading] = useState(false);
 
   const userStreak = Math.max(1, streakDays ?? profile?.streak_count ?? 1);
   const userXp = xp ?? profile?.total_xp ?? 0;
@@ -168,20 +128,21 @@ export default function LogrosScreen() {
   ];
 
   useEffect(() => {
-    loadLeaderboard();
+    let isMounted = true;
+    (async () => {
+      try {
+        const { data } = await leaderboardService.fetchWeeklyLeaderboard();
+        if (isMounted && data && data.length > 0) {
+          setEntries(data);
+        }
+      } catch {
+        // Usar lista por defecto si falla red
+      }
+    })();
+    return () => {
+      isMounted = false;
+    };
   }, []);
-
-  async function loadLeaderboard() {
-    try {
-      setLoading(true);
-      const { data } = await leaderboardService.fetchWeeklyLeaderboard();
-      if (data && data.length > 0) setEntries(data);
-    } catch {
-      // Usar lista por defecto si falla red
-    } finally {
-      setLoading(false);
-    }
-  }
 
   return (
     <View style={styles.container}>

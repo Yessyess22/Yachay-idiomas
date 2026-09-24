@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 interface PairItem {
@@ -14,27 +14,49 @@ interface MatchingPairsProps {
   disabled?: boolean;
 }
 
+function deterministicShuffle<T>(arr: T[], seed: string): T[] {
+  let hash = 0;
+  for (let i = 0; i < seed.length; i++) {
+    hash = (hash << 5) - hash + seed.charCodeAt(i);
+    hash |= 0;
+  }
+  const result = [...arr];
+  for (let i = result.length - 1; i > 0; i--) {
+    hash = (hash * 9301 + 49297) % 233280;
+    const j = Math.abs(hash) % (i + 1);
+    const temp = result[i];
+    result[i] = result[j];
+    result[j] = temp;
+  }
+  return result;
+}
+
 export function MatchingPairsExercise({ pairs, onComplete, disabled }: MatchingPairsProps) {
   const [selectedQuechua, setSelectedQuechua] = useState<PairItem | null>(null);
   const [selectedSpanish, setSelectedSpanish] = useState<PairItem | null>(null);
   const [matchedIds, setMatchedIds] = useState<Set<string>>(new Set());
   const [errorPair, setErrorPair] = useState<string | null>(null);
 
-  const quechuaItems: PairItem[] = pairs.map((p, i) => ({
-    id: `qu-${i}`,
-    text: p.qu,
-    matchId: `pair-${i}`,
-    lang: 'qu' as const,
-  }));
+  const quechuaItems: PairItem[] = useMemo(
+    () =>
+      pairs.map((p, i) => ({
+        id: `qu-${i}`,
+        text: p.qu,
+        matchId: `pair-${i}`,
+        lang: 'qu' as const,
+      })),
+    [pairs]
+  );
 
-  const spanishItems: PairItem[] = pairs
-    .map((p, i) => ({
+  const spanishItems: PairItem[] = useMemo(() => {
+    const raw = pairs.map((p, i) => ({
       id: `es-${i}`,
       text: p.es,
       matchId: `pair-${i}`,
       lang: 'es' as const,
-    }))
-    .sort(() => Math.random() - 0.5);
+    }));
+    return deterministicShuffle(raw, pairs.map((p) => p.es).join('-'));
+  }, [pairs]);
 
   function handleSelect(item: PairItem) {
     if (disabled || matchedIds.has(item.matchId)) return;

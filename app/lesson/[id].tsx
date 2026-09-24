@@ -18,6 +18,8 @@ import { Illustrations } from '@/constants/illustrations';
 import { useAuth } from '@/src/context/AuthContext';
 import { useGame } from '@/src/context/GameContext';
 import { questionService } from '@/src/services/questionService';
+import { leaderboardService } from '@/src/services/leaderboardService';
+import { questService } from '@/src/services/questService';
 import { saveQuestionsToCache, loadQuestionsFromCache } from '@/src/services/offlineCache';
 import { QuestionOption, QuestionWithOptions } from '@/src/types';
 import { AudioPronounceButton } from '@/components/yachay/audio-pronounce-button';
@@ -419,14 +421,50 @@ export default function LessonScreen() {
   const [sparkleKey, setSparkleKey] = useState(0);
 
   const { user, refreshProfile } = useAuth();
-  const { lives, xp, streakDays, checkAnswer, addGems } = useGame();
+  const { lives, streakDays, checkAnswer, addGems } = useGame();
   const router = useRouter();
 
   // Animación de la mascota Yachi (rebote/celebración)
   const { style: yachiAnimStyle, bounce: bounceYachi, celebrate: celebrateYachi } = useYachiBounce();
 
   useEffect(() => {
-    if (lessonId) loadLessonData();
+    let isMounted = true;
+    if (!lessonId) return;
+
+    (async () => {
+      try {
+        let qs: QuestionWithOptions[] | null = await loadQuestionsFromCache<QuestionWithOptions[]>(String(lessonId));
+
+        if (!qs) {
+          const { data, error } = await questionService.fetchQuestionsByLesson(lessonId);
+          if (!isMounted) return;
+          if (error) {
+            setError(error);
+            setLoading(false);
+            return;
+          }
+          qs = data ?? [];
+          if (qs.length > 0) {
+            await saveQuestionsToCache(String(lessonId), qs);
+          }
+        }
+
+        if (!isMounted) return;
+        const vCards = VOCAB_OVERRIDES[lessonId] ?? buildVocabCards(qs);
+        setExercises(buildExerciseList(qs, vCards));
+      } catch {
+        if (isMounted) {
+          setError('No se pudo cargar la lección. Verifica tu conexión a internet.');
+        }
+      }
+      if (isMounted) {
+        setLoading(false);
+      }
+    })();
+
+    return () => {
+      isMounted = false;
+    };
   }, [lessonId]);
 
   useEffect(() => {
@@ -439,45 +477,16 @@ export default function LessonScreen() {
     await setSoundEnabled(next);
   }
 
-  async function loadLessonData() {
-    setLoading(true);
-    setError('');
-    try {
-      // Intentar cargar desde caché offline primero
-      let qs: QuestionWithOptions[] | null = await loadQuestionsFromCache<QuestionWithOptions[]>(String(lessonId));
-
-      if (!qs) {
-        // Sin caché válida: descargar de Supabase
-        const { data, error } = await questionService.fetchQuestionsByLesson(lessonId);
-        if (error) {
-          setError(error);
-          setLoading(false);
-          return;
-        }
-        qs = data ?? [];
-        // Guardar en caché para próxima vez sin internet
-        if (qs.length > 0) {
-          await saveQuestionsToCache(String(lessonId), qs);
-        }
-      }
-
-      const vCards = VOCAB_OVERRIDES[lessonId] ?? buildVocabCards(qs);
-      setExercises(buildExerciseList(qs, vCards));
-    } catch {
-      setError('No se pudo cargar la lección. Verifica tu conexión a internet.');
-    }
-    setLoading(false);
-  }
-
   // ─── Quiz & Ejercicios ────────────────────────────────────
   const currentExercise = exercises[currentIndex];
+  const listeningWord = currentExercise?.kind === 'listening' ? currentExercise.targetWord : undefined;
 
   // Reproduce automáticamente el audio la primera vez que aparece un ejercicio de listening
   useEffect(() => {
-    if (currentExercise?.kind === 'listening') {
-      playQuechuaAudio(currentExercise.targetWord).catch(() => {});
+    if (listeningWord) {
+      playQuechuaAudio(listeningWord).catch(() => {});
     }
-  }, [currentExercise?.id]);
+  }, [currentExercise?.id, listeningWord]);
 
   function handleSelectOption(optId: number) {
     if (isAnswered) return;
@@ -571,6 +580,9 @@ export default function LessonScreen() {
       const uid = user?.uid || (user as any)?.id;
       if (uid) {
         await questionService.recordLessonProgress(lessonId, uid, 10);
+        leaderboardService.recordWeeklyXp(uid, 10).catch(() => {});
+        questService.updateQuestProgress(uid, 'lesson_count', 1).catch(() => {});
+        questService.updateQuestProgress(uid, 'xp_gain', 10).catch(() => {});
         await refreshProfile();
       }
     }

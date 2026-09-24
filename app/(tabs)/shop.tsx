@@ -8,13 +8,13 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useAuth } from '@/src/context/AuthContext';
 import { useGame } from '@/src/context/GameContext';
+import { shopService } from '@/src/services/shopService';
 import { YachayTopBar } from '@/components/yachay/yachay-top-bar';
 import { Card } from '@/components/yachay/card';
 
 const TEAL = '#1B8B8C';
-const TEAL_DARK = '#0E4D55';
-const GOLD = '#E5A00D';
 const PARCHMENT = '#F8F5EE';
 
 interface ShopItem {
@@ -62,8 +62,9 @@ const SHOP_ITEMS: ShopItem[] = [
 ];
 
 export default function ShopScreen() {
-  const { gems, consumeGems, restoreLives, equipOutfit } = useGame();
-  const [buyingId, setBuyingId] = useState<string | null>(null);
+  const { user } = useAuth();
+  const { gems, consumeGems, restoreLives, equipOutfit, activateDoubleXp } = useGame();
+  const [, setBuyingId] = useState<string | null>(null);
 
   const handleBuy = (item: ShopItem) => {
     if (gems < item.cost) {
@@ -81,7 +82,7 @@ export default function ShopScreen() {
         { text: 'Cancelar', style: 'cancel' },
         {
           text: 'Comprar',
-          onPress: () => {
+          onPress: async () => {
             setBuyingId(item.id);
             const purchased = consumeGems(item.cost);
             if (!purchased) {
@@ -89,22 +90,42 @@ export default function ShopScreen() {
               setBuyingId(null);
               return;
             }
+
             if (item.type === 'hearts') {
               restoreLives();
-            }
-            if (item.type === 'outfit') {
-              // Equipar el accesorio cosmético en el perfil de Yachi
+            } else if (item.type === 'outfit') {
               equipOutfit(item.id);
+            } else if (item.type === 'double_xp') {
+              activateDoubleXp();
             }
+
+            if (user?.uid) {
+              shopService.buyItem(
+                user.uid,
+                {
+                  id: item.id === 'refill_hearts' ? 1 : item.id === 'streak_freeze' ? 2 : 3,
+                  name: item.title,
+                  description: item.description,
+                  price_gems: item.cost,
+                  item_type: item.type === 'hearts' ? 'refill_lives' : item.type === 'streak_freeze' ? 'streak_freeze' : 'xp_boost',
+                  icon_name: item.id,
+                },
+                gems
+              ).catch(() => {});
+            }
+
             setTimeout(() => {
               setBuyingId(null);
-              Alert.alert(
-                '¡Adquirido con Éxito! 🎉',
-                item.type === 'outfit'
-                  ? `Has equipado "${item.title}" en tu perfil. ¡Visita tu perfil para verlo! 🦙`
-                  : `Has obtenido "${item.title}".`
-              );
-            }, 400);
+              let msg = `Has obtenido "${item.title}".`;
+              if (item.type === 'outfit') {
+                msg = `Has equipado "${item.title}" en tu perfil. ¡Visita tu perfil para verlo! 🦙`;
+              } else if (item.type === 'double_xp') {
+                msg = '¡Doble XP activado! Ganarás el doble de experiencia en tus respuestas.';
+              } else if (item.type === 'streak_freeze') {
+                msg = '¡Amuleto de hielo adquirido! Tu racha está protegida.';
+              }
+              Alert.alert('¡Adquirido con Éxito! 🎉', msg);
+            }, 300);
           },
         },
       ]

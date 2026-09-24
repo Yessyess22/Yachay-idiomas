@@ -4,7 +4,6 @@ import { useRouter } from 'expo-router';
 import { Illustrations } from '@/constants/illustrations';
 
 const TEAL = '#1B8B8C';
-const CREAM = '#FAF7F2';
 const GOLD = '#D48B0A';
 
 export default function ModalScreen() {

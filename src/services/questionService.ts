@@ -1,6 +1,11 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '@/src/services/supabase';
 import { QuestionOption, QuestionWithOptions } from '@/src/types';
+import {
+  queuePendingLessonProgress,
+  getPendingLessonProgress,
+  clearPendingLessonProgress,
+} from '@/src/services/offlineCache';
 
 const DEFAULT_QUESTIONS: Record<number, QuestionWithOptions[]> = {
   1: [
@@ -515,6 +520,7 @@ export const questionService = {
     userId: string,
     xpEarned: number = 10
   ): Promise<{ success: boolean; error: string | null }> {
+    const completedAt = new Date().toISOString();
     try {
       const storageKey = `@yachay_completed_lessons_${userId}`;
       const localData = await AsyncStorage.getItem(storageKey);
@@ -528,21 +534,51 @@ export const questionService = {
     }
 
     try {
-      await supabase.from('lesson_progress').upsert({
+      const { error } = await supabase.from('lesson_progress').upsert({
         firebase_uid: userId,
         lesson_id: lessonId,
         completed: true,
         xp_earned: xpEarned,
-        completed_at: new Date().toISOString(),
+        completed_at: completedAt,
       });
-    } catch (e) {
-      // Ignorar error en modo local
+      if (error) {
+        await queuePendingLessonProgress(userId, { lessonId, xpEarned, completedAt });
+      }
+    } catch {
+      await queuePendingLessonProgress(userId, { lessonId, xpEarned, completedAt });
     }
 
     return { success: true, error: null };
   },
 
+  async syncPendingProgress(userId: string): Promise<void> {
+    try {
+      const pending = await getPendingLessonProgress(userId);
+      if (pending.length === 0) return;
+
+      for (const item of pending) {
+        const { error } = await supabase.from('lesson_progress').upsert({
+          firebase_uid: userId,
+          lesson_id: item.lessonId,
+          completed: true,
+          xp_earned: item.xpEarned,
+          completed_at: item.completedAt,
+        });
+        if (error) {
+          // Si falla, detener y mantener la cola restante
+          return;
+        }
+      }
+      await clearPendingLessonProgress(userId);
+    } catch (err) {
+      console.warn('[questionService] Error al sincronizar progreso pendiente:', err);
+    }
+  },
+
   async getCompletedLessonIds(userId: string): Promise<number[]> {
+    // Intentar sincronizar progreso pendiente primero
+    this.syncPendingProgress(userId).catch(() => {});
+
     const set = new Set<number>();
     try {
       const storageKey = `@yachay_completed_lessons_${userId}`;

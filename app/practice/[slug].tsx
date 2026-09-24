@@ -49,11 +49,48 @@ export default function PracticeScreen() {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
-    if (slug) loadData();
+    let isMounted = true;
+    if (!slug) return;
+
+    (async () => {
+      const { data: category, error: catErr } = await categoryService.fetchCategoryBySlug(slug as string);
+      if (!isMounted) return;
+      if (catErr || !category) {
+        setError(catErr || 'Categoría no encontrada');
+        setLoading(false);
+        return;
+      }
+
+      const userId = user?.uid || (user as any)?.id;
+      const { data: lessons } = await categoryService.fetchLessonsWithProgress(category.id, userId);
+      if (!isMounted) return;
+      const completedIds = (lessons ?? []).filter((l) => l.progress?.completed).map((l) => l.id);
+
+      if (completedIds.length === 0) {
+        setError('Completa al menos una lección de esta categoría para poder practicar.');
+        setLoading(false);
+        return;
+      }
+
+      const results = await Promise.all(completedIds.map((id) => questionService.fetchQuestionsByLesson(id)));
+      if (!isMounted) return;
+      const allQuestions = results.flatMap((r) => r.data ?? []);
+
+      if (allQuestions.length === 0) {
+        setError('No encontramos preguntas para practicar en esta categoría todavía.');
+        setLoading(false);
+        return;
+      }
+
+      setQuestions(shuffle(allQuestions).slice(0, MAX_QUESTIONS));
+      setLoading(false);
+    })();
+
     return () => {
+      isMounted = false;
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [slug]);
+  }, [slug, user]);
 
   useEffect(() => {
     if (loading || finished || error) return;
@@ -71,40 +108,6 @@ export default function PracticeScreen() {
       if (timerRef.current) clearInterval(timerRef.current);
     };
   }, [loading, finished, error]);
-
-  async function loadData() {
-    setLoading(true);
-    setError('');
-
-    const { data: category, error: catErr } = await categoryService.fetchCategoryBySlug(slug as string);
-    if (catErr || !category) {
-      setError(catErr || 'Categoría no encontrada');
-      setLoading(false);
-      return;
-    }
-
-    const userId = user?.uid || (user as any)?.id;
-    const { data: lessons } = await categoryService.fetchLessonsWithProgress(category.id, userId);
-    const completedIds = (lessons ?? []).filter((l) => l.progress?.completed).map((l) => l.id);
-
-    if (completedIds.length === 0) {
-      setError('Completa al menos una lección de esta categoría para poder practicar.');
-      setLoading(false);
-      return;
-    }
-
-    const results = await Promise.all(completedIds.map((id) => questionService.fetchQuestionsByLesson(id)));
-    const allQuestions = results.flatMap((r) => r.data ?? []);
-
-    if (allQuestions.length === 0) {
-      setError('No encontramos preguntas para practicar en esta categoría todavía.');
-      setLoading(false);
-      return;
-    }
-
-    setQuestions(shuffle(allQuestions).slice(0, MAX_QUESTIONS));
-    setLoading(false);
-  }
 
   const currentQuestion = questions[currentIndex];
 

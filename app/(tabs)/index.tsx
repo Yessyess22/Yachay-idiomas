@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
   Image,
   ImageBackground,
   ScrollView,
@@ -13,19 +12,14 @@ import {
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/src/context/AuthContext';
 import { useGame } from '@/src/context/GameContext';
-import { categoryService } from '@/src/services/categoryService';
 import { questionService } from '@/src/services/questionService';
-import { Category } from '@/src/types';
+import { progressService } from '@/src/services/progressService';
 import { YachayTopBar } from '@/components/yachay/yachay-top-bar';
 import { Card } from '@/components/yachay/card';
 import { ProgressBar } from '@/components/yachay/progress-bar';
-import { supabase } from '@/src/services/supabase';
 
 const TEAL = '#1B8B8C';
-const TEAL_DARK = '#0E4D55';
-const CREAM = '#F7F4EB';
 const GREEN = '#27AE60';
-const GREEN_DARK = '#1E8449';
 const BLUE = '#2980B9';
 const ORANGE = '#E67E22';
 const PURPLE = '#8E44AD';
@@ -146,103 +140,114 @@ export default function HomeScreen() {
   const sideCardWidth = isDesktop ? 135 : Math.max(98, Math.min(115, (width - 150) / 2));
 
   const [nodes, setNodes] = useState<LessonNode[]>(INITIAL_SERPENTINE_NODES);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadData();
+    let isMounted = true;
+
+    (async () => {
+      // Consulta de lecciones y exámenes aprobados (tanto en AsyncStorage local como en Supabase)
+      const uid = user?.uid || (user as any)?.id;
+      let completedLessonIds = new Set<number>();
+      let passedLevelIds = new Set<number>();
+
+      if (uid) {
+        try {
+          const [lessonIds, passedLevels] = await Promise.all([
+            questionService.getCompletedLessonIds(uid),
+            progressService.fetchPassedLevels(uid),
+          ]);
+          completedLessonIds = new Set(lessonIds);
+          passedLevelIds = passedLevels;
+        } catch (e) {
+          console.warn('Error fetching completed progress:', e);
+        }
+      }
+
+      if (!isMounted) return;
+
+      // Progresión estricta por niveles:
+      // Nivel 1 (Abecedario): Requiere Lecciones 1 (Vocales) Y 2 (Consonantes)
+      const allLessonsL1 = completedLessonIds.has(1) && completedLessonIds.has(2);
+      const exam1Passed = passedLevelIds.has(1);
+
+      // Nivel 2 (Números): Requiere Examen 1 aprobado + Lecciones 3 (1-5) Y 4 (6-10)
+      const allLessonsL2 = completedLessonIds.has(3) && completedLessonIds.has(4);
+      const exam2Passed = passedLevelIds.has(2);
+
+      // Nivel 3 (Palabras): Requiere Examen 2 aprobado + Lecciones 5 (Saludos) Y 6 (Familia)
+      const allLessonsL3 = completedLessonIds.has(5) && completedLessonIds.has(6);
+      const exam3Passed = passedLevelIds.has(3);
+
+      const updatedNodes = INITIAL_SERPENTINE_NODES.map((node) => {
+        // Nivel 1: Achahala (Lecciones)
+        if (node.id === 1) {
+          return {
+            ...node,
+            completed: allLessonsL1,
+            active: !allLessonsL1,
+            locked: false,
+          };
+        }
+        // Examen Nivel 1: Solo se desbloquea al terminar TODAS las lecciones del Nivel 1
+        if (node.id === 100) {
+          return {
+            ...node,
+            completed: exam1Passed,
+            active: allLessonsL1 && !exam1Passed,
+            locked: !allLessonsL1,
+          };
+        }
+
+        // Nivel 2: Yupaykuna (Solo se desbloquea al APROBAR el Examen 1)
+        if (node.id === 2) {
+          return {
+            ...node,
+            completed: allLessonsL2,
+            active: exam1Passed && !allLessonsL2,
+            locked: !exam1Passed,
+          };
+        }
+        // Examen Nivel 2: Solo al completar lecciones del Nivel 2
+        if (node.id === 200) {
+          return {
+            ...node,
+            completed: exam2Passed,
+            active: allLessonsL2 && !exam2Passed,
+            locked: !allLessonsL2,
+          };
+        }
+
+        // Nivel 3: Rimaykuna (Solo se desbloquea al APROBAR el Examen 2)
+        if (node.id === 3) {
+          return {
+            ...node,
+            completed: allLessonsL3,
+            active: exam2Passed && !allLessonsL3,
+            locked: !exam2Passed,
+          };
+        }
+        // Examen Nivel 3: Solo al completar lecciones del Nivel 3
+        if (node.id === 300) {
+          return {
+            ...node,
+            completed: exam3Passed,
+            active: allLessonsL3 && !exam3Passed,
+            locked: !allLessonsL3,
+          };
+        }
+
+        return node;
+      });
+
+      if (isMounted) {
+        setNodes(updatedNodes);
+      }
+    })();
+
+    return () => {
+      isMounted = false;
+    };
   }, [user, xp]);
-
-  async function loadData() {
-    setLoading(true);
-    const { data } = await categoryService.fetchCategories();
-    if (data) setCategories(data);
-
-    // Consulta de lecciones aprobadas (tanto en AsyncStorage local como en Supabase)
-    const uid = user?.uid || (user as any)?.id;
-    let completedLessonIds = new Set<number>();
-
-    if (uid) {
-      try {
-        const ids = await questionService.getCompletedLessonIds(uid);
-        completedLessonIds = new Set(ids);
-      } catch (e) {
-        console.warn('Error fetching completed lessons:', e);
-      }
-    }
-
-    // Progresión estricta por niveles:
-    // Nivel 1 (Abecedario): Lecciones 1 (Vocales) o 2 (Consonantes)
-    const doneL1 = completedLessonIds.has(1) || completedLessonIds.has(2);
-    // Nivel 2 (Números): Lecciones 3 (1-5) o 4 (6-10)
-    const doneL2 = completedLessonIds.has(3) || completedLessonIds.has(4);
-    // Nivel 3 (Palabras): Lecciones 5 (Saludos) o 6 (Familia)
-    const doneL3 = completedLessonIds.has(5) || completedLessonIds.has(6);
-
-    const updatedNodes = INITIAL_SERPENTINE_NODES.map((node) => {
-      // Nivel 1: Achahala
-      if (node.id === 1) {
-        return {
-          ...node,
-          completed: doneL1,
-          active: !doneL1,
-          locked: false,
-        };
-      }
-      // Examen Nivel 1
-      if (node.id === 100) {
-        return {
-          ...node,
-          completed: doneL1,
-          active: false,
-          locked: !doneL1,
-        };
-      }
-
-      // Nivel 2: Yupaykuna (Solo se desbloquea al aprobar el Nivel 1)
-      if (node.id === 2) {
-        return {
-          ...node,
-          completed: doneL2,
-          active: doneL1 && !doneL2,
-          locked: !doneL1,
-        };
-      }
-      // Examen Nivel 2
-      if (node.id === 200) {
-        return {
-          ...node,
-          completed: doneL2,
-          active: false,
-          locked: !doneL2,
-        };
-      }
-
-      // Nivel 3: Rimaykuna (Solo se desbloquea al aprobar el Nivel 2)
-      if (node.id === 3) {
-        return {
-          ...node,
-          completed: doneL3,
-          active: doneL2 && !doneL3,
-          locked: !doneL2,
-        };
-      }
-      // Examen Nivel 3
-      if (node.id === 300) {
-        return {
-          ...node,
-          completed: doneL3,
-          active: false,
-          locked: !doneL3,
-        };
-      }
-
-      return node;
-    });
-
-    setNodes(updatedNodes);
-    setLoading(false);
-  }
 
   function handleNodePress(node: LessonNode) {
     if (node.locked) return;

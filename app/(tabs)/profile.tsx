@@ -19,16 +19,15 @@ import { Card } from '@/components/yachay/card';
 import { ProgressBar } from '@/components/yachay/progress-bar';
 
 const TEAL = '#1B8B8C';
-const TEAL_DARK = '#0E4D55';
 const GOLD = '#E5A00D';
 const PARCHMENT = '#F8F5EE';
 
 export default function ProfileScreen() {
   const router = useRouter();
   const { user, profile, signOut } = useAuth();
-  const { streakDays, xp, gems, lives, equippedOutfit } = useGame();
+  const { streakDays, xp, gems, lives, equippedOutfit, addGems, addXp } = useGame();
   const [quests, setQuests] = useState<DailyQuest[]>([]);
-  const [loadingQuests, setLoadingQuests] = useState(false);
+  const [loadingQuests] = useState(false);
 
   const userStreak = Math.max(1, streakDays ?? profile?.streak_count ?? 1);
   const userXp = xp ?? profile?.total_xp ?? 0;
@@ -67,23 +66,33 @@ export default function ProfileScreen() {
   ];
 
   useEffect(() => {
-    loadQuests();
+    let isMounted = true;
+    const uid = user?.uid || (user as any)?.id;
+    if (uid) {
+      questService
+        .fetchDailyQuests(uid)
+        .then(({ data }) => {
+          if (isMounted) setQuests(data || []);
+        })
+        .catch(() => {});
+    }
+    return () => {
+      isMounted = false;
+    };
   }, [user]);
 
-  async function loadQuests() {
-    try {
-      setLoadingQuests(true);
-      const uid = user?.uid || (user as any)?.id;
-      if (uid) {
-        const { data } = await questService.fetchDailyQuests(uid);
-        setQuests(data || []);
-      }
-    } catch {
-      // Fallback si la red falla
-    } finally {
-      setLoadingQuests(false);
+  const handleClaimQuest = async (q: DailyQuest) => {
+    const uid = user?.uid || (user as any)?.id;
+    if (!uid) return;
+    const res = await questService.claimQuestReward(uid, q.id);
+    if (res.success) {
+      if (res.gemReward > 0) addGems(res.gemReward);
+      if (res.xpReward > 0) addXp(res.xpReward);
+      Alert.alert('¡Recompensa Reclamada! 🎉', `+${res.xpReward} XP y +${res.gemReward} Gemas 💎`);
+      const { data } = await questService.fetchDailyQuests(uid);
+      setQuests(data || []);
     }
-  }
+  };
 
   async function handleSignOut() {
     Alert.alert(
@@ -197,9 +206,19 @@ export default function ProfileScreen() {
                       {current} / {target} {progressPct >= 100 ? '• ¡Completado!' : ''}
                     </Text>
                   </View>
-                  <View style={styles.questRewardBadge}>
-                    <Text style={styles.questRewardText}>+{q.xp_reward} XP</Text>
-                  </View>
+                  {progressPct >= 100 ? (
+                    <TouchableOpacity
+                      style={[styles.questRewardBadge, { backgroundColor: '#27AE60' }]}
+                      onPress={() => handleClaimQuest(q)}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={[styles.questRewardText, { color: '#FFFFFF', fontWeight: 'bold' }]}>Reclamar</Text>
+                    </TouchableOpacity>
+                  ) : (
+                    <View style={styles.questRewardBadge}>
+                      <Text style={styles.questRewardText}>+{q.xp_reward} XP</Text>
+                    </View>
+                  )}
                 </View>
               );
             })

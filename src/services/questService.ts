@@ -51,4 +51,65 @@ export const questService = {
       return { data: null, error: err.message || 'Error al obtener logros' };
     }
   },
+
+  async updateQuestProgress(
+    userId: string,
+    questType: 'xp_gain' | 'lesson_count' | 'perfect_lesson' | 'streak_maintain',
+    amount = 1
+  ): Promise<void> {
+    try {
+      const { data: quests } = await supabase
+        .from('daily_quests')
+        .select('*')
+        .eq('quest_type', questType);
+
+      if (!quests || quests.length === 0) return;
+
+      for (const q of quests) {
+        const { data: uq } = await supabase
+          .from('user_quests')
+          .select('*')
+          .eq('firebase_uid', userId)
+          .eq('quest_id', q.id)
+          .maybeSingle();
+
+        const currentProg = (uq?.current_progress ?? 0) + amount;
+        const isCompleted = currentProg >= q.target_amount;
+
+        await supabase.from('user_quests').upsert({
+          firebase_uid: userId,
+          quest_id: q.id,
+          current_progress: currentProg,
+          completed: isCompleted,
+        });
+      }
+    } catch (err) {
+      console.warn('[questService] Error updating quest progress:', err);
+    }
+  },
+
+  async claimQuestReward(
+    userId: string,
+    questId: number
+  ): Promise<{ success: boolean; xpReward: number; gemReward: number }> {
+    try {
+      const { data: q } = await supabase
+        .from('daily_quests')
+        .select('*')
+        .eq('id', questId)
+        .single();
+
+      if (!q) return { success: false, xpReward: 0, gemReward: 0 };
+
+      await supabase
+        .from('user_quests')
+        .update({ claimed_at: new Date().toISOString() })
+        .eq('firebase_uid', userId)
+        .eq('quest_id', questId);
+
+      return { success: true, xpReward: q.xp_reward, gemReward: q.gem_reward };
+    } catch {
+      return { success: false, xpReward: 0, gemReward: 0 };
+    }
+  },
 };

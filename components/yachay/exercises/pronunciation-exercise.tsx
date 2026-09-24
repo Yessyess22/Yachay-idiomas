@@ -105,7 +105,7 @@ export function PronunciationExercise({
             <Text style={styles.ipaText}>{phonetic.ipa}</Text>
           </View>
         </View>
-        {translation && <Text style={styles.translationWord}>"{translation}"</Text>}
+        {translation && <Text style={styles.translationWord}>&quot;{translation}&quot;</Text>}
 
         <View style={styles.articulatoryBox}>
           <View style={styles.articulatoryHeader}>
@@ -145,7 +145,7 @@ export function PronunciationExercise({
       {phase === 'recording' && (
         <View style={styles.actionSection}>
           <Text style={styles.instructionsText}>
-            🔴 Habla ahora: pronuncia <Text style={styles.highlightWord}>"{coreWord}"</Text>...
+            🔴 Habla ahora: pronuncia <Text style={styles.highlightWord}>&quot;{coreWord}&quot;</Text>...
           </Text>
           <View style={[styles.micBtn, styles.micBtnRecording]}>
             <ActivityIndicator color="#FFFFFF" size="small" style={styles.spinner} />

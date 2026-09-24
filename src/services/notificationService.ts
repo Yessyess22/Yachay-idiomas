@@ -18,7 +18,7 @@ const canUseNotifications = Platform.OS !== 'web' && !isRunningInExpoGo();
 
 if (canUseNotifications) {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     Notifications = require('expo-notifications');
     Notifications?.setNotificationHandler({
       handleNotification: async () => ({

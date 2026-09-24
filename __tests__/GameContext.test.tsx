@@ -2,6 +2,10 @@ import React from 'react';
 import { renderHook, act } from '@testing-library/react-native';
 import { GameProvider, useGame } from '@/src/context/GameContext';
 
+jest.mock('@react-native-async-storage/async-storage', () =>
+  require('@react-native-async-storage/async-storage/jest/async-storage-mock')
+);
+
 jest.mock('@/src/services/authService', () => ({
   authService: {
     updateGameState: jest.fn().mockResolvedValue(undefined),

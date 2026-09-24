@@ -6,7 +6,7 @@ import { progressService } from '@/src/services/progressService';
 import { ExamWithQuestions, QuestionOption } from '@/src/types';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   StyleSheet,
@@ -14,14 +14,10 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withSequence,
-  withSpring,
-} from 'react-native-reanimated';
+import Animated from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import { playCorrectSound, playIncorrectSound, playCompleteSound } from '@/src/services/soundService';
+import { useYachiBounce } from '@/hooks/use-yachi-bounce';
 
 export default function LevelExamScreen() {
   const { levelId } = useLocalSearchParams<{ levelId: string }>();
@@ -42,32 +38,23 @@ export default function LevelExamScreen() {
   const { user } = useAuth();
   const router = useRouter();
 
-  const yachiScale = useSharedValue(1);
-  const yachiAnimStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: yachiScale.value }],
-  }));
-
-  function bounceYachi() {
-    yachiScale.value = withSequence(
-      withSpring(1.3, { damping: 4, stiffness: 300 }),
-      withSpring(1, { damping: 6, stiffness: 200 })
-    );
-  }
+  const { style: yachiAnimStyle, bounce: bounceYachi, celebrate: celebrateYachi } = useYachiBounce();
 
   useEffect(() => {
-    loadExam();
+    let isMounted = true;
+    examService.fetchExamByLevel(parsedLevelId).then(({ data, error: err }) => {
+      if (!isMounted) return;
+      if (err || !data) {
+        setError(err ?? 'No se encontró el examen.');
+      } else {
+        setExam(data);
+      }
+      setLoading(false);
+    });
+    return () => {
+      isMounted = false;
+    };
   }, [parsedLevelId]);
-
-  async function loadExam() {
-    setLoading(true);
-    const { data, error } = await examService.fetchExamByLevel(parsedLevelId);
-    if (error || !data) {
-      setError(error ?? 'No se encontró el examen.');
-    } else {
-      setExam(data);
-    }
-    setLoading(false);
-  }
 
   function handleSelect(option: QuestionOption) {
     if (isAnswered) return;
@@ -104,7 +91,12 @@ export default function LevelExamScreen() {
       const score = Math.round((correctCount / total) * 100);
       const didPass = score >= exam.pass_threshold;
       setPassed(didPass);
-      didPass ? playCompleteSound() : playIncorrectSound();
+      if (didPass) {
+        celebrateYachi();
+        playCompleteSound();
+      } else {
+        playIncorrectSound();
+      }
 
       if (user?.uid) {
         await progressService.recordExamResult(user.uid, parsedLevelId, score, exam.pass_threshold);

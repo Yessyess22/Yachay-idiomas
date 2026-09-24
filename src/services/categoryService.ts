@@ -72,7 +72,7 @@ export const categoryService = {
       return { data: lessonsFormatted, error: null };
     }
 
-    const { data: progressData, error: progressError } = await supabase
+    const { data: progressData } = await supabase
       .from('lesson_progress')
       .select('*')
       .eq('firebase_uid', userId);

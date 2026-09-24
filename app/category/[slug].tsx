@@ -28,17 +28,7 @@ export default function CategoryDetailScreen() {
   const { user } = useAuth();
   const router = useRouter();
 
-  // useFocusEffect (no useEffect) para que el progreso se vuelva a pedir cada
-  // vez que se regresa a esta pantalla (ej. al volver de una lección recién
-  // completada), ya que expo-router mantiene montada la pantalla anterior
-  // al hacer router.back() y un useEffect normal no se re-ejecutaría.
-  useFocusEffect(
-    useCallback(() => {
-      if (slug) loadData();
-    }, [slug, user])
-  );
-
-  async function loadData() {
+  const loadData = useCallback(async () => {
     setLoading(true);
     setError('');
 
@@ -65,7 +55,14 @@ export default function CategoryDetailScreen() {
     }
 
     setLoading(false);
-  }
+  }, [slug, user]);
+
+  // useFocusEffect para que el progreso se vuelva a pedir cada vez que se regresa
+  useFocusEffect(
+    useCallback(() => {
+      if (slug) loadData();
+    }, [slug, loadData])
+  );
 
   if (loading) {
     return (

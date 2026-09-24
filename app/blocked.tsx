@@ -24,6 +24,7 @@ export default function BlockedScreen() {
   }));
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/immutability
     shakeX.value = withRepeat(
       withSequence(
         withTiming(8, { duration: 60 }),
@@ -32,7 +33,7 @@ export default function BlockedScreen() {
       ),
       3
     );
-  }, []);
+  }, [shakeX]);
 
   function handleRestore() {
     restoreLives();

@@ -24,10 +24,26 @@ function translateFirebaseError(code: string): string {
   return map[code] ?? 'Ocurrió un error. Inténtalo de nuevo.';
 }
 
+async function syncSupabaseSession(user: User | null): Promise<void> {
+  if (!user) {
+    try {
+      await supabase.auth.signOut();
+    } catch {}
+    return;
+  }
+  try {
+    const idToken = await user.getIdToken();
+    await supabase.auth.setSession({ access_token: idToken, refresh_token: '' });
+  } catch (err) {
+    console.warn('[authService] Error syncing token with Supabase:', err);
+  }
+}
+
 export const authService = {
   async signUp(email: string, password: string, username?: string): Promise<{ user: User | null; error: string | null }> {
     try {
       const { user } = await createUserWithEmailAndPassword(auth, email, password);
+      await syncSupabaseSession(user);
       const finalUsername = username || email.split('@')[0];
       const { error: profileError } = await supabase.from('profiles').insert({
         firebase_uid: user.uid,
@@ -50,6 +66,7 @@ export const authService = {
   async signIn(email: string, password: string): Promise<{ user: User | null; error: string | null }> {
     try {
       const { user } = await signInWithEmailAndPassword(auth, email, password);
+      await syncSupabaseSession(user);
       return { user, error: null };
     } catch (e: any) {
       return { user: null, error: translateFirebaseError(e.code) };
@@ -59,6 +76,7 @@ export const authService = {
   async signOut(): Promise<{ error: string | null }> {
     try {
       await firebaseSignOut(auth);
+      await supabase.auth.signOut();
       return { error: null };
     } catch (e: any) {
       return { error: e.message };
@@ -94,20 +112,27 @@ export const authService = {
 
   async updateGameState(
     uid: string,
-    data: { lives: number; gems: number; xp: number; streakDays: number }
+    data: { lives: number; gems: number; xp: number; streakDays: number; avatarUrl?: string | null }
   ): Promise<void> {
+    const payload: Record<string, any> = {
+      lives: data.lives,
+      gems: data.gems,
+      total_xp: data.xp,
+      streak_count: data.streakDays,
+    };
+    if (data.avatarUrl !== undefined) {
+      payload.avatar_url = data.avatarUrl;
+    }
     await supabase
       .from('profiles')
-      .update({
-        lives: data.lives,
-        gems: data.gems,
-        total_xp: data.xp,
-        streak_count: data.streakDays,
-      })
+      .update(payload)
       .eq('firebase_uid', uid);
   },
 
   onAuthStateChange(callback: (user: User | null) => void): () => void {
-    return onAuthStateChanged(auth, callback);
+    return onAuthStateChanged(auth, async (user) => {
+      await syncSupabaseSession(user);
+      callback(user);
+    });
   },
 };

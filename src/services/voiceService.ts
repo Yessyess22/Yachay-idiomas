@@ -318,7 +318,6 @@ async function recognizeWithWebSpeechAPI(
     throw new Error('SpeechRecognition solo disponible en la plataforma web.');
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const SpeechRecognitionImpl =
     (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
 
@@ -330,7 +329,6 @@ async function recognizeWithWebSpeechAPI(
     let finalTranscript = '';
     let bestAlternative = '';
     let finished = false;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let timeoutId: any = null;
 
     const finish = (result: RecognitionResult) => {
@@ -348,7 +346,6 @@ async function recognizeWithWebSpeechAPI(
     const coreExpected = expectedWord ? extractCorePhoneme(expectedWord).toLowerCase().trim() : '';
     const isShortPhoneme = Boolean(coreExpected && coreExpected.length <= 4);
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const recognition: any = new SpeechRecognitionImpl();
     recognition.lang = lang === 'qu' ? 'es-PE' : 'es-ES';
     // Para fonemas cortos: continuous = false para que Web Speech cierre la elocución al instante
@@ -358,7 +355,6 @@ async function recognizeWithWebSpeechAPI(
 
     let silenceTimer: any = null;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     recognition.onresult = (event: any) => {
       for (let i = event.resultIndex; i < event.results.length; ++i) {
         const item = event.results[i];
@@ -398,7 +394,6 @@ async function recognizeWithWebSpeechAPI(
       }, isShortPhoneme ? 350 : 700);
     };
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     recognition.onerror = (event: any) => {
       const err = event?.error;
       if (err === 'not-allowed' || err === 'service-not-allowed') {
@@ -503,7 +498,6 @@ async function transcribeAudioClip(uri: string): Promise<RecognitionResult> {
     const blob = await (await fetch(uri)).blob();
     form.append('file', blob, 'clip.webm');
   } else {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     form.append('file', { uri, name: 'clip.m4a', type: 'audio/mp4' } as any);
   }
 
@@ -521,7 +515,9 @@ async function transcribeAudioClip(uri: string): Promise<RecognitionResult> {
   }
 
   throw new Error(
-    'No se pudo conectar con el microservicio de voz en localhost:8000. Usa Google Chrome o Microsoft Edge para traducir por voz, o escribe tu texto.'
+    Platform.OS === 'web'
+      ? 'No se pudo conectar con el microservicio de voz. Asegúrate de tenerlo activo o escribe tu texto.'
+      : 'El servicio de reconocimiento de voz Quechua no está disponible en este dispositivo. Por favor ingresa el texto manualmente.'
   );
 }
 
@@ -539,7 +535,6 @@ export async function startVoiceRecognition(
 ): Promise<RecognitionResult> {
   // 1. Si Web Speech API está disponible en el entorno web (Chrome, Edge, Safari):
   if (Platform.OS === 'web' && typeof window !== 'undefined') {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const SpeechRecognitionImpl = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (SpeechRecognitionImpl) {
       return recognizeWithWebSpeechAPI(expectedWord, lang);
@@ -576,11 +571,9 @@ export function speakText(text: string, _lang: Language): void {
     return;
   }
   if (typeof window === 'undefined') return;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const synth = (window as any).speechSynthesis;
   if (!synth) return;
   synth.cancel();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const SpeechSynthesisUtteranceImpl = (window as any).SpeechSynthesisUtterance;
   if (!SpeechSynthesisUtteranceImpl) return;
   const utter = new SpeechSynthesisUtteranceImpl(text);
@@ -599,11 +592,9 @@ export function speakSpanishFallback(text: string): void {
     return;
   }
   if (typeof window === 'undefined') return;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const synth = (window as any).speechSynthesis;
   if (!synth) return;
   synth.cancel();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const Utterance = (window as any).SpeechSynthesisUtterance;
   if (!Utterance) return;
   const utter = new Utterance(text);
@@ -854,9 +845,9 @@ export async function translateText(req: TranslationRequest): Promise<Translatio
     // ignorar error de red
   }
 
-  // 3. Fallback inteligente en lugar de mostrar error técnico al usuario
-  const fallback = req.source_lang === 'es'
-    ? `${req.source_text} (en Quechua: Simi yachay)`
-    : `${req.source_text} (Expresión tradicional Quechua)`;
-  return { translatedText: fallback, error: null };
+  // 3. Si no se encontró en diccionario ni servicio, informar claramente
+  return {
+    translatedText: '',
+    error: `No encontramos una traducción directa para "${req.source_text}". Intenta con palabras clave o frases comunes.`,
+  };
 }

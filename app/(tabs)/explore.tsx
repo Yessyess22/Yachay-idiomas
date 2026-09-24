@@ -380,8 +380,8 @@ function renderFoneticaGuide() {
         <Text style={styles.guideBodyText}>
           En el Quechua estándar solo existen <Text style={styles.boldText}>3 vocales fonémicas</Text>:{' '}
           <Text style={styles.highlightTeal}>A</Text>, <Text style={styles.highlightTeal}>I</Text> y{' '}
-          <Text style={styles.highlightTeal}>U</Text>. Las vocales 'E' y 'O' son únicamente alófonos
-          que surgen al entrar en contacto con la consonante posvelar 'Q'.
+          <Text style={styles.highlightTeal}>U</Text>. Las vocales &apos;E&apos; y &apos;O&apos; son únicamente alófonos
+          que surgen al entrar en contacto con la consonante posvelar &apos;Q&apos;.
         </Text>
 
         <View style={styles.vowelRow}>
@@ -431,7 +431,7 @@ function renderFoneticaGuide() {
               </View>
               <View style={styles.consonantInfo}>
                 <Text style={styles.consonantName}>Oclusiva Posvelar</Text>
-                <Text style={styles.consonantTip}>Garganta profunda, carraspeo suave tipo "ka"</Text>
+                <Text style={styles.consonantTip}>Garganta profunda, carraspeo suave tipo &quot;ka&quot;</Text>
               </View>
             </View>
             <View style={styles.audioExampleRow}>
@@ -454,7 +454,7 @@ function renderFoneticaGuide() {
               </View>
               <View style={styles.consonantInfo}>
                 <Text style={styles.consonantName}>Fricativa Palatal</Text>
-                <Text style={styles.consonantTip}>Suave como en inglés "shine" o "sha"</Text>
+                <Text style={styles.consonantTip}>Suave como en inglés &quot;shine&quot; o &quot;sha&quot;</Text>
               </View>
             </View>
             <View style={styles.audioExampleRow}>
@@ -477,7 +477,7 @@ function renderFoneticaGuide() {
               </View>
               <View style={styles.consonantInfo}>
                 <Text style={styles.consonantName}>Lateral Palatal Sonoro</Text>
-                <Text style={styles.consonantTip}>Sonido de "elle" andina clásica</Text>
+                <Text style={styles.consonantTip}>Sonido de &quot;elle&quot; andina clásica</Text>
               </View>
             </View>
             <View style={styles.audioExampleRow}>
@@ -500,7 +500,7 @@ function renderFoneticaGuide() {
               </View>
               <View style={styles.consonantInfo}>
                 <Text style={styles.consonantName}>Semivocal Labiovelar</Text>
-                <Text style={styles.consonantTip}>Suave como una "u" en diptongo, nunca dura</Text>
+                <Text style={styles.consonantTip}>Suave como una &quot;u&quot; en diptongo, nunca dura</Text>
               </View>
             </View>
             <View style={styles.audioExampleRow}>
@@ -533,7 +533,7 @@ function renderGramaticaGuide() {
         </View>
         <Text style={styles.guideCardTitle}>Pronombres y Dualidad Inclusiva</Text>
         <Text style={styles.guideBodyText}>
-          El Quechua distingue dos formas de "nosotros": el <Text style={styles.boldText}>Inclusivo</Text>{' '}
+          El Quechua distingue dos formas de &quot;nosotros&quot;: el <Text style={styles.boldText}>Inclusivo</Text>{' '}
           (tú y yo juntos) y el <Text style={styles.boldText}>Exclusivo</Text> (nosotros pero no tú).
         </Text>
 
@@ -567,14 +567,14 @@ function renderGramaticaGuide() {
         </View>
         <Text style={styles.guideCardTitle}>Estructura Aglutinante</Text>
         <Text style={styles.guideBodyText}>
-          No existen artículos independientes como "el" o "la". Se adhieren sufijos directamente a la raíz léxica:
+          No existen artículos independientes como &quot;el&quot; o &quot;la&quot;. Se adhieren sufijos directamente a la raíz léxica:
         </Text>
 
         <View style={styles.suffixGrid}>
           <View style={styles.suffixCard}>
             <Text style={styles.suffixTag}>-mi / -n</Text>
             <Text style={styles.suffixType}>Validador Testimonial</Text>
-            <Text style={styles.suffixDesc}>Indica certeza vivida en persona ("me consta").</Text>
+            <Text style={styles.suffixDesc}>Indica certeza vivida en persona (&quot;me consta&quot;).</Text>
             <View style={styles.examplePill}>
               <Text style={styles.exampleText}>Allinmi (¡Estoy bien!)</Text>
               <AudioPronounceButton text="Allinmi" size="small" />
@@ -604,7 +604,7 @@ function renderGramaticaGuide() {
           <View style={styles.suffixCard}>
             <Text style={styles.suffixTag}>-manta</Text>
             <Text style={styles.suffixType}>Origen / Procedencia</Text>
-            <Text style={styles.suffixDesc}>Equivale a "de", "desde" o "acerca de".</Text>
+            <Text style={styles.suffixDesc}>Equivale a &quot;de&quot;, &quot;desde&quot; o &quot;acerca de&quot;.</Text>
             <View style={styles.examplePill}>
               <Text style={styles.exampleText}>Qosqomanta kani</Text>
               <AudioPronounceButton text="Qosqomanta kani" size="small" />
@@ -778,7 +778,7 @@ function renderDialogosGuide() {
               <Text style={styles.dialogueSpeaker}>Persona A:</Text>
               <AudioPronounceButton text="Allin p'unchay! Imaynallam kashanki?" size="small" />
             </View>
-            <Text style={styles.dialogueQuechua}>Allin p'unchay! Imaynallam kashanki?</Text>
+            <Text style={styles.dialogueQuechua}>{"Allin p'unchay! Imaynallam kashanki?"}</Text>
             <Text style={styles.dialogueEs}>¡Buenos días! ¿Cómo estás?</Text>
           </View>
 

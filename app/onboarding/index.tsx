@@ -15,7 +15,6 @@ const TEAL_DARK = '#136566';
 const CREAM = '#FAF7F2';
 const GREEN = '#27AE60';
 const GREEN_DARK = '#1E8449';
-const GOLD = '#E5A00D';
 
 type DailyGoal = 'casual' | 'regular' | 'intenso';
 

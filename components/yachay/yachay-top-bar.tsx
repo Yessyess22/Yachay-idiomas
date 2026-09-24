@@ -1,33 +1,20 @@
 import React, { useState } from 'react';
-import { Image, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useGame } from '@/src/context/GameContext';
 import { useAuth } from '@/src/context/AuthContext';
 import { useRouter } from 'expo-router';
 
 const TEAL = '#1B8B8C';
-const GOLD = '#D48B0A';
-
-function getLevelName(xp: number) {
-  if (xp < 200) return 'Nivel 1';
-  if (xp < 500) return 'Nivel 2';
-  if (xp < 1000) return 'Nivel 3';
-  if (xp < 2000) return 'Nivel 4';
-  return 'Nivel 5';
-}
 
 export function YachayTopBar() {
-  const { lives, gems, streakDays, xp, restoreLives } = useGame();
+  const { lives, streakDays, xp, restoreLives } = useGame();
   const { profile } = useAuth();
   const router = useRouter();
   const [livesModal, setLivesModal] = useState(false);
   const [streakModal, setStreakModal] = useState(false);
 
-  // Live state from GameContext (hydrated from profile and updated during play)
   const currentXp = xp ?? profile?.total_xp ?? 0;
-  const levelNumber = Math.max(1, Math.floor(currentXp / 200) + 1);
   const streak = streakDays ?? profile?.streak_count ?? 0;
-  const username = profile?.username || 'Tú';
-  const initial = username.charAt(0).toUpperCase();
 
   return (
     <>

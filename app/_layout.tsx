@@ -39,7 +39,7 @@ function RootLayoutNav() {
     if (isBlocked) {
       router.replace('/blocked' as any);
     }
-  }, [isBlocked]);
+  }, [isBlocked, router]);
 
   useEffect(() => {
     if (loading) return;
@@ -52,7 +52,7 @@ function RootLayoutNav() {
     } else if (!user && !inAuthGroup && !inOnboarding) {
       router.replace('/onboarding' as any);
     }
-  }, [user, loading, segments]);
+  }, [user, loading, segments, router]);
 
   return (
     <Stack>

@@ -37,12 +37,13 @@ export default function StoryScreen() {
   const { style: yachiAnimStyle, bounce: bounceYachi, celebrate: celebrateYachi } = useYachiBounce();
 
   const turn = story?.turns[turnIndex];
+  const yachiQuechua = turn?.speaker === 'yachi' ? turn.quechua : undefined;
 
   useEffect(() => {
-    if (turn?.speaker === 'yachi') {
-      playQuechuaAudio(turn.quechua).catch(() => {});
+    if (yachiQuechua) {
+      playQuechuaAudio(yachiQuechua).catch(() => {});
     }
-  }, [turnIndex]);
+  }, [yachiQuechua]);
 
   if (!story) {
     return (

@@ -26,4 +26,23 @@ export const leaderboardService = {
       return { data: null, error: err.message || 'Error al obtener tabla de líderes' };
     }
   },
+
+  async recordWeeklyXp(userId: string, xpGained: number): Promise<void> {
+    try {
+      const { data: existing } = await supabase
+        .from('leaderboard_weekly')
+        .select('weekly_xp')
+        .eq('firebase_uid', userId)
+        .maybeSingle();
+
+      const newWeeklyXp = (existing?.weekly_xp ?? 0) + xpGained;
+      await supabase.from('leaderboard_weekly').upsert({
+        firebase_uid: userId,
+        weekly_xp: newWeeklyXp,
+        updated_at: new Date().toISOString(),
+      });
+    } catch (err) {
+      console.warn('[leaderboardService] Error recording weekly xp:', err);
+    }
+  },
 };
