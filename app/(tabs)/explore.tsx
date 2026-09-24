@@ -135,7 +135,7 @@ export default function ExploreScreen() {
 
   function openTranslatorWithText(text: string) {
     router.push({
-      pathname: '/translator',
+      pathname: '/(tabs)/translator',
       params: { text, lang: 'qu' },
     });
   }
@@ -467,7 +467,7 @@ export default function ExploreScreen() {
             </View>
             <TouchableOpacity
               style={styles.translatorBannerBtn}
-              onPress={() => router.push('/translator')}
+              onPress={() => router.push('/(tabs)/translator')}
               activeOpacity={0.85}
             >
               <Text style={styles.translatorBannerBtnText}>Abrir Traductor 🎙️</Text>

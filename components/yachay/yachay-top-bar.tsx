@@ -63,7 +63,7 @@ export function YachayTopBar() {
           {/* Traductor de Voz (Verde mar suave) */}
           <TouchableOpacity
             style={[styles.pill, styles.pillTranslator]}
-            onPress={() => router.push('/translator' as any)}
+            onPress={() => router.push('/(tabs)/translator' as any)}
             activeOpacity={0.75}
           >
             <Text style={styles.pillEmojiMic}>🎙️</Text>

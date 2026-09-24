@@ -61,13 +61,13 @@ export default function TabLayout() {
           }}
         />
 
-        {/* Tab 3: Logros */}
+        {/* Tab 3: Traductor */}
         <Tabs.Screen
-          name="leaderboard"
+          name="translator"
           options={{
-            title: 'Logros',
+            title: 'Traductor',
             tabBarIcon: ({ focused }) => (
-              <NavIcon source={require('@/assets/images/nav_logros.png')} focused={focused} />
+              <NavIcon source={require('@/assets/images/categorias/cat_pronunciacion.png')} focused={focused} />
             ),
           }}
         />
@@ -80,6 +80,14 @@ export default function TabLayout() {
             tabBarIcon: ({ focused }) => (
               <NavIcon source={require('@/assets/images/nav_perfil.png')} focused={focused} />
             ),
+          }}
+        />
+
+        {/* Logros/Leaderboard oculto del tab bar, integrado dentro de Perfil */}
+        <Tabs.Screen
+          name="leaderboard"
+          options={{
+            href: null,
           }}
         />
 

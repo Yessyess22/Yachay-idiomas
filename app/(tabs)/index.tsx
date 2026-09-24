@@ -485,7 +485,7 @@ export default function HomeScreen() {
             {/* Acceso Directo al Traductor de Voz */}
             <TouchableOpacity
               style={styles.translatorShortcutCard}
-              onPress={() => router.push('/translator' as any)}
+              onPress={() => router.push('/(tabs)/translator' as any)}
               activeOpacity={0.85}
             >
               <View style={styles.translatorHeaderRow}>
