@@ -523,7 +523,7 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   badgeUnlocked: {
-    backgroundColor: '#EAF7EE',
+    backgroundColor: '#E0F2F1',
   },
   badgeUnlockedText: {
     color: '#1E824C',

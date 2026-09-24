@@ -13,8 +13,8 @@ import {
 const TEAL = '#1B8B8C';
 const TEAL_DARK = '#136566';
 const CREAM = '#FAF7F2';
-const GREEN = '#27AE60';
-const GREEN_DARK = '#1E8449';
+const GREEN = '#1B8B8C';
+const GREEN_DARK = '#0E4D55';
 
 type DailyGoal = 'casual' | 'regular' | 'intenso';
 
@@ -328,7 +328,7 @@ const styles = StyleSheet.create({
 
   // Badge
   badge: {
-    backgroundColor: '#E8F8F0',
+    backgroundColor: '#E0F2F1',
     borderRadius: 12,
     paddingVertical: 10,
     paddingHorizontal: 16,
@@ -338,7 +338,7 @@ const styles = StyleSheet.create({
   badgeText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#2E7D5A',
+    color: '#0E4D55',
     textAlign: 'center',
   },
 

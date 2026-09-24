@@ -189,8 +189,8 @@ const styles = StyleSheet.create({
     borderColor: '#EBD89F',
   },
   pillNivel: {
-    backgroundColor: '#EAF7EE',
-    borderColor: '#BFDEC6',
+    backgroundColor: '#E0F2F1',
+    borderColor: '#80CBC4',
   },
   pillStreak: {
     backgroundColor: '#FFF1E8',
@@ -227,7 +227,7 @@ const styles = StyleSheet.create({
     color: '#5C4314',
   },
   pillTextNivel: {
-    color: '#166231',
+    color: '#0E4D55',
   },
   pillTextStreak: {
     color: '#9E3C0E',
@@ -236,7 +236,7 @@ const styles = StyleSheet.create({
     color: '#B82828',
   },
   pillTextTranslator: {
-    color: '#00695C',
+    color: '#0E4D55',
   },
   /* Modal */
   overlay: {

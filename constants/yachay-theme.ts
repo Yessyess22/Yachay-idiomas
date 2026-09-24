@@ -3,8 +3,8 @@ import { Platform } from 'react-native';
 export const Theme = {
   colors: {
     primaryDark: '#1D264E',
-    primaryDarkGreen: '#1A2F1A',
-    accentGreen: '#4CAF50',
+    primaryDarkGreen: '#0E4D55',
+    accentGreen: '#1B8B8C',
     accentOrange: '#FF9800',
     accentBlue: '#2196F3',
     fireOrange: '#FF5722',

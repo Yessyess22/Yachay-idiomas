@@ -68,6 +68,7 @@
     },
     "extra": {
       "router": {},
+      "voiceServiceUrl": "https://yessyess22--yachay-voice-service-voiceservice-web.modal.run",
       "eas": {
         "projectId": "083df8a4-6662-43ff-9ebf-e11aa252acb5"
       }

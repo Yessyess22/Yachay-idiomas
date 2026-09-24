@@ -15,8 +15,8 @@ import { useYachiBounce } from '@/hooks/use-yachi-bounce';
 
 const TEAL = '#1B8B8C';
 const CREAM = '#FAF7F2';
-const GREEN = '#27AE60';
-const GREEN_DARK = '#1E8449';
+const GREEN = '#1B8B8C';
+const GREEN_DARK = '#0E4D55';
 const RED = '#EA5455';
 
 /**
@@ -215,7 +215,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 4,
   },
-  optionCorrect: { borderColor: GREEN, backgroundColor: '#E8F8F0', borderBottomColor: GREEN_DARK },
+  optionCorrect: { borderColor: GREEN, backgroundColor: '#E0F2F1', borderBottomColor: GREEN_DARK },
   optionWrong: { borderColor: RED, backgroundColor: '#FDEDEC' },
   optionText: { fontSize: 16, fontWeight: '700', color: '#2A1A0A' },
   footer: {

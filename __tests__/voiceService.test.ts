@@ -114,5 +114,10 @@ describe('voiceService - Traducción de Texto (Español ↔ Quechua)', () => {
     const r2 = await translateText({ source_lang: 'qu', target_lang: 'es', source_text: 'Allqo' });
     expect(r2.translatedText).toBe('Perro');
   });
-});
 
+  test('Traduce vocabulario de las lecciones aunque se consulte con signos', async () => {
+    const result = await translateText({ source_lang: 'qu', target_lang: 'es', source_text: 'Allin.' });
+    expect(result.translatedText).toContain('bueno');
+    expect(result.error).toBeNull();
+  });
+});

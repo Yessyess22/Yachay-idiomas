@@ -17,7 +17,7 @@ import {
 const TEAL = '#1B8B8C';
 const CREAM = '#FAF7F2';
 const GOLD = '#E5A00D';
-const GREEN = '#27AE60';
+const GREEN = '#1B8B8C';
 
 export default function CategoryDetailScreen() {
   const { slug } = useLocalSearchParams<{ slug: string }>();

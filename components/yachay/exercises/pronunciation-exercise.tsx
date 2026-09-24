@@ -24,7 +24,7 @@ interface PronunciationExerciseProps {
 }
 
 const TEAL = '#1B8B8C';
-const GREEN = '#27AE60';
+const GREEN = '#1B8B8C';
 const RED = '#EA5455';
 const GOLD = '#E5A00D';
 
@@ -430,7 +430,7 @@ const styles = StyleSheet.create({
   },
   doneCard: {
     width: '100%',
-    backgroundColor: '#E8F8F0',
+    backgroundColor: '#E0F2F1',
     borderRadius: 14,
     padding: 16,
     alignItems: 'center',

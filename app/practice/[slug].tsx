@@ -76,7 +76,11 @@ export default function PracticeScreen() {
 
       const results = await Promise.all(completedIds.map((id) => questionService.fetchQuestionsByLesson(id)));
       if (!isMounted) return;
-      const allQuestions = results.flatMap((r) => r.data ?? []);
+      // Este modo tiene una interfaz de selección múltiple; no debe recibir
+      // ejercicios editoriales que requieren teclado, audio o emparejamiento.
+      const allQuestions = results
+        .flatMap((r) => r.data ?? [])
+        .filter((question) => question.question_type === 'multiple_choice');
 
       if (allQuestions.length === 0) {
         setError('No encontramos preguntas para practicar en esta categoría todavía.');
@@ -313,7 +317,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f7f7f7',
   },
   optSelected: { borderColor: '#1CB0F6', backgroundColor: '#DDF4FF' },
-  optCorrect: { borderColor: BrandColors.brandGreen, backgroundColor: '#E8F5E9' },
+  optCorrect: { borderColor: BrandColors.brandGreen, backgroundColor: '#E0F2F1' },
   optWrong: { borderColor: BrandColors.danger, backgroundColor: BrandColors.dangerLight },
   optText: { fontSize: 17, fontWeight: '600', color: '#333' },
   footer: {

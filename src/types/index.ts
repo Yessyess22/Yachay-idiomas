@@ -47,7 +47,9 @@ export type QuestionType =
   | 'word_bank'
   | 'matching_pairs'
   | 'listening'
-  | 'speaking';
+  | 'speaking'
+  | 'fill_blank'
+  | 'true_false';
 
 export interface Question {
   id: number;

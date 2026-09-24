@@ -2,6 +2,10 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '@/src/services/supabase';
 import { QuestionOption, QuestionWithOptions } from '@/src/types';
 import {
+  lessonContentToQuestions,
+  LESSON_CONTENT_PACKS,
+} from '@/src/content/lessonContent';
+import {
   queuePendingLessonProgress,
   getPendingLessonProgress,
   clearPendingLessonProgress,
@@ -466,13 +470,159 @@ function isTrivialQuestion(q: QuestionWithOptions): boolean {
   return false;
 }
 
+const EXPANDED_LESSON_BANK: Record<number, { prompt: string; options: string[]; correct: string }[]> = {
+  1: [
+    { prompt: '¿Cuál es la palabra correcta para “bueno / bien” en quechua?', options: ['Allin', 'Ayllu', 'Kusa'], correct: 'Allin' },
+    { prompt: '¿Qué vocal forma la base de la palabra “Inti”?', options: ['i', 'e', 'o'], correct: 'i' },
+    { prompt: '¿Qué palabra significa “paloma” o “mensajera” en quechua?', options: ['Urpi', 'Wasi', 'Puka'], correct: 'Urpi' },
+    { prompt: '¿Qué expresión usa la vocal “u” en su pronunciación?', options: ['Urqu', 'Maya', 'Sami'], correct: 'Urqu' },
+    { prompt: '¿Qué opción representa correctamente la vocal abierta “a”?', options: ['A', 'E', 'O'], correct: 'A' },
+    { prompt: '¿Qué palabra es la mejor muestra de la vocal “i” en quechua?', options: ['Inti', 'Qhapaq', 'Puna'], correct: 'Inti' },
+    { prompt: '¿Cuál de estas palabras contiene la vocal “u” con sentido de “río” o “lugar alto”?', options: ['Urqu', 'Misk’i', 'Rumi'], correct: 'Urqu' },
+    { prompt: '¿Qué palabra quechua expresa “sol sagrado” y usa la vocal “i”?', options: ['Inti', 'Qhapaq', 'Maya'], correct: 'Inti' },
+  ],
+  2: [
+    { prompt: '¿Cómo se dice “oro” en quechua?', options: ['Quri', 'Kuri', 'Rumi'], correct: 'Quri' },
+    { prompt: '¿Qué palabra significa “dulce / delicioso” en quechua?', options: ['Mishki', 'Qhawa', 'Pacha'], correct: 'Mishki' },
+    { prompt: '¿Cómo se dice “casa” en quechua?', options: ['Wasi', 'Mayu', 'Punku'], correct: 'Wasi' },
+    { prompt: '¿Qué sonido caracteriza la consonante “q”?', options: ['Garganta profunda', 'Labios', 'Dientes'], correct: 'Garganta profunda' },
+    { prompt: '¿Qué sonido representa mejor la “ll” del quechua?', options: ['[ʎ] palatal', '[sh]', '[r] vibrante'], correct: '[ʎ] palatal' },
+    { prompt: '¿Qué palabra contiene la secuencia “sh” y significa “delicioso”?', options: ['Mishki', 'Qhapaq', 'Ayllu'], correct: 'Mishki' },
+    { prompt: '¿Cuál es una buena ilustración de la consonante posvelar “q”?', options: ['Quri', 'Puka', 'Maya'], correct: 'Quri' },
+    { prompt: '¿Qué opción enfatiza la articulación del sonido “ll”?', options: ['Allin', 'Kuska', 'Ukhu'], correct: 'Allin' },
+  ],
+  3: [
+    { prompt: '¿Cuál es la forma quechua de “uno”?', options: ['Huk', 'Iskay', 'Kimsa'], correct: 'Huk' },
+    { prompt: '¿Qué número significa “dos”?', options: ['Iskay', 'Tawa', 'Pichqa'], correct: 'Iskay' },
+    { prompt: '¿Cómo se dice “tres” en quechua?', options: ['Kimsa', 'Pusaq', 'Qanchis'], correct: 'Kimsa' },
+    { prompt: '¿Qué número es “cuatro”?', options: ['Tawa', 'Isqon', 'Soqta'], correct: 'Tawa' },
+    { prompt: '¿Cuál corresponde a “cinco”?', options: ['Pichqa', 'Chunka', 'Huk'], correct: 'Pichqa' },
+    { prompt: '¿Qué palabra es “seis” en quechua?', options: ['Soqta', 'Qanchis', 'Pusaq'], correct: 'Soqta' },
+    { prompt: '¿Cuál significa “siete”?', options: ['Qanchis', 'Isqon', 'Kimsa'], correct: 'Qanchis' },
+    { prompt: '¿Qué número se escribe “ocho”?', options: ['Pusaq', 'Chunka', 'Tawa'], correct: 'Pusaq' },
+    { prompt: '¿Cómo se dice “nueve” en quechua?', options: ['Isqon', 'Suqta', 'Huk'], correct: 'Isqon' },
+    { prompt: '¿Qué palabra corresponde a “diez”?', options: ['Chunka', 'Pichqa', 'Iskay'], correct: 'Chunka' },
+  ],
+  4: [
+    { prompt: '¿Qué número sigue después de “Pichqa” (5)?', options: ['Soqta', 'Qanchis', 'Pusaq'], correct: 'Soqta' },
+    { prompt: '¿Cuál es “siete” en quechua?', options: ['Qanchis', 'Isqon', 'Kimsa'], correct: 'Qanchis' },
+    { prompt: '¿Qué palabra significa “ocho”?', options: ['Pusaq', 'Soqta', 'Tawa'], correct: 'Pusaq' },
+    { prompt: '¿Cómo se dice “nueve”?', options: ['Isqon', 'Huk', 'Chunka'], correct: 'Isqon' },
+    { prompt: '¿Cuál es el número “diez”?', options: ['Chunka', 'Pichqa', 'Iskay'], correct: 'Chunka' },
+    { prompt: '¿Qué número viene antes de “Tawa” (4)?', options: ['Kimsa', 'Pichqa', 'Huk'], correct: 'Kimsa' },
+    { prompt: '¿Cuál es la secuencia correcta del 1 al 5 en Quechua?', options: ['Huk, Iskay, Kimsa, Tawa, Pichqa', 'Iskay, Huk, Tawa, Kimsa, Pichqa', 'Pichqa, Tawa, Kimsa, Iskay, Huk'], correct: 'Huk, Iskay, Kimsa, Tawa, Pichqa' },
+    { prompt: '¿Qué valor corresponde a “Soqta”?', options: ['Seis', 'Siete', 'Nueve'], correct: 'Seis' },
+    { prompt: '¿Cómo se dice “cinco” en quechua?', options: ['Pichqa', 'Qanchis', 'Pusaq'], correct: 'Pichqa' },
+    { prompt: '¿Qué palabra del conteo es más cercana a “diez”?', options: ['Chunka', 'Isqon', 'Pusaq'], correct: 'Chunka' },
+  ],
+  5: [
+    { prompt: '¿Cómo se dice “buenos días” en quechua?', options: ['Allin p’unchaw', 'Allin tuta', 'Añay'], correct: 'Allin p’unchaw' },
+    { prompt: '¿Cuál es la forma para saludar “¿cómo estás?”', options: ['Allillanchu', 'Tupananchiskama', 'Puka'], correct: 'Allillanchu' },
+    { prompt: '¿Qué expresión significa “gracias”?', options: ['Añay', 'Urqu', 'Qhapaq'], correct: 'Añay' },
+    { prompt: '¿Cómo dices “buenas noches” en quechua?', options: ['Allin tuta', 'Allin p’unchaw', 'Wasi'], correct: 'Allin tuta' },
+    { prompt: '¿Qué frase se usa para despedirse con “hasta volver a encontrarnos”?', options: ['Tupananchiskama', 'Allillanmi', 'Mishki'], correct: 'Tupananchiskama' },
+    { prompt: '¿Cuándo se responde “Allillanmi”?', options: ['Cuando se responde con certeza a “Allillanchu”', 'Cuando se quiere decir “uno”', 'Cuando se habla del sol'], correct: 'Cuando se responde con certeza a “Allillanchu”' },
+    { prompt: '¿Cuál de estas expresiones no es un saludo?', options: ['Tupananchiskama', 'Allin p’unchaw', 'Allillanchu'], correct: 'Tupananchiskama' },
+    { prompt: '¿Qué frase tiene un sentido de agradecimiento profundo?', options: ['Añay / Sulpayki', 'Huk / Iskay', 'Maya / Pacha'], correct: 'Añay / Sulpayki' },
+    { prompt: '¿Cómo se interpreta “allillanmi”?', options: ['Estoy bien', 'Buenas noches', 'Gracias'], correct: 'Estoy bien' },
+    { prompt: '¿Qué saludo reconoce el momento del día?', options: ['Allin p’unchaw', 'Quri', 'Rumi'], correct: 'Allin p’unchaw' },
+  ],
+  6: [
+    { prompt: '¿Cómo se dice “padre” en quechua?', options: ['Tayta', 'Mama', 'Wawa'], correct: 'Tayta' },
+    { prompt: '¿Qué palabra significa “madre”?', options: ['Mama', 'Tura', 'Awicha'], correct: 'Mama' },
+    { prompt: '¿Cómo se dice “hijo/hija” en el uso tradicional del padre?', options: ['Churi', 'Wawa', 'Pana'], correct: 'Churi' },
+    { prompt: '¿Qué término utiliza una madre para un hijo o bebé?', options: ['Wawa', 'Churi', 'Awicha'], correct: 'Wawa' },
+    { prompt: '¿Qué palabra se usa para la abuela?', options: ['Awicha', 'Tayta', 'Pana'], correct: 'Awicha' },
+    { prompt: '¿Qué término se usa para “hermano de la mujer”?', options: ['Tura', 'Churi', 'Mama'], correct: 'Tura' },
+    { prompt: '¿Cuál es el nombre correcto de la figura paterna en la familia andina?', options: ['Tayta', 'Ayllu', 'Maya'], correct: 'Tayta' },
+    { prompt: '¿Qué palabra se usa para “hija de varón” o un matiz cercano al parentesco?', options: ['Pana', 'Tura', 'Urqu'], correct: 'Pana' },
+    { prompt: '¿Qué término se refiere al hogar o familia ampliada?', options: ['Ayllu', 'Puka', 'Qhapaq'], correct: 'Ayllu' },
+    { prompt: '¿Cuál es el término para la madre de la familia?', options: ['Mama', 'Tayta', 'Churi'], correct: 'Mama' },
+  ],
+  7: [
+    { prompt: '¿Qué sufijo se usa para formar plural en quechua?', options: ['-kuna', '-mi', '-chu'], correct: '-kuna' },
+    { prompt: '¿Cuál es la ordenación correcta del 1 al 3?', options: ['Huk, Iskay, Kimsa', 'Iskay, Huk, Kimsa', 'Kimsa, Tawa, Huk'], correct: 'Huk, Iskay, Kimsa' },
+    { prompt: '¿Qué palabra indica “casa” y su plural correcto?', options: ['Wasi -> wasikuna', 'Wasi -> wasimi', 'Wasi -> wasichu'], correct: 'Wasi -> wasikuna' },
+    { prompt: '¿Qué término señala una afirmación con certeza?', options: ['-mi', '-kuna', '-pa'], correct: '-mi' },
+    { prompt: '¿Qué marcador interrogativo es típico en quechua?', options: ['-chu', '-kuna', '-y'], correct: '-chu' },
+    { prompt: '¿Qué palabra significa “familia / ayllu”?', options: ['Ayllu', 'Pochi', 'Misk’i'], correct: 'Ayllu' },
+    { prompt: '¿Cuál de estas opciones es un ejemplo correcto de plural?', options: ['Wawakuna', 'Wasimi', 'Hukchu'], correct: 'Wawakuna' },
+    { prompt: '¿Qué forma verbal suele insinuar afirmación clara?', options: ['-mi', '-q', '-n'], correct: '-mi' },
+  ],
+  8: [
+    { prompt: '¿Cómo se expresa “¿cómo estás?” con cortesía?', options: ['Allillanchu', 'Allin tuta', 'Wawa'], correct: 'Allillanchu' },
+    { prompt: '¿Cuál es la respuesta habitual a “Allillanchu”?', options: ['Allillanmi', 'Tupananchiskama', 'Quri'], correct: 'Allillanmi' },
+    { prompt: '¿Qué significa “Allillanmi”?', options: ['Estoy bien', 'Hasta luego', 'Gracias'], correct: 'Estoy bien' },
+    { prompt: '¿Qué expresión se usa para despedirse con cariño?', options: ['Tupananchiskama', 'Allin p’unchaw', 'Qhapaq'], correct: 'Tupananchiskama' },
+    { prompt: '¿Cuál es la forma de agradecer de forma respetuosa?', options: ['Sulpayki / Añay', 'Maya / Ayllu', 'Wasi / Quri'], correct: 'Sulpayki / Añay' },
+    { prompt: '¿Qué frase es un saludo del día?', options: ['Allin p’unchaw', 'Chunka', 'Tura'], correct: 'Allin p’unchaw' },
+    { prompt: '¿Qué expresión se usa para “buenas noches”?', options: ['Allin tuta', 'Allin p’unchaw', 'Allillanchu'], correct: 'Allin tuta' },
+    { prompt: '¿Qué opción puede servir como respuesta de cortesía común?', options: ['Allillanmi', 'Puka', 'Huk'], correct: 'Allillanmi' },
+  ],
+  9: [
+    { prompt: '¿Cómo se dice “padre” en el marco del parentesco andino?', options: ['Tayta', 'Mama', 'Pana'], correct: 'Tayta' },
+    { prompt: '¿Qué término usa una madre para su hijo o bebé?', options: ['Wawa', 'Tura', 'Awicha'], correct: 'Wawa' },
+    { prompt: '¿Qué palabra se usa para “abuela”?', options: ['Awicha', 'Pana', 'Tura'], correct: 'Awicha' },
+    { prompt: '¿Cómo se dice “hermano de una mujer”?', options: ['Tura', 'Tayta', 'Mama'], correct: 'Tura' },
+    { prompt: '¿Qué término de la familia se relaciona con “hijo o hija” expresado por el padre?', options: ['Churi', 'Wawa', 'Ayllu'], correct: 'Churi' },
+    { prompt: '¿Qué palabra alude a la familia extendida?', options: ['Ayllu', 'Puka', 'Mishki'], correct: 'Ayllu' },
+    { prompt: '¿Qué palabra se asocia con “madre”?', options: ['Mama', 'Tura', 'Quri'], correct: 'Mama' },
+    { prompt: '¿Qué término unifica la red de parentesco andino?', options: ['Ayllu', 'Wasi', 'Punku'], correct: 'Ayllu' },
+  ],
+  10: [
+    { prompt: '¿Cómo se dice “rojo” en quechua?', options: ['Puka', 'Qomer', 'Anqas'], correct: 'Puka' },
+    { prompt: '¿Qué palabra corresponde al “verde” de la naturaleza?', options: ['Qomer', 'Puka', 'Yana'], correct: 'Qomer' },
+    { prompt: '¿Cómo se dice “azul” o “indigo”?', options: ['Anqas', 'Puka', 'Quri'], correct: 'Anqas' },
+    { prompt: '¿Qué color está asociado a la tierra y la vegetación?', options: ['Qomer', 'Puka', 'Mishki'], correct: 'Qomer' },
+    { prompt: '¿Qué opción representa “rojo sacramental”?', options: ['Puka', 'Qomer', 'Allin'], correct: 'Puka' },
+    { prompt: '¿Qué término puede indicar “negro” o “oscuro”?', options: ['Yana', 'Puka', 'Quri'], correct: 'Yana' },
+    { prompt: '¿Qué color es opuesto a “Puka” en una escala básica?', options: ['Qomer', 'Ayllu', 'Tayta'], correct: 'Qomer' },
+    { prompt: '¿Cuál de estas palabras es un color andino reconocido?', options: ['Anqas', 'Wawa', 'Maya'], correct: 'Anqas' },
+  ],
+};
+
+function expandLessonQuestionSet(lessonId: number, questions: QuestionWithOptions[]): QuestionWithOptions[] {
+  const desiredBank = EXPANDED_LESSON_BANK[lessonId];
+  if (!desiredBank) return questions;
+  if (questions.length >= desiredBank.length) return questions;
+
+  let nextId = Math.max(0, ...questions.map((question) => question.id)) + 1;
+  const additional: QuestionWithOptions[] = desiredBank.slice(questions.length).map((entry, index) => {
+    const optionTextList = entry.options.map((optionText, optionIndex) => ({
+      id: nextId + index * 100 + optionIndex + 1,
+      question_id: nextId + index * 100,
+      option_text: optionText,
+      is_correct: optionText === entry.correct,
+    }));
+
+    const questionId = nextId + index * 100;
+    return {
+      id: questionId,
+      lesson_id: lessonId,
+      prompt: entry.prompt,
+      question_type: 'multiple_choice',
+      options: optionTextList,
+    };
+  });
+
+  return [...questions, ...additional];
+}
+
 export const questionService = {
   async fetchQuestionsByLesson(
     lessonId: number
   ): Promise<{ data: QuestionWithOptions[] | null; error: string | null }> {
+    const contentPack = LESSON_CONTENT_PACKS[lessonId];
+    if (contentPack) {
+      return { data: lessonContentToQuestions(contentPack), error: null };
+    }
+
+    const defaultPack = DEFAULT_QUESTIONS[lessonId] || DEFAULT_QUESTIONS[1];
+    const enrichedDefaultPack = expandLessonQuestionSet(lessonId, defaultPack);
+
     // Si tenemos preguntas pedagógicas curadas para esta lección, utilizarlas para garantizar alta calidad didáctica
     if (DEFAULT_QUESTIONS[lessonId]) {
-      return { data: DEFAULT_QUESTIONS[lessonId], error: null };
+      return { data: enrichedDefaultPack, error: null };
     }
 
     const { data: questions, error: qError } = await supabase
@@ -482,7 +632,7 @@ export const questionService = {
       .order('id', { ascending: true });
 
     if (qError || !questions || questions.length === 0) {
-      return { data: DEFAULT_QUESTIONS[lessonId] || DEFAULT_QUESTIONS[1], error: null };
+      return { data: enrichedDefaultPack, error: null };
     }
 
     const questionIds = questions.map((q) => q.id);
@@ -492,7 +642,7 @@ export const questionService = {
       .in('question_id', questionIds);
 
     if (oError) {
-      return { data: DEFAULT_QUESTIONS[lessonId] || DEFAULT_QUESTIONS[1], error: null };
+      return { data: enrichedDefaultPack, error: null };
     }
 
     const optionsMap = new Map<number, QuestionOption[]>();
@@ -509,10 +659,11 @@ export const questionService = {
 
     // Si la base de datos devuelve preguntas triviales de 1 letra, usar el banco pedagógico curado
     if (result.some(isTrivialQuestion)) {
-      return { data: DEFAULT_QUESTIONS[lessonId] || DEFAULT_QUESTIONS[1], error: null };
+      return { data: enrichedDefaultPack, error: null };
     }
 
-    return { data: result, error: null };
+    const expandedResult = expandLessonQuestionSet(lessonId, result);
+    return { data: expandedResult.length >= 8 ? expandedResult : enrichedDefaultPack, error: null };
   },
 
   async recordLessonProgress(
@@ -603,4 +754,3 @@ export const questionService = {
     return Array.from(set);
   },
 };
-

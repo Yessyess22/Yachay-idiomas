@@ -19,7 +19,7 @@ import { Card } from '@/components/yachay/card';
 import { ProgressBar } from '@/components/yachay/progress-bar';
 
 const TEAL = '#1B8B8C';
-const GREEN = '#27AE60';
+const GREEN = '#1B8B8C';
 const BLUE = '#2980B9';
 const ORANGE = '#E67E22';
 const PURPLE = '#8E44AD';
@@ -754,7 +754,7 @@ const styles = StyleSheet.create({
   nodeBtnCompleted: {
     backgroundColor: GREEN,
     borderWidth: 4.5,
-    borderColor: '#1E8449',
+    borderColor: '#0E4D55',
   },
   nodeImg: {
     width: 38,

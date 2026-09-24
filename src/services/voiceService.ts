@@ -1,9 +1,12 @@
 import { Platform } from 'react-native';
 import * as Speech from 'expo-speech';
+import Constants from 'expo-constants';
+import { File as ExpoFile } from 'expo-file-system';
 import { AudioModule, RecordingPresets, requestRecordingPermissionsAsync, setAudioModeAsync } from 'expo-audio';
 import { Language, TranslationRequest } from '@/src/types';
 import { supabase } from '@/src/services/supabase';
 import { extractCorePhoneme } from '@/src/utils/phoneticGuide';
+import { LESSON_CONTENT_PACKS } from '@/src/content/lessonContent';
 
 export type RecognitionResult = {
   transcript: string;
@@ -23,7 +26,13 @@ export type PronunciationScore = {
  * (EXPO_PUBLIC_VOICE_SERVICE_URL), porque el APK/IPA compilado no tiene acceso a la
  * máquina del desarrollador.
  */
-const VOICE_SERVICE_URL = process.env.EXPO_PUBLIC_VOICE_SERVICE_URL || 'http://localhost:8000';
+const DEFAULT_VOICE_SERVICE_URL =
+  'https://yessyess22--yachay-voice-service-voiceservice-web.modal.run';
+const configuredVoiceServiceUrl =
+  process.env.EXPO_PUBLIC_VOICE_SERVICE_URL ||
+  Constants.expoConfig?.extra?.voiceServiceUrl ||
+  DEFAULT_VOICE_SERVICE_URL;
+const VOICE_SERVICE_URL = configuredVoiceServiceUrl.replace(/\/+$/, '');
 
 const audioCache = new Map<string, string>();
 let currentAudio: HTMLAudioElement | null = null;
@@ -494,12 +503,15 @@ async function recordAudioClip(durationMs: number): Promise<string> {
  */
 async function transcribeAudioClip(uri: string): Promise<RecognitionResult> {
   const form = new FormData();
-  if (Platform.OS === 'web') {
-    const blob = await (await fetch(uri)).blob();
-    form.append('file', blob, 'clip.webm');
-  } else {
-    form.append('file', { uri, name: 'clip.m4a', type: 'audio/mp4' } as any);
-  }
+  // React Native 0.86 rechaza tanto el objeto `{ uri, name, type }` como
+  // algunos Blob creados desde `fetch(uri)`. `expo-file-system` expone `File`,
+  // que implementa Blob y conserva la referencia al archivo nativo sin copiarlo.
+  const audioBlob =
+    Platform.OS === 'web'
+      ? await (await fetch(uri)).blob()
+      : new ExpoFile(uri);
+  const filename = Platform.OS === 'web' ? 'clip.webm' : 'clip.m4a';
+  form.append('file', audioBlob, filename);
 
   try {
     const response = await fetch(`${VOICE_SERVICE_URL}/stt`, { method: 'POST', body: form });
@@ -510,14 +522,26 @@ async function transcribeAudioClip(uri: string): Promise<RecognitionResult> {
         confidence: typeof data.confidence === 'number' ? data.confidence : 0.7,
       };
     }
-  } catch {
-    // Si la conexión al servidor STT local no está disponible
+
+    let serverMessage = '';
+    try {
+      const errorData = await response.json();
+      serverMessage = typeof errorData.detail === 'string' ? errorData.detail : '';
+    } catch {
+      // El servidor puede responder sin un cuerpo JSON legible.
+    }
+    throw new Error(serverMessage || `El servicio de voz respondió con HTTP ${response.status}.`);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : '';
+    if (message) {
+      throw new Error(message);
+    }
   }
 
   throw new Error(
     Platform.OS === 'web'
       ? 'No se pudo conectar con el microservicio de voz. Asegúrate de tenerlo activo o escribe tu texto.'
-      : 'El servicio de reconocimiento de voz Quechua no está disponible en este dispositivo. Por favor ingresa el texto manualmente.'
+      : `No se pudo conectar con el servicio de reconocimiento de voz. Verifica tu conexión a internet e inténtalo de nuevo. URL: ${VOICE_SERVICE_URL}`
   );
 }
 
@@ -774,6 +798,22 @@ const LOCAL_DICTIONARY_QU_ES: Record<string, string> = {
   'hanaq pacha': 'Cielo / Mundo superior',
 };
 
+// Mantiene el traductor alineado con el vocabulario editorial de las lecciones.
+// Así una palabra enseñada en el camino del saber también funciona en el
+// diccionario, sin tener que duplicarla manualmente en dos archivos.
+Object.values(LESSON_CONTENT_PACKS).forEach((pack) => {
+  pack.vocabulary.forEach(({ quechua, spanish }) => {
+    const quechuaKey = normalizeText(quechua);
+    const spanishKey = normalizeText(spanish.split('/')[0]);
+    if (quechuaKey && !LOCAL_DICTIONARY_QU_ES[quechuaKey]) {
+      LOCAL_DICTIONARY_QU_ES[quechuaKey] = spanish;
+    }
+    if (spanishKey && !LOCAL_DICTIONARY_ES_QU[spanishKey]) {
+      LOCAL_DICTIONARY_ES_QU[spanishKey] = quechua;
+    }
+  });
+});
+
 function normalizeText(text: string): string {
   return text
     .toLowerCase()
@@ -783,7 +823,10 @@ function normalizeText(text: string): string {
 }
 
 function findLocalTranslation(text: string, sourceLang: Language): string | null {
-  const clean = text.toLowerCase().trim();
+  const clean = text
+    .toLowerCase()
+    .trim()
+    .replace(/^[¿¡]+|[?!.;,]+$/g, '');
   const dict = sourceLang === 'es' ? LOCAL_DICTIONARY_ES_QU : LOCAL_DICTIONARY_QU_ES;
 
   if (dict[clean]) return dict[clean];

@@ -328,7 +328,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   optSelected: { borderColor: '#1CB0F6', backgroundColor: '#DDF4FF' },
-  optCorrect: { borderColor: BrandColors.brandGreen, backgroundColor: '#E8F5E9' },
+  optCorrect: { borderColor: BrandColors.brandGreen, backgroundColor: '#E0F2F1' },
   optWrong: { borderColor: BrandColors.danger, backgroundColor: BrandColors.dangerLight },
   optText: { fontSize: 17, fontWeight: '600', color: '#333' },
   footer: {
@@ -337,7 +337,7 @@ const styles = StyleSheet.create({
     borderColor: '#f0f0f0',
     backgroundColor: '#fff',
   },
-  footerOk: { backgroundColor: '#E8F5E9', borderColor: '#A5D6A7' },
+  footerOk: { backgroundColor: '#E0F2F1', borderColor: '#80CBC4' },
   footerBad: { backgroundColor: BrandColors.dangerLight, borderColor: '#FFCDD2' },
   feedbackRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 },
   feedbackImg: { width: 48, height: 48 },

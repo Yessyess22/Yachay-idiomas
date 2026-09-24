@@ -19,7 +19,7 @@ type Particle = {
   drift: number;
 };
 
-const COLORS = ['#27AE60', '#1B8B8C', '#E5A00D', '#EA5455', '#8E44AD', '#2980B9'];
+const COLORS = ['#1B8B8C', '#1B8B8C', '#E5A00D', '#EA5455', '#8E44AD', '#2980B9'];
 const PARTICLE_COUNT = 26;
 const FALL_DISTANCE = 420;
 

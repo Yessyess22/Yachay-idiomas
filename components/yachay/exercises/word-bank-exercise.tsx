@@ -24,7 +24,7 @@ export function WordBankExercise({
     const newAvail = [...availableWords];
     newAvail.splice(index, 1);
     setAvailableWords(newAvail);
-    setSelectedWords([...selectedWords, word]);
+    setSelectedWords((prev) => [...prev, word]);
   }
 
   function handleDeselectWord(word: string, index: number) {
@@ -32,7 +32,7 @@ export function WordBankExercise({
     const newSelected = [...selectedWords];
     newSelected.splice(index, 1);
     setSelectedWords(newSelected);
-    setAvailableWords([...availableWords, word]);
+    setAvailableWords((prev) => [...prev, word]);
   }
 
   function checkAnswer() {
@@ -147,25 +147,27 @@ const styles = StyleSheet.create({
     color: '#3C3C3C',
   },
   wordChipSelected: {
-    backgroundColor: '#DDF4FF',
+    backgroundColor: '#E0F2F1',
     paddingVertical: 10,
     paddingHorizontal: 14,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: '#1CB0F6',
+    borderColor: '#1B8B8C',
+    borderBottomWidth: 4,
+    borderBottomColor: '#0E4D55',
   },
   wordChipTextSelected: {
     fontSize: 16,
     fontWeight: '800',
-    color: '#1899D6',
+    color: '#0E4D55',
   },
   checkBtn: {
-    backgroundColor: '#58CC02',
+    backgroundColor: '#1B8B8C',
     paddingVertical: 16,
     borderRadius: 16,
     alignItems: 'center',
     borderBottomWidth: 4,
-    borderBottomColor: '#46A302',
+    borderBottomColor: '#0E4D55',
   },
   checkBtnDisabled: {
     backgroundColor: '#E5E5E5',

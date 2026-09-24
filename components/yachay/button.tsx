@@ -3,7 +3,7 @@ import { StyleSheet, Text, TouchableOpacity, type StyleProp, type TextStyle, typ
 type ButtonVariant = 'primary' | 'danger' | 'teal';
 
 const VARIANT_COLORS: Record<ButtonVariant, { bg: string; border: string }> = {
-  primary: { bg: '#27AE60', border: '#1E8449' },
+  primary: { bg: '#1B8B8C', border: '#0E4D55' },
   danger: { bg: '#EA5455', border: '#C0392B' },
   teal: { bg: '#1B8B8C', border: '#0E4D55' },
 };

@@ -28,8 +28,11 @@ import { ConfettiBurst } from '@/components/yachay/confetti-burst';
 import { SparkleBurst } from '@/components/yachay/sparkle-burst';
 import { ProgressBar } from '@/components/yachay/progress-bar';
 import { PronunciationExercise } from '@/components/yachay/exercises/pronunciation-exercise';
+import { WordBankExercise } from '@/components/yachay/exercises/word-bank-exercise';
+import { MatchingPairsExercise } from '@/components/yachay/exercises/matching-pairs-exercise';
 import { useYachiBounce } from '@/hooks/use-yachi-bounce';
 import { extractCorePhoneme } from '@/src/utils/phoneticGuide';
+import { LESSON_CONTENT_PACKS, LessonContentPack, LessonExerciseEntry } from '@/src/content/lessonContent';
 import { playQuechuaAudio } from '@/src/services/voiceService';
 import {
   isSoundEnabled,
@@ -43,8 +46,8 @@ import {
 const TEAL = '#1B8B8C';
 const TEAL_DARK = '#136566';
 const CREAM = '#FAF7F2';
-const GREEN = '#27AE60';
-const GREEN_DARK = '#1E8449';
+const GREEN = '#1B8B8C';
+const GREEN_DARK = '#0E4D55';
 const RED = '#EA5455';
 
 type VocabCard = { quechua: string; spanish: string };
@@ -71,6 +74,36 @@ const VOCAB_OVERRIDES: Record<number, VocabCard[]> = {
     { quechua: 'Mishki', spanish: 'Dulce / Delicioso — con el sonido "sh"' },
     { quechua: 'Wasi', spanish: 'Casa / Hogar' },
     { quechua: 'Allin', spanish: 'Bueno / Bien — con la consonante palatal "ll" [ʎ]' },
+  ],
+  3: [
+    { quechua: 'Huk', spanish: 'Uno' },
+    { quechua: 'Iskay', spanish: 'Dos' },
+    { quechua: 'Kimsa', spanish: 'Tres' },
+    { quechua: 'Tawa', spanish: 'Cuatro' },
+    { quechua: 'Pichqa', spanish: 'Cinco' },
+  ],
+  4: [
+    { quechua: 'Suqta', spanish: 'Seis' },
+    { quechua: 'Qanchis', spanish: 'Siete' },
+    { quechua: 'Pusaq', spanish: 'Ocho' },
+    { quechua: 'Isqon', spanish: 'Nueve' },
+    { quechua: 'Chunka', spanish: 'Diez' },
+  ],
+  5: [
+    { quechua: 'Allillanchu', spanish: '¿Cómo estás?' },
+    { quechua: 'Allillanmi', spanish: 'Estoy bien' },
+    { quechua: 'Añay', spanish: 'Gracias' },
+    { quechua: 'Tupananchiskama', spanish: 'Hasta volver a encontrarnos' },
+    { quechua: "Allin p'unchaw", spanish: 'Buenos días' },
+    { quechua: 'Allin tuta', spanish: 'Buenas noches' },
+  ],
+  6: [
+    { quechua: 'Tayta', spanish: 'Padre' },
+    { quechua: 'Mama', spanish: 'Madre' },
+    { quechua: 'Churi', spanish: 'Hijo o hija para un padre' },
+    { quechua: 'Wawa', spanish: 'Bebé o hijo/a para una madre' },
+    { quechua: 'Awicha', spanish: 'Abuela' },
+    { quechua: 'Tura', spanish: 'Hermano de una mujer' },
   ],
 };
 
@@ -115,6 +148,7 @@ type Exercise =
       clueText: string;
       targetWord: string;
       correctAnswer: string;
+      acceptedAnswers?: string[];
     }
   | {
       kind: 'true_false';
@@ -131,6 +165,21 @@ type Exercise =
       prompt: string;
       targetWord: string;
       options: { id: number; text: string; is_correct: boolean }[];
+      correctAnswer: string;
+    }
+  | {
+      kind: 'word_bank';
+      id: string;
+      prompt: string;
+      correctSentence: string;
+      words: string[];
+      correctAnswer: string;
+    }
+  | {
+      kind: 'matching_pairs';
+      id: string;
+      prompt: string;
+      pairs: { qu: string; es: string }[];
       correctAnswer: string;
     };
 
@@ -249,6 +298,15 @@ function normalizeAnswer(text: string): string {
     .replace(/\s+/g, ' ');
 }
 
+function shuffle<T>(items: T[]): T[] {
+  const result = [...items];
+  for (let index = result.length - 1; index > 0; index -= 1) {
+    const randomIndex = Math.floor(Math.random() * (index + 1));
+    [result[index], result[randomIndex]] = [result[randomIndex], result[index]];
+  }
+  return result;
+}
+
 function buildExerciseList(questions: QuestionWithOptions[], vocabCards: VocabCard[]): Exercise[] {
   const list: Exercise[] = [];
 
@@ -259,7 +317,7 @@ function buildExerciseList(questions: QuestionWithOptions[], vocabCards: VocabCa
       kind: 'quiz',
       id: `quiz-${q.id || idx}`,
       prompt: q.prompt,
-      options: q.options,
+      options: shuffle(q.options),
       correctAnswer: correct?.option_text || '',
     });
   });
@@ -378,6 +436,43 @@ function buildExerciseList(questions: QuestionWithOptions[], vocabCards: VocabCa
     });
   }
 
+  // 2.9 Agregar ejercicio de banco de palabras para reconstruir frases breves.
+  if (vocabCards.length >= 2) {
+    const anchor = vocabCards[Math.min(1, vocabCards.length - 1)];
+    const phraseWords = anchor.quechua.split(/\s+/).filter(Boolean);
+    const extraWords = vocabCards
+      .filter((v) => v.quechua !== anchor.quechua)
+      .flatMap((v) => v.quechua.split(/\s+/).filter(Boolean))
+      .filter((v) => !phraseWords.includes(v))
+      .slice(0, 4);
+    const bankWords = [...phraseWords, ...extraWords].sort(() => Math.random() - 0.5);
+
+    list.push({
+      kind: 'word_bank',
+      id: `wordbank-${anchor.quechua}`,
+      prompt: 'Arma la frase correcta usando las palabras del banco:',
+      correctSentence: anchor.quechua,
+      words: bankWords,
+      correctAnswer: anchor.quechua,
+    });
+  }
+
+  // 2.10 Agregar ejercicio de emparejar vocabulario con su significado.
+  if (vocabCards.length >= 2) {
+    const pairs = vocabCards.slice(0, Math.min(vocabCards.length, 4)).map((v) => ({
+      qu: v.quechua,
+      es: v.spanish.replace(/^[^:]+:\s*/, '').trim() || v.spanish,
+    }));
+
+    list.push({
+      kind: 'matching_pairs',
+      id: `matching-${pairs[0]?.qu || 'pair'}`,
+      prompt: 'Relaciona cada palabra con su significado:',
+      pairs,
+      correctAnswer: pairs.map((p) => p.qu).join(', '),
+    });
+  }
+
   // 3. Agregar ejercicio de Pronunciación / Speaking. Si el vocabulario
   // objetivo es una frase (ej. saludos de varias palabras), se evalúa
   // completa en vez de truncarla con extractCorePhoneme (pensado para
@@ -397,7 +492,139 @@ function buildExerciseList(questions: QuestionWithOptions[], vocabCards: VocabCa
     });
   }
 
-  return list;
+  return shuffle(list);
+}
+
+function toExerciseOptions(options: string[], correct: string, startId: number) {
+  return options.map((text, index) => ({
+    id: startId + index,
+    text,
+    is_correct: text === correct,
+  }));
+}
+
+function resolvePackTarget(entry: LessonExerciseEntry, pack: LessonContentPack): VocabCard {
+  const candidates = [entry.correct, entry.clue].filter(Boolean).map((value) => value!.toLowerCase());
+  const match = pack.vocabulary.find((item) =>
+    candidates.some((candidate) =>
+      item.spanish.toLowerCase().includes(candidate) ||
+      candidate.includes(item.spanish.toLowerCase()),
+    ),
+  );
+
+  return match ?? {
+    quechua: entry.correct,
+    spanish: entry.clue ?? 'Practica esta respuesta',
+  };
+}
+
+function buildPackExerciseList(pack: LessonContentPack): Exercise[] {
+  return shuffle(pack.exercises).map((entry, index) => {
+    const target = resolvePackTarget(entry, pack);
+    const options = toExerciseOptions(
+      shuffle(entry.options ?? []),
+      entry.correct,
+      index * 10 + 1,
+    );
+
+    switch (entry.type) {
+      case 'listening':
+        return {
+          kind: 'listening',
+          id: entry.id,
+          prompt: entry.prompt,
+          targetWord: target.quechua,
+          options: options.length > 0 ? options : toExerciseOptions(pack.vocabulary.map((item) => item.quechua), target.quechua, index * 10 + 1),
+          correctAnswer: entry.correct,
+        };
+      case 'fill_blank':
+        return {
+          kind: 'fill_blank',
+          id: entry.id,
+          prompt: entry.prompt,
+          clueText: entry.clue ?? target.spanish,
+          targetWord: target.quechua,
+          options,
+          correctAnswer: entry.correct,
+        };
+      case 'text_input':
+        return {
+          kind: 'text_input',
+          id: entry.id,
+          prompt: entry.prompt,
+          clueText: entry.clue ?? target.spanish,
+          targetWord: entry.correct,
+          correctAnswer: entry.correct,
+          acceptedAnswers: entry.acceptedAnswers,
+        };
+      case 'true_false':
+        return {
+          kind: 'true_false',
+          id: entry.id,
+          prompt: entry.prompt,
+          statement: entry.clue ?? entry.prompt,
+          targetWord: target.quechua,
+          options,
+          correctAnswer: entry.correct,
+        };
+      case 'image_match':
+        return {
+          kind: 'image_match',
+          id: entry.id,
+          prompt: entry.prompt,
+          targetWord: target.quechua,
+          options,
+          correctAnswer: entry.correct,
+        };
+      case 'word_bank':
+        return {
+          kind: 'word_bank',
+          id: entry.id,
+          prompt: entry.prompt,
+          correctSentence: entry.correct,
+          words: shuffle(entry.wordBank ?? entry.options ?? entry.correct.split(/\s+/)),
+          correctAnswer: entry.correct,
+        };
+      case 'matching_pairs': {
+        const pairs = shuffle(
+          (entry.options ?? []).map((word, pairIndex) => ({
+            qu: word,
+            es: entry.wordBank?.[pairIndex] ?? '',
+          })),
+        );
+        return {
+          kind: 'matching_pairs',
+          id: entry.id,
+          prompt: entry.prompt,
+          pairs,
+          correctAnswer: entry.correct,
+        };
+      }
+      case 'speaking':
+        return {
+          kind: 'speaking',
+          id: entry.id,
+          prompt: entry.prompt,
+          targetWord: target.quechua,
+          translation: target.spanish,
+          correctAnswer: target.quechua,
+          isPhrase: target.quechua.includes(' '),
+        };
+      default:
+        return {
+          kind: 'quiz',
+          id: entry.id,
+          prompt: entry.prompt,
+          options: (entry.options ?? []).map((text, optionIndex) => ({
+            id: index * 10 + optionIndex + 1,
+            question_id: index + 1,
+            option_text: text,
+            is_correct: text === entry.correct,
+          })),
+          correctAnswer: entry.correct,
+        };
+    }
+  });
 }
 
 export default function LessonScreen() {
@@ -419,6 +646,13 @@ export default function LessonScreen() {
   const [error, setError] = useState('');
   const [soundOn, setSoundOn] = useState(true);
   const [sparkleKey, setSparkleKey] = useState(0);
+  const [lessonVocabulary, setLessonVocabulary] = useState<VocabCard[]>([]);
+  const [missedWords, setMissedWords] = useState<{ quechua: string; spanish: string }[]>([]);
+  const [reviewMode, setReviewMode] = useState(false);
+  const [reviewQueue, setReviewQueue] = useState<{ id: string; prompt: string; options: string[]; correct: string }[]>([]);
+  const [reviewIndex, setReviewIndex] = useState(0);
+  const [reviewSelected, setReviewSelected] = useState<string | null>(null);
+  const [reviewAnswered, setReviewAnswered] = useState(false);
 
   const { user, refreshProfile } = useAuth();
   const { lives, streakDays, checkAnswer, addGems } = useGame();
@@ -433,6 +667,15 @@ export default function LessonScreen() {
 
     (async () => {
       try {
+        const contentPack = LESSON_CONTENT_PACKS[lessonId];
+        if (contentPack) {
+          const vCards = contentPack.vocabulary.map(({ quechua, spanish }) => ({ quechua, spanish }));
+          setLessonVocabulary(vCards);
+          setExercises(buildPackExerciseList(contentPack));
+          setLoading(false);
+          return;
+        }
+
         let qs: QuestionWithOptions[] | null = await loadQuestionsFromCache<QuestionWithOptions[]>(String(lessonId));
 
         if (!qs) {
@@ -451,6 +694,7 @@ export default function LessonScreen() {
 
         if (!isMounted) return;
         const vCards = VOCAB_OVERRIDES[lessonId] ?? buildVocabCards(qs);
+        setLessonVocabulary(vCards);
         setExercises(buildExerciseList(qs, vCards));
       } catch {
         if (isMounted) {
@@ -477,6 +721,54 @@ export default function LessonScreen() {
     await setSoundEnabled(next);
   }
 
+  function buildReviewOptions(word: string, fallbackGloss: string): string[] {
+    const pool = [fallbackGloss, ...lessonVocabulary.map((v) => v.spanish).filter(Boolean)];
+    const uniquePool = Array.from(new Set(pool.map((item) => item.trim()).filter(Boolean)));
+    const translatedOptions = uniquePool.filter((item) => item.toLowerCase() !== fallbackGloss.toLowerCase());
+    const picked = translatedOptions.slice(0, 3);
+    const options = [...picked, fallbackGloss].sort(() => Math.random() - 0.5);
+    return Array.from(new Set(options)).slice(0, 4);
+  }
+
+  function registerMissedWord(exercise: Exercise | null | undefined) {
+    if (!exercise) return;
+
+    let target: string | null = null;
+    if (exercise.kind === 'quiz') {
+      target = !isSpanishText(exercise.correctAnswer) ? exercise.correctAnswer : null;
+    } else if (exercise.kind === 'listening' || exercise.kind === 'fill_blank' || exercise.kind === 'true_false' || exercise.kind === 'image_match') {
+      target = exercise.targetWord;
+    } else if (exercise.kind === 'text_input') {
+      target = !isSpanishText(exercise.correctAnswer) ? exercise.correctAnswer : exercise.targetWord;
+    } else if (exercise.kind === 'word_bank') {
+      target = exercise.correctSentence;
+    }
+
+    if (!target || isSpanishText(target)) return;
+
+    const normalizedTarget = target.trim();
+    const known = lessonVocabulary.find((v) => v.quechua.toLowerCase() === normalizedTarget.toLowerCase());
+    const spanishValue = known?.spanish || 'Repasa esta palabra';
+
+    setMissedWords((prev) => {
+      if (prev.some((item) => item.quechua.toLowerCase() === normalizedTarget.toLowerCase())) {
+        return prev;
+      }
+      return [...prev, { quechua: normalizedTarget, spanish: spanishValue }];
+    });
+  }
+
+  function buildReviewQueueFromMissedWords(): { id: string; prompt: string; options: string[]; correct: string }[] {
+    if (missedWords.length === 0) return [];
+
+    return missedWords.slice(0, 3).map((item) => ({
+      id: `review-${item.quechua}`,
+      prompt: `¿Qué significa “${item.quechua}” en español?`,
+      options: buildReviewOptions(item.quechua, item.spanish),
+      correct: item.spanish,
+    }));
+  }
+
   // ─── Quiz & Ejercicios ────────────────────────────────────
   const currentExercise = exercises[currentIndex];
   const listeningWord = currentExercise?.kind === 'listening' ? currentExercise.targetWord : undefined;
@@ -494,36 +786,38 @@ export default function LessonScreen() {
     playTapSound();
   }
 
-  function handleCheckAnswer() {
+  function handleExerciseResult(correct: boolean, targetText?: string) {
     if (isAnswered || !currentExercise) return;
 
-    let correct = false;
-    let targetAnswer = currentExercise.correctAnswer;
+    let answerText = targetText ?? currentExercise.correctAnswer;
 
     if (currentExercise.kind === 'quiz') {
-      const selected = currentExercise.options.find((o) => o.id === selectedOptionId);
-      correct = selected?.is_correct ?? false;
       const rightOpt = currentExercise.options.find((o) => o.is_correct);
-      targetAnswer = rightOpt?.option_text || '';
+      answerText = rightOpt?.option_text || currentExercise.correctAnswer;
     } else if (
       currentExercise.kind === 'listening' ||
       currentExercise.kind === 'fill_blank' ||
       currentExercise.kind === 'true_false' ||
       currentExercise.kind === 'image_match'
     ) {
-      const selected = currentExercise.options.find((o) => o.id === selectedOptionId);
-      correct = selected?.is_correct ?? false;
-      targetAnswer = currentExercise.targetWord;
+      answerText = currentExercise.targetWord;
     } else if (currentExercise.kind === 'text_input') {
-      correct = normalizeAnswer(typedAnswer) === normalizeAnswer(currentExercise.correctAnswer);
-      targetAnswer = currentExercise.targetWord;
+      answerText = currentExercise.targetWord;
+    } else if (currentExercise.kind === 'word_bank') {
+      answerText = currentExercise.correctSentence;
+    } else if (currentExercise.kind === 'matching_pairs') {
+      answerText = currentExercise.pairs.map((pair) => pair.qu).join(' • ');
     }
 
-    setCorrectAnswerText(targetAnswer);
+    setCorrectAnswerText(answerText);
     setIsCorrect(correct);
     setIsAnswered(true);
     checkAnswer(correct);
-    // Feedback háptico, sonoro y de mascota diferenciado según resultado
+
+    if (!correct) {
+      registerMissedWord(currentExercise);
+    }
+
     if (correct) {
       celebrateYachi();
       setSparkleKey((k) => k + 1);
@@ -536,25 +830,36 @@ export default function LessonScreen() {
     }
   }
 
+  function handleCheckAnswer() {
+    if (isAnswered || !currentExercise) return;
+
+    let correct = false;
+
+    if (currentExercise.kind === 'quiz') {
+      const selected = currentExercise.options.find((o) => o.id === selectedOptionId);
+      correct = selected?.is_correct ?? false;
+    } else if (
+      currentExercise.kind === 'listening' ||
+      currentExercise.kind === 'fill_blank' ||
+      currentExercise.kind === 'true_false' ||
+      currentExercise.kind === 'image_match'
+    ) {
+      const selected = currentExercise.options.find((o) => o.id === selectedOptionId);
+      correct = selected?.is_correct ?? false;
+    } else if (currentExercise.kind === 'text_input') {
+      const acceptedAnswers = currentExercise.acceptedAnswers ?? [currentExercise.correctAnswer];
+      correct = acceptedAnswers.some((answer) => normalizeAnswer(typedAnswer) === normalizeAnswer(answer));
+    }
+
+    handleExerciseResult(correct);
+  }
+
   function handleSpeakingSuccess(score: number) {
-    setCorrectAnswerText(currentExercise.correctAnswer);
-    setIsCorrect(true);
-    setIsAnswered(true);
-    checkAnswer(true);
-    celebrateYachi();
-    setSparkleKey((k) => k + 1);
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
-    playCorrectSound();
+    handleExerciseResult(true, currentExercise.correctAnswer);
   }
 
   function handleSpeakingFail() {
-    setCorrectAnswerText(currentExercise.correctAnswer);
-    setIsCorrect(false);
-    setIsAnswered(true);
-    checkAnswer(false);
-    bounceYachi();
-    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
-    playIncorrectSound();
+    handleExerciseResult(false, currentExercise.correctAnswer);
   }
 
   async function handleNextExercise() {
@@ -571,21 +876,59 @@ export default function LessonScreen() {
 
     if (currentIndex + 1 < exercises.length) {
       setCurrentIndex((prev) => prev + 1);
-    } else {
-      setCompleted(true);
-      celebrateYachi();
-      setSparkleKey((k) => k + 1);
-      playCompleteSound();
-      addGems(15);
-      const uid = user?.uid || (user as any)?.id;
-      if (uid) {
-        await questionService.recordLessonProgress(lessonId, uid, 10);
-        leaderboardService.recordWeeklyXp(uid, 10).catch(() => {});
-        questService.updateQuestProgress(uid, 'lesson_count', 1).catch(() => {});
-        questService.updateQuestProgress(uid, 'xp_gain', 10).catch(() => {});
-        await refreshProfile();
-      }
+      return;
     }
+
+    const reviewQueueData = buildReviewQueueFromMissedWords();
+    if (reviewQueueData.length > 0) {
+      setReviewQueue(reviewQueueData);
+      setReviewIndex(0);
+      setReviewSelected(null);
+      setReviewAnswered(false);
+      setReviewMode(true);
+      return;
+    }
+
+    await finishLesson();
+  }
+
+  async function finishLesson() {
+    setReviewMode(false);
+    setReviewQueue([]);
+    setReviewIndex(0);
+    setReviewSelected(null);
+    setReviewAnswered(false);
+    setCompleted(true);
+    celebrateYachi();
+    setSparkleKey((k) => k + 1);
+    playCompleteSound();
+    addGems(15);
+    const uid = user?.uid || (user as any)?.id;
+    if (uid) {
+      await questionService.recordLessonProgress(lessonId, uid, 10);
+      leaderboardService.recordWeeklyXp(uid, 10).catch(() => {});
+      questService.updateQuestProgress(uid, 'lesson_count', 1).catch(() => {});
+      questService.updateQuestProgress(uid, 'xp_gain', 10).catch(() => {});
+      await refreshProfile();
+    }
+  }
+
+  function handleReviewSelect(option: string) {
+    if (reviewAnswered) return;
+    setReviewSelected(option);
+    setReviewAnswered(true);
+  }
+
+  async function handleReviewNext() {
+    const nextIndex = reviewIndex + 1;
+    if (nextIndex < reviewQueue.length) {
+      setReviewIndex(nextIndex);
+      setReviewSelected(null);
+      setReviewAnswered(false);
+      return;
+    }
+
+    await finishLesson();
   }
 
   // ─── Estados globales de carga / error ─────────────────────
@@ -604,6 +947,57 @@ export default function LessonScreen() {
           {error || 'No se encontraron preguntas en esta lección.'}
         </Text>
         <Button label="Volver" onPress={() => router.back()} />
+      </View>
+    );
+  }
+
+  if (reviewMode && reviewQueue.length > 0) {
+    const currentReview = reviewQueue[reviewIndex];
+    const isReviewCorrect = reviewSelected === currentReview.correct;
+
+    return (
+      <View style={styles.centered}>
+        <View style={styles.reviewCard}>
+          <Text style={styles.reviewTitle}>Repaso inteligente</Text>
+          <Text style={styles.reviewSubtitle}>Revisa lo que fallaste antes de cerrar la lección.</Text>
+          <Text style={styles.reviewPrompt}>{currentReview.prompt}</Text>
+          <View style={styles.reviewOptionsList}>
+            {currentReview.options.map((option) => {
+              const selected = reviewSelected === option;
+              const isCorrect = option === currentReview.correct;
+              const showSuccess = reviewAnswered && isCorrect;
+              const showError = reviewAnswered && selected && !isCorrect;
+
+              return (
+                <TouchableOpacity
+                  key={`${currentReview.id}-${option}`}
+                  style={[
+                    styles.reviewOption,
+                    selected && styles.reviewOptionSelected,
+                    showSuccess && styles.reviewOptionCorrect,
+                    showError && styles.reviewOptionWrong,
+                  ]}
+                  onPress={() => handleReviewSelect(option)}
+                  disabled={reviewAnswered}
+                >
+                  <Text style={styles.reviewOptionText}>{option}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+          {reviewAnswered && (
+            <Text style={[styles.reviewFeedback, isReviewCorrect ? styles.reviewFeedbackSuccess : styles.reviewFeedbackError]}>
+              {isReviewCorrect ? '¡Bien! Esa significa la palabra correcta.' : `Correcto: ${currentReview.correct}`}
+            </Text>
+          )}
+          <View style={styles.reviewActions}>
+            <Button
+              label={reviewIndex + 1 < reviewQueue.length ? 'Siguiente' : 'Finalizar'}
+              onPress={handleReviewNext}
+              disabled={!reviewAnswered}
+            />
+          </View>
+        </View>
       </View>
     );
   }
@@ -722,6 +1116,10 @@ export default function LessonScreen() {
                 ? '✅ VERDADERO O FALSO'
                 : currentExercise.kind === 'image_match'
                 ? '🖼️ EMPAREJAR CON IMAGEN'
+                : currentExercise.kind === 'word_bank'
+                ? '🧩 ARMAR FRASE'
+                : currentExercise.kind === 'matching_pairs'
+                ? '🔗 EMPAREJAR CON SIGNIFICADO'
                 : '📝 PREGUNTA INTERACTIVA'}
             </Text>
             <Text style={styles.speechText}>{currentExercise.prompt}</Text>
@@ -895,6 +1293,32 @@ export default function LessonScreen() {
           </View>
         )}
 
+        {/* ── 2.9 EJERCICIO BANCO DE PALABRAS ── */}
+        {currentExercise.kind === 'word_bank' && (
+          <View style={styles.wordBankExerciseContainer}>
+            <WordBankExercise
+              prompt={currentExercise.prompt}
+              correctSentence={currentExercise.correctSentence}
+              words={currentExercise.words}
+              onCheck={(isCorrect) => handleExerciseResult(isCorrect, currentExercise.correctSentence)}
+              disabled={isAnswered}
+            />
+          </View>
+        )}
+
+        {/* ── 2.10 EJERCICIO EMPAREJAR PARES ── */}
+        {currentExercise.kind === 'matching_pairs' && (
+          <View style={styles.matchingPairsExerciseContainer}>
+            <MatchingPairsExercise
+              pairs={currentExercise.pairs}
+              onComplete={(isCorrect) =>
+                handleExerciseResult(isCorrect, currentExercise.pairs.map((pair) => pair.qu).join(' • '))
+              }
+              disabled={isAnswered}
+            />
+          </View>
+        )}
+
         {/* ── 3. EJERCICIO SPEAKING (PRONUNCIACIÓN CON MIC) ── */}
         {currentExercise.kind === 'speaking' && (
           <View style={styles.speakingContainer}>
@@ -909,8 +1333,8 @@ export default function LessonScreen() {
         )}
       </ScrollView>
 
-      {/* Footer inferior (botón comprobar para todos los tipos excepto speaking) */}
-      {currentExercise.kind !== 'speaking' && (
+      {/* Footer inferior (botón comprobar para tipos seleccionables; los ejercicios de palabra y pares se validan internamente) */}
+      {currentExercise.kind !== 'speaking' && currentExercise.kind !== 'word_bank' && currentExercise.kind !== 'matching_pairs' && (
         <View style={styles.footer}>
           {(() => {
             const isDisabled =
@@ -1254,6 +1678,14 @@ const styles = StyleSheet.create({
   imageMatchContainer: {
     gap: 16,
   },
+  wordBankExerciseContainer: {
+    paddingHorizontal: 16,
+    marginTop: 8,
+  },
+  matchingPairsExerciseContainer: {
+    paddingHorizontal: 16,
+    marginTop: 8,
+  },
   imageGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -1364,6 +1796,89 @@ const styles = StyleSheet.create({
   },
   modalButton: {
     width: '100%',
+  },
+
+  // Review screen
+  reviewCard: {
+    width: '100%',
+    maxWidth: 420,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 22,
+    borderWidth: 2,
+    borderColor: '#E8E2D9',
+    borderBottomWidth: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  reviewTitle: {
+    fontSize: 24,
+    fontWeight: '900',
+    color: '#0E4D55',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  reviewSubtitle: {
+    fontSize: 14,
+    color: '#5F6D76',
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  reviewPrompt: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#2A1A0A',
+    marginBottom: 16,
+    textAlign: 'center',
+  },
+  reviewOptionsList: {
+    gap: 10,
+    marginBottom: 16,
+  },
+  reviewOption: {
+    backgroundColor: '#F8F8F8',
+    borderWidth: 2,
+    borderColor: '#E8E2D9',
+    borderBottomWidth: 4,
+    borderRadius: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+  },
+  reviewOptionSelected: {
+    borderColor: TEAL,
+    backgroundColor: '#E0F2F1',
+  },
+  reviewOptionCorrect: {
+    borderColor: '#1B8B8C',
+    backgroundColor: '#E0F2F1',
+  },
+  reviewOptionWrong: {
+    borderColor: '#E56868',
+    backgroundColor: '#FDECEC',
+  },
+  reviewOptionText: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#2A1A0A',
+    textAlign: 'center',
+  },
+  reviewFeedback: {
+    textAlign: 'center',
+    fontSize: 15,
+    fontWeight: '800',
+    marginBottom: 14,
+  },
+  reviewFeedbackSuccess: {
+    color: '#0E4D55',
+  },
+  reviewFeedbackError: {
+    color: '#B42318',
+  },
+  reviewActions: {
+    marginTop: 4,
   },
 
   // Congrats screen

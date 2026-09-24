@@ -28,7 +28,7 @@ const GOLD_LIGHT = '#FFF9E6';
 const GOLD_DARK = '#9E6404';
 const PARCHMENT = '#F8F5EE';
 const BORDER_COLOR = '#ECE5D8';
-const GREEN = '#2BA84A';
+const GREEN = '#1B8B8C';
 const TEXT_DARK = '#2C2520';
 const TEXT_MUTED = '#7A6E65';
 
@@ -715,7 +715,7 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   rolePill: {
-    backgroundColor: '#EAF7EE',
+    backgroundColor: '#E0F2F1',
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 6,
@@ -1079,7 +1079,7 @@ const styles = StyleSheet.create({
     color: TEXT_MUTED,
   },
   badgeUnlockedPill: {
-    backgroundColor: '#EAF7EE',
+    backgroundColor: '#E0F2F1',
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 8,
