@@ -7,7 +7,7 @@ import {
   translateText,
 } from '@/src/services/voiceService';
 import { Image } from 'expo-image';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
   ActivityIndicator,
@@ -26,14 +26,26 @@ type Mode = 'text' | 'voice';
 
 export default function TranslatorScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ text?: string; lang?: string }>();
 
-  const [sourceLang, setSourceLang] = useState<Language>('es');
-  const [sourceText, setSourceText] = useState('');
+  const [sourceLang, setSourceLang] = useState<Language>(
+    params.lang === 'qu' || params.lang === 'es' ? params.lang : 'es'
+  );
+  const [sourceText, setSourceText] = useState(params.text || '');
+  const [prevParamText, setPrevParamText] = useState(params.text);
   const [translatedText, setTranslatedText] = useState('');
   const [mode, setMode] = useState<Mode>('text');
   const [loading, setLoading] = useState(false);
   const [recording, setRecording] = useState(false);
   const [error, setError] = useState('');
+
+  if (params.text && params.text !== prevParamText) {
+    setPrevParamText(params.text);
+    setSourceText(params.text);
+    if (params.lang === 'qu' || params.lang === 'es') {
+      setSourceLang(params.lang as Language);
+    }
+  }
 
   const targetLang: Language = sourceLang === 'es' ? 'qu' : 'es';
 

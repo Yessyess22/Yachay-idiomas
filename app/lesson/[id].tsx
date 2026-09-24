@@ -641,6 +641,28 @@ export default function LessonScreen() {
             <Text style={styles.statBadge}>🪙 +15 Coins</Text>
           </View>
         </View>
+
+        {/* Puente Virtuoso hacia la Biblioteca Andina (Explorar) */}
+        <View style={styles.cultureCrossLinkCard}>
+          <View style={styles.cultureCrossLinkHeader}>
+            <Text style={styles.cultureCrossLinkTag}>💡 CURIOSIDAD CULTURAL ANDINA</Text>
+            <Text style={styles.cultureCrossLinkEmoji}>🏔️</Text>
+          </View>
+          <Text style={styles.cultureCrossLinkTitle}>
+            ¿Quieres profundizar en el origen de las palabras y tradiciones?
+          </Text>
+          <Text style={styles.cultureCrossLinkDesc}>
+            En la Biblioteca Andina puedes leer cuentos ancestrales, explorar gastronomía y escuchar modismos sin exámenes ni vidas.
+          </Text>
+          <TouchableOpacity
+            style={styles.cultureCrossLinkBtn}
+            onPress={() => router.replace('/(tabs)/explore')}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.cultureCrossLinkBtnText}>Explorar en la Biblioteca Andina →</Text>
+          </TouchableOpacity>
+        </View>
+
         <Button label="Continuar al Inicio →" onPress={() => router.back()} />
       </View>
     );
@@ -1375,5 +1397,53 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 20,
     fontWeight: '700',
+  },
+  cultureCrossLinkCard: {
+    width: '100%',
+    backgroundColor: '#F3FAF8',
+    borderColor: '#C7E8E0',
+    borderWidth: 1.5,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 20,
+  },
+  cultureCrossLinkHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  cultureCrossLinkTag: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#1B8B8C',
+    letterSpacing: 0.8,
+  },
+  cultureCrossLinkEmoji: {
+    fontSize: 18,
+  },
+  cultureCrossLinkTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#0E4D55',
+    marginBottom: 4,
+  },
+  cultureCrossLinkDesc: {
+    fontSize: 12,
+    color: '#4A6266',
+    lineHeight: 18,
+    marginBottom: 12,
+  },
+  cultureCrossLinkBtn: {
+    backgroundColor: '#1B8B8C',
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    alignItems: 'center',
+  },
+  cultureCrossLinkBtnText: {
+    color: '#FFFFFF',
+    fontSize: 13,
+    fontWeight: '800',
   },
 });

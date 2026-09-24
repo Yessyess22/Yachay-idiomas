@@ -50,11 +50,11 @@ export default function TabLayout() {
           }}
         />
 
-        {/* Tab 2: Lecciones */}
+        {/* Tab 2: Explorar (Biblioteca Abierta) */}
         <Tabs.Screen
           name="explore"
           options={{
-            title: 'Lecciones',
+            title: 'Explorar',
             tabBarIcon: ({ focused }) => (
               <NavIcon source={require('@/assets/images/nav_lecciones.png')} focused={focused} />
             ),

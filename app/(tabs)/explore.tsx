@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
   Image,
   ImageBackground,
@@ -12,88 +12,40 @@ import {
 import { useRouter } from 'expo-router';
 import { YachayTopBar } from '@/components/yachay/yachay-top-bar';
 import { AudioPronounceButton } from '@/components/yachay/audio-pronounce-button';
-import { useGame } from '@/src/context/GameContext';
+import {
+  CATEGORY_PILLS,
+  CategoryFilter,
+  LIBRARY_ITEMS,
+  LIBRARY_STORIES,
+} from '@/src/content/libraryData';
 
 const TEAL = '#1B8B8C';
 const TEAL_DARK = '#0E4D55';
-const TEAL_LIGHT = '#DDF1ED';
+const TEAL_LIGHT = '#EAF7F5';
 const GOLD = '#D48B0A';
 const GOLD_LIGHT = '#FFF9E6';
-const ORANGE = '#E5771A';
+const GOLD_DARK = '#9E6404';
 const BLUE = '#1A6BE5';
+const ORANGE = '#E5771A';
 const GREEN = '#2BA84A';
+const CREAM = '#FAF7F2';
+const CARD_BG = '#FFFFFF';
+const BORDER = '#E6E0D5';
+const TEXT_DARK = '#1F2937';
+const TEXT_MUTED = '#6B7280';
 
-/* ─── Datos de Glosario ─── */
-interface GlossaryWord {
-  qu: string;
-  es: string;
-  phonetic: string;
-  category: string;
-}
-
-interface StoryCard {
-  id: number;
-  title: string;
-  quechuaTitle: string;
-  level: string;
-  icon: string;
-  description: string;
-}
+type GuideModuleId = 'fonetica' | 'gramatica' | 'vocabulario' | 'dialogos';
 
 interface StudyModule {
-  id: 'fonetica' | 'gramatica' | 'vocabulario' | 'dialogos';
+  id: GuideModuleId;
   title: string;
   quechuaTitle: string;
   description: string;
   accentColor: string;
   icon: any;
-  totalLessons: number;
 }
 
-const GLOSSARY_DATA: GlossaryWord[] = [
-  { qu: 'Allinllachu', es: '¿Cómo estás? / Hola',       phonetic: 'ah-yeen-yah-choo',       category: 'Saludos' },
-  { qu: 'Allinmi',     es: 'Estoy bien',                 phonetic: 'ah-yeen-mee',             category: 'Saludos' },
-  { qu: 'Añay',        es: 'Gracias',                    phonetic: 'ah-nyahy',                category: 'Cortesía' },
-  { qu: 'Inti',        es: 'Sol',                        phonetic: 'een-tee',                 category: 'Naturaleza' },
-  { qu: 'Killa',       es: 'Luna',                       phonetic: 'keel-yah',               category: 'Naturaleza' },
-  { qu: 'Mayu',        es: 'Río',                        phonetic: 'mah-yoo',                category: 'Naturaleza' },
-  { qu: 'Wasi',        es: 'Casa',                       phonetic: 'wah-see',                category: 'Objetos' },
-  { qu: 'Allqo',       es: 'Perro',                      phonetic: 'ahl-kyoh',               category: 'Animales' },
-  { qu: 'Michi',       es: 'Gato',                       phonetic: 'mee-chee',               category: 'Animales' },
-  { qu: 'Urpi',        es: 'Paloma',                     phonetic: 'oor-pee',                category: 'Animales' },
-  { qu: 'Sumaq',       es: 'Hermoso / Delicioso',        phonetic: 'soo-mahq',               category: 'Adjetivos' },
-  { qu: 'Munay',       es: 'Amar / Querer',              phonetic: 'moo-nahy',               category: 'Verbos' },
-  { qu: 'Tupananchiskama', es: 'Hasta volver a vernos', phonetic: 'too-pah-nahn-chees-kah-mah', category: 'Despedidas' },
-];
-
-const STORIES_DATA: StoryCard[] = [
-  {
-    id: 1,
-    title: 'El Zorro y el Cóndor',
-    quechuaTitle: 'Atoqmantawan Kunturmantawan',
-    level: 'Principiante',
-    icon: '🦊🦅',
-    description: 'Acompaña al zorro en su aventura hacia la fiesta de las nubes.',
-  },
-  {
-    id: 2,
-    title: 'La Leyenda de Manco Cápac',
-    quechuaTitle: 'Manco Cápac Mama Ocllo-wan',
-    level: 'Intermedio',
-    icon: '☀️👑',
-    description: 'Descubre cómo nació el gran Imperio del Tawantinsuyu.',
-  },
-  {
-    id: 3,
-    title: 'El Buen Vivir (Sumaq Kawsay)',
-    quechuaTitle: 'Sumaq Kawsaymanta',
-    level: 'Avanzado',
-    icon: '🌿🏔️',
-    description: 'Aprende los principios ancestrales de armonía con la Pachamama.',
-  },
-];
-
-const MODULES: StudyModule[] = [
+const GUIDE_MODULES: StudyModule[] = [
   {
     id: 'fonetica',
     title: 'Fonética & Habla',
@@ -101,7 +53,6 @@ const MODULES: StudyModule[] = [
     description: 'Sistema trivocálico, fonemas posvelares y acentuación andina.',
     accentColor: BLUE,
     icon: require('@/assets/images/categorias/cat_pronunciacion.png'),
-    totalLessons: 15,
   },
   {
     id: 'gramatica',
@@ -110,7 +61,6 @@ const MODULES: StudyModule[] = [
     description: 'Lengua aglutinante, sufijos de certeza, pronombres y conjugación.',
     accentColor: ORANGE,
     icon: require('@/assets/images/categorias/cat_gramatica.png'),
-    totalLessons: 20,
   },
   {
     id: 'vocabulario',
@@ -119,7 +69,6 @@ const MODULES: StudyModule[] = [
     description: 'Números sagrados del 1 al 10, familia, naturaleza y hogar.',
     accentColor: TEAL,
     icon: require('@/assets/images/categorias/cat_vocabulario.png'),
-    totalLessons: 24,
   },
   {
     id: 'dialogos',
@@ -128,249 +77,415 @@ const MODULES: StudyModule[] = [
     description: 'Saludos tradicionales, fórmulas de cortesía y código ético andino.',
     accentColor: GREEN,
     icon: require('@/assets/images/categorias/cat_dialogos.png'),
-    totalLessons: 12,
   },
 ];
 
-type MainTab = 'modules' | 'dictionary' | 'stories' | 'translator';
-
 export default function ExploreScreen() {
   const router = useRouter();
-  const { xp } = useGame();
-  const [activeTab, setActiveTab] = useState<MainTab>('modules');
-  const [selectedModuleId, setSelectedModuleId] = useState<string | null>(null);
-  const [search, setSearch] = useState('');
+  const [selectedFilter, setSelectedFilter] = useState<CategoryFilter>('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedGuideModule, setSelectedGuideModule] = useState<GuideModuleId | null>(null);
 
-  const filteredWords = GLOSSARY_DATA.filter(
-    (w) =>
-      w.qu.toLowerCase().includes(search.toLowerCase()) ||
-      w.es.toLowerCase().includes(search.toLowerCase())
-  );
+  // Filtrado de Historias
+  const filteredStories = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return LIBRARY_STORIES;
+    return LIBRARY_STORIES.filter(
+      (s) =>
+        s.title.toLowerCase().includes(q) ||
+        s.quechuaTitle.toLowerCase().includes(q) ||
+        s.description.toLowerCase().includes(q) ||
+        s.tag.toLowerCase().includes(q)
+    );
+  }, [searchQuery]);
 
-  const TABS: { key: MainTab; label: string }[] = [
-    { key: 'modules',    label: '📚 Módulos' },
-    { key: 'dictionary', label: '📖 Glosario' },
-    { key: 'stories',    label: '📜 Historias' },
-    { key: 'translator', label: '🎙️ Traductor' },
-  ];
+  // Filtrado de Elementos Culturales
+  const filteredItems = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    return LIBRARY_ITEMS.filter((item) => {
+      const matchesCategory =
+        selectedFilter === 'all' || item.category === selectedFilter;
+      if (!matchesCategory) return false;
 
-  const selectedModule = MODULES.find((m) => m.id === selectedModuleId);
+      if (!q) return true;
+      return (
+        item.qu.toLowerCase().includes(q) ||
+        item.es.toLowerCase().includes(q) ||
+        item.description.toLowerCase().includes(q) ||
+        item.subCategory.toLowerCase().includes(q) ||
+        (item.culturalNote && item.culturalNote.toLowerCase().includes(q))
+      );
+    });
+  }, [searchQuery, selectedFilter]);
+
+  const showStories =
+    selectedFilter === 'all' || selectedFilter === 'historias';
+  const showItems =
+    selectedFilter === 'all' ||
+    selectedFilter === 'cultura' ||
+    selectedFilter === 'cotidiano' ||
+    selectedFilter === 'naturaleza' ||
+    selectedFilter === 'curiosidades';
+  const showGuides = selectedFilter === 'guias';
+
+  const hasAnyResults =
+    (showStories && filteredStories.length > 0) ||
+    (showItems && filteredItems.length > 0) ||
+    showGuides;
+
+  function openTranslatorWithText(text: string) {
+    router.push({
+      pathname: '/translator',
+      params: { text, lang: 'qu' },
+    });
+  }
+
+  function openStory(slug: string) {
+    router.push(`/story/${slug}` as any);
+  }
 
   return (
     <View style={styles.container}>
       <YachayTopBar />
 
-      {/* Selector de pestañas superiores */}
-      <View style={styles.tabBar}>
-        {TABS.map((t) => (
-          <TouchableOpacity
-            key={t.key}
-            style={[styles.tabBtn, activeTab === t.key && styles.tabBtnActive]}
-            onPress={() => {
-              if (t.key === 'translator') {
-                router.push('/translator' as any);
-              } else {
-                setActiveTab(t.key);
-                setSelectedModuleId(null);
-              }
-            }}
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Banner Hero: La Biblioteca Andina */}
+        <View style={styles.heroBannerWrap}>
+          <ImageBackground
+            source={require('@/assets/images/cards/tarjeta_montana.png')}
+            style={styles.heroBannerBg}
+            imageStyle={styles.heroBannerImg}
           >
-            <Text style={[styles.tabText, activeTab === t.key && styles.tabTextActive]}>
-              {t.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-
-        {/* ── SECCIÓN MÓDULOS DE LECCIONES ── */}
-        {activeTab === 'modules' && (
-          <View>
-            {/* Si NO hay módulo seleccionado, muestra la lista de los 4 módulos */}
-            {!selectedModule ? (
-              <View>
-                <View style={styles.sectionBannerContainer}>
-                  <ImageBackground
-                    source={require('@/assets/images/cards/tarjeta_montana.png')}
-                    style={styles.sectionBannerBg}
-                    imageStyle={styles.sectionBannerImg}
-                  >
-                    <View style={styles.sectionBannerOverlay}>
-                      <Text style={styles.bannerTag}>ÁREAS DE APRENDIZAJE • GUÍA INTEGRADA</Text>
-                      <Text style={styles.bannerTitle}>Módulos de Lecciones</Text>
-                      <Text style={styles.bannerDesc}>
-                        Selecciona un módulo para consultar su guía gramatical, escuchar fonemas andinos y revisar su estructura.
-                      </Text>
-                      <View style={styles.bannerTextileRibbon}>
-                        <Text style={styles.textileRibbonText}>▲▼▲▼ ❖ ◆ ❖ ◆ ▲▼▲▼ ❖ ◆ ❖ ◆ ▲▼▲▼</Text>
-                      </View>
-                    </View>
-                  </ImageBackground>
+            <View style={styles.heroBannerOverlay}>
+              <View style={styles.heroBadgeRow}>
+                <View style={styles.heroBadge}>
+                  <Text style={styles.heroBadgeText}>ESTANTERÍA ABIERTA • YACHAY WASI</Text>
                 </View>
-
-                {MODULES.map((mod, idx) => {
-                  const dynamicDone = Math.min(mod.totalLessons, Math.floor((xp || 0) / (30 * (idx + 1))));
-                  const pct = Math.round((dynamicDone / mod.totalLessons) * 100);
-
-                  return (
-                    <TouchableOpacity
-                      key={mod.id}
-                      style={styles.moduleCard}
-                      onPress={() => setSelectedModuleId(mod.id)}
-                      activeOpacity={0.85}
-                    >
-                      <View style={[styles.accentBar, { backgroundColor: mod.accentColor }]} />
-                      <Image source={mod.icon} style={styles.moduleIcon} />
-                      <View style={styles.moduleBody}>
-                        <View style={styles.moduleHeaderRow}>
-                          <Text style={styles.moduleTitle}>{mod.title}</Text>
-                          <View style={[styles.guidePill, { backgroundColor: `${mod.accentColor}18` }]}>
-                            <Text style={[styles.guidePillText, { color: mod.accentColor }]}>
-                              📖 Guía & Audios
-                            </Text>
-                          </View>
-                        </View>
-                        <Text style={styles.moduleQuechuaSub}>{mod.quechuaTitle}</Text>
-                        <Text style={styles.moduleDesc}>{mod.description}</Text>
-
-                        {/* Barra de progreso */}
-                        <View style={styles.progressRow}>
-                          <View style={styles.progressBg}>
-                            <View
-                              style={[
-                                styles.progressFill,
-                                { width: `${Math.max(6, pct)}%`, backgroundColor: mod.accentColor },
-                              ]}
-                            />
-                          </View>
-                          <Text style={styles.progressLabel}>{dynamicDone}/{mod.totalLessons}</Text>
-                        </View>
-                      </View>
-                    </TouchableOpacity>
-                  );
-                })}
+                <Text style={styles.heroSymbol}>❖ 🏔️ ❖</Text>
               </View>
-            ) : (
-              /* Vista Detallada de la Guía del Módulo Seleccionado */
-              <View style={styles.guideWrapper}>
-                {/* Botón superior de retroceso al listado de módulos */}
-                <TouchableOpacity
-                  style={styles.backToModulesBtn}
-                  onPress={() => setSelectedModuleId(null)}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.backToModulesText}>← Volver a todos los módulos</Text>
-                </TouchableOpacity>
+              <Text style={styles.heroTitle}>La Biblioteca Andina</Text>
+              <Text style={styles.heroSubtitle}>
+                Explora relatos ancestrales, tradiciones, gastronomía y modismos quechuas con total libertad: sin vidas, niveles ni exámenes.
+              </Text>
+              <View style={styles.textileRibbon}>
+                <Text style={styles.textileRibbonText}>▲▼▲▼ ❖ ◆ ❖ ◆ ▲▼▲▼ ❖ ◆ ❖ ◆ ▲▼▲▼</Text>
+              </View>
+            </View>
+          </ImageBackground>
+        </View>
 
-                {/* Banner temático del Módulo */}
-                <View style={[styles.moduleHeroCard, { borderColor: selectedModule.accentColor }]}>
-                  <View style={styles.moduleHeroTop}>
-                    <Image source={selectedModule.icon} style={styles.moduleHeroIcon} />
-                    <View style={styles.moduleHeroText}>
-                      <Text style={[styles.moduleHeroBadge, { color: selectedModule.accentColor }]}>
-                        {selectedModule.quechuaTitle.toUpperCase()}
-                      </Text>
-                      <Text style={styles.moduleHeroTitle}>{selectedModule.title}</Text>
+        {/* Buscador Universal */}
+        <View style={styles.searchSection}>
+          <View style={styles.searchBar}>
+            <Text style={styles.searchIcon}>🔍</Text>
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Busca palabras, tradiciones, historias..."
+              placeholderTextColor="#9B8B7A"
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              returnKeyType="search"
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity
+                onPress={() => setSearchQuery('')}
+                style={styles.clearSearchBtn}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.clearSearchText}>✕</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+
+        {/* Barra de Filtros / Pastillas Temáticas */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.pillsScroll}
+        >
+          {CATEGORY_PILLS.map((pill) => {
+            const isActive = selectedFilter === pill.key;
+            return (
+              <TouchableOpacity
+                key={pill.key}
+                style={[styles.pillBtn, isActive && styles.pillBtnActive]}
+                onPress={() => {
+                  setSelectedFilter(pill.key);
+                  setSelectedGuideModule(null);
+                }}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.pillIcon}>{pill.icon}</Text>
+                <Text style={[styles.pillText, isActive && styles.pillTextActive]}>
+                  {pill.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+
+        {/* Indicador de hallazgos activos si hay búsqueda */}
+        {searchQuery.trim().length > 0 && (
+          <View style={styles.searchStatsRow}>
+            <Text style={styles.searchStatsText}>
+              Resultados para &quot;<Text style={styles.boldText}>{searchQuery}</Text>&quot;: {filteredStories.length + filteredItems.length} encontrados
+            </Text>
+          </View>
+        )}
+
+        {/* Estado Sin Resultados */}
+        {!hasAnyResults && (
+          <View style={styles.emptyStateCard}>
+            <Text style={styles.emptyStateIcon}>🔎🏔️</Text>
+            <Text style={styles.emptyStateTitle}>No encontramos resultados</Text>
+            <Text style={styles.emptyStateSubtitle}>
+              Prueba con otro término o consulta tu duda directamente en el Traductor fonético.
+            </Text>
+            <TouchableOpacity
+              style={styles.emptyStateBtn}
+              onPress={() => openTranslatorWithText(searchQuery)}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.emptyStateBtnText}>Consultar en Traductor 🔄</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* ── SECCIÓN 1: CUENTOS DEL AYLLU (Historias Ancestrales) ── */}
+        {showStories && filteredStories.length > 0 && (
+          <View style={styles.sectionBlock}>
+            <View style={styles.sectionHeaderRow}>
+              <View>
+                <Text style={styles.sectionCategoryTag}>NARRATIVA ANDINA</Text>
+                <Text style={styles.sectionMainTitle}>📖 Cuentos del Ayllu</Text>
+              </View>
+              <View style={styles.sectionPillCount}>
+                <Text style={styles.sectionPillCountText}>
+                  {filteredStories.length} {filteredStories.length === 1 ? 'relato' : 'relatos'}
+                </Text>
+              </View>
+            </View>
+
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.storiesCarousel}
+            >
+              {filteredStories.map((story) => (
+                <View key={story.id} style={styles.storyShelfCard}>
+                  <View style={styles.storyCardTop}>
+                    <Text style={styles.storyIconCircle}>{story.icon}</Text>
+                    <View style={styles.storyTagBadge}>
+                      <Text style={styles.storyTagText}>{story.tag}</Text>
                     </View>
                   </View>
-                  <Text style={styles.moduleHeroDesc}>{selectedModule.description}</Text>
+                  <Text style={styles.storyCardTitle}>{story.title}</Text>
+                  <Text style={styles.storyCardQuechua}>{story.quechuaTitle}</Text>
+                  <Text style={styles.storyCardDesc} numberOfLines={3}>
+                    {story.description}
+                  </Text>
+                  <TouchableOpacity
+                    style={styles.storyActionBtn}
+                    onPress={() => openStory(story.slug)}
+                    activeOpacity={0.85}
+                  >
+                    <Text style={styles.storyActionBtnText}>Leer Diálogo con Yachi 📖</Text>
+                  </TouchableOpacity>
                 </View>
+              ))}
+            </ScrollView>
+          </View>
+        )}
 
-                {/* Contenido pedagógico distribuido según el módulo seleccionado */}
-                {selectedModule.id === 'fonetica' && renderFoneticaGuide()}
-                {selectedModule.id === 'gramatica' && renderGramaticaGuide()}
-                {selectedModule.id === 'vocabulario' && renderVocabularioGuide()}
-                {selectedModule.id === 'dialogos' && renderDialogosGuide()}
+        {/* ── SECCIÓN 2: ESTANTERÍAS CULTURALES (Items) ── */}
+        {showItems && filteredItems.length > 0 && (
+          <View style={styles.sectionBlock}>
+            <View style={styles.sectionHeaderRow}>
+              <View>
+                <Text style={styles.sectionCategoryTag}>ESTANTERÍA DE SABERES</Text>
+                <Text style={styles.sectionMainTitle}>
+                  {selectedFilter === 'cultura' && '🏔️ Cultura, Gastronomía & Arte'}
+                  {selectedFilter === 'cotidiano' && '💬 Quechua para la Vida Real'}
+                  {selectedFilter === 'naturaleza' && '🦙 Fauna Sagrada & Plantas Medicinales'}
+                  {selectedFilter === 'curiosidades' && '💡 Secretos Lingüísticos'}
+                  {selectedFilter === 'all' && '📚 Saberes & Expresiones Andinas'}
+                </Text>
+              </View>
+              <View style={styles.sectionPillCount}>
+                <Text style={styles.sectionPillCountText}>{filteredItems.length} entradas</Text>
+              </View>
+            </View>
 
-                {/* Botón inferior de retorno */}
+            <View style={styles.itemsGrid}>
+              {filteredItems.map((item) => (
+                <View key={item.id} style={styles.itemCard}>
+                  {/* Cabecera del Item */}
+                  <View style={styles.itemTopRow}>
+                    <View style={styles.itemCategoryBadge}>
+                      <Text style={styles.itemEmoji}>{item.icon || '✨'}</Text>
+                      <Text style={styles.itemCategoryBadgeText}>{item.subCategory}</Text>
+                    </View>
+                    <View style={styles.itemActionsRow}>
+                      <AudioPronounceButton text={item.qu} size="small" />
+                      <TouchableOpacity
+                        style={styles.quickTranslateBtn}
+                        onPress={() => openTranslatorWithText(item.qu)}
+                        activeOpacity={0.7}
+                        accessibilityLabel="Traducir en traductor"
+                      >
+                        <Text style={styles.quickTranslateIcon}>🔄</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+
+                  {/* Textos Principales */}
+                  <View style={styles.itemTitlesWrap}>
+                    <Text style={styles.itemQuechua}>{item.qu}</Text>
+                    {item.phonetic && (
+                      <Text style={styles.itemPhonetic}>[{item.phonetic}]</Text>
+                    )}
+                    <Text style={styles.itemSpanish}>{item.es}</Text>
+                  </View>
+
+                  <Text style={styles.itemDesc}>{item.description}</Text>
+
+                  {/* Nota Cultural / Sabiduría */}
+                  {item.culturalNote && (
+                    <View style={styles.itemCulturalNoteBox}>
+                      <Text style={styles.culturalNoteTag}>💡 SABIDURÍA ANCESTRAL</Text>
+                      <Text style={styles.culturalNoteText}>{item.culturalNote}</Text>
+                    </View>
+                  )}
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
+
+        {/* ── SECCIÓN 3: GUÍAS LINGÜÍSTICAS (Módulos Pedagógicos) ── */}
+        {(showGuides || selectedFilter === 'all') && (
+          <View style={styles.sectionBlock}>
+            <View style={styles.sectionHeaderRow}>
+              <View>
+                <Text style={styles.sectionCategoryTag}>GUÍAS FONÉTICAS & GRAMATICALES</Text>
+                <Text style={styles.sectionMainTitle}>📜 Guías Lingüísticas del Quechua</Text>
+              </View>
+              {selectedGuideModule && (
                 <TouchableOpacity
-                  style={styles.bottomBackBtn}
-                  onPress={() => setSelectedModuleId(null)}
-                  activeOpacity={0.75}
+                  style={styles.closeGuideBtn}
+                  onPress={() => setSelectedGuideModule(null)}
                 >
-                  <Text style={styles.bottomBackBtnText}>← Volver al listado de módulos</Text>
+                  <Text style={styles.closeGuideText}>✕ Cerrar Guía</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {/* Selector de los 4 módulos de guía */}
+            {!selectedGuideModule ? (
+              <View style={styles.modulesGrid}>
+                {GUIDE_MODULES.map((mod) => (
+                  <TouchableOpacity
+                    key={mod.id}
+                    style={styles.moduleMiniCard}
+                    onPress={() => setSelectedGuideModule(mod.id)}
+                    activeOpacity={0.85}
+                  >
+                    <View style={[styles.moduleAccentStrip, { backgroundColor: mod.accentColor }]} />
+                    <Image source={mod.icon} style={styles.moduleMiniIcon} />
+                    <View style={styles.moduleMiniBody}>
+                      <Text style={styles.moduleMiniTitle}>{mod.title}</Text>
+                      <Text style={styles.moduleMiniQuechua}>{mod.quechuaTitle}</Text>
+                      <Text style={styles.moduleMiniDesc} numberOfLines={2}>
+                        {mod.description}
+                      </Text>
+                      <View style={styles.moduleReadMoreRow}>
+                        <Text style={[styles.moduleReadMoreText, { color: mod.accentColor }]}>
+                          Ver Guía con Audios →
+                        </Text>
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            ) : (
+              <View style={styles.activeGuideContainer}>
+                {/* Cabecera del módulo activo */}
+                {(() => {
+                  const mod = GUIDE_MODULES.find((m) => m.id === selectedGuideModule);
+                  if (!mod) return null;
+                  return (
+                    <View style={[styles.activeGuideHero, { borderColor: mod.accentColor }]}>
+                      <View style={styles.activeGuideHeroTop}>
+                        <Image source={mod.icon} style={styles.activeGuideHeroIcon} />
+                        <View style={styles.activeGuideHeroTitles}>
+                          <Text style={[styles.activeGuideBadge, { color: mod.accentColor }]}>
+                            {mod.quechuaTitle.toUpperCase()}
+                          </Text>
+                          <Text style={styles.activeGuideTitle}>{mod.title}</Text>
+                        </View>
+                      </View>
+                      <Text style={styles.activeGuideDesc}>{mod.description}</Text>
+                    </View>
+                  );
+                })()}
+
+                {/* Renderizado de la guía pedagógica seleccionada */}
+                {selectedGuideModule === 'fonetica' && renderFoneticaGuide()}
+                {selectedGuideModule === 'gramatica' && renderGramaticaGuide()}
+                {selectedGuideModule === 'vocabulario' && renderVocabularioGuide()}
+                {selectedGuideModule === 'dialogos' && renderDialogosGuide()}
+
+                <TouchableOpacity
+                  style={styles.bottomCloseGuideBtn}
+                  onPress={() => setSelectedGuideModule(null)}
+                  activeOpacity={0.8}
+                >
+                  <Text style={styles.bottomCloseGuideText}>↑ Volver al listado de guías</Text>
                 </TouchableOpacity>
               </View>
             )}
           </View>
         )}
 
-        {/* ── SECCIÓN GLOSARIO ── */}
-        {activeTab === 'dictionary' && (
-          <View>
-            <View style={styles.sectionHeaderBox}>
-              <Text style={styles.sectionTitle}>Glosario Quechua – Español 🔍</Text>
-              <Text style={styles.sectionSubtitle}>
-                Busca palabras o expresiones para conocer su pronunciación y significado.
+        {/* Puente Virtuoso hacia el Traductor */}
+        <View style={styles.translatorBannerWrap}>
+          <View style={styles.translatorBanner}>
+            <View style={styles.translatorBannerTextWrap}>
+              <Text style={styles.translatorBannerTag}>🔄 DICCIONARIO & VOZ DE BOLSILLO</Text>
+              <Text style={styles.translatorBannerTitle}>
+                ¿Tienes una frase que quieras escuchar o traducir?
+              </Text>
+              <Text style={styles.translatorBannerDesc}>
+                Usa el traductor con audio fonético Meta MMS y práctica de micrófono.
               </Text>
             </View>
-
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Buscar en Quechua o Español..."
-              placeholderTextColor="#9B8B7A"
-              value={search}
-              onChangeText={setSearch}
-            />
-
-            {filteredWords.map((word, i) => (
-              <View key={i} style={styles.wordCard}>
-                <View style={styles.wordMain}>
-                  <Text style={styles.wordQuechua}>{word.qu}</Text>
-                  <Text style={styles.wordSpanish}>{word.es}</Text>
-                  <Text style={styles.wordPhonetic}>[{word.phonetic}]</Text>
-                </View>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <AudioPronounceButton text={word.qu} size="small" />
-                  <View style={styles.categoryBadge}>
-                    <Text style={styles.categoryText}>{word.category}</Text>
-                  </View>
-                </View>
-              </View>
-            ))}
+            <TouchableOpacity
+              style={styles.translatorBannerBtn}
+              onPress={() => router.push('/translator')}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.translatorBannerBtnText}>Abrir Traductor 🎙️</Text>
+            </TouchableOpacity>
           </View>
-        )}
-
-        {/* ── SECCIÓN HISTORIAS ── */}
-        {activeTab === 'stories' && (
-          <View>
-            <View style={styles.sectionHeaderBox}>
-              <Text style={styles.sectionTitle}>Cuentos e Historias Andinas 📖</Text>
-              <Text style={styles.sectionSubtitle}>
-                Lee diálogos interactivos en Quechua y mejora tu comprensión lectora.
-              </Text>
-            </View>
-
-            {STORIES_DATA.map((story) => (
-              <TouchableOpacity key={story.id} style={styles.storyCard} activeOpacity={0.82}>
-                <Text style={styles.storyIcon}>{story.icon}</Text>
-                <View style={styles.storyBody}>
-                  <View style={styles.storyBadge}>
-                    <Text style={styles.storyLevel}>{story.level}</Text>
-                  </View>
-                  <Text style={styles.storyTitle}>{story.title}</Text>
-                  <Text style={styles.storyQuechua}>{story.quechuaTitle}</Text>
-                  <Text style={styles.storyDesc}>{story.description}</Text>
-                </View>
-              </TouchableOpacity>
-            ))}
-          </View>
-        )}
+        </View>
       </ScrollView>
     </View>
   );
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   GUÍAS DISTRIBUIDAS POR MÓDULO (CON AUDIOS INTERACTIVOS)
+   GUÍAS PEDAGÓGICAS (FONÉTICA, GRAMÁTICA, VOCABULARIO, DIÁLOGOS)
    ═══════════════════════════════════════════════════════════════════ */
 
-/** Módulo 1: Fonética & Habla */
 function renderFoneticaGuide() {
   return (
     <View style={styles.guideContentArea}>
-      {/* 1. Trivocálico */}
       <View style={styles.guideCard}>
         <View style={styles.guideCardHeader}>
           <Text style={styles.guideCardNum}>01</Text>
@@ -380,8 +495,8 @@ function renderFoneticaGuide() {
         <Text style={styles.guideBodyText}>
           En el Quechua estándar solo existen <Text style={styles.boldText}>3 vocales fonémicas</Text>:{' '}
           <Text style={styles.highlightTeal}>A</Text>, <Text style={styles.highlightTeal}>I</Text> y{' '}
-          <Text style={styles.highlightTeal}>U</Text>. Las vocales &apos;E&apos; y &apos;O&apos; son únicamente alófonos
-          que surgen al entrar en contacto con la consonante posvelar &apos;Q&apos;.
+          <Text style={styles.highlightTeal}>U</Text>. Las vocales &apos;E&apos; y &apos;O&apos; son alófonos
+          que surgen al articularse cerca de la consonante posvelar &apos;Q&apos;.
         </Text>
 
         <View style={styles.vowelRow}>
@@ -414,7 +529,6 @@ function renderFoneticaGuide() {
         </View>
       </View>
 
-      {/* 2. Fonemas Especiales Andinos */}
       <View style={styles.guideCard}>
         <View style={styles.guideCardHeader}>
           <Text style={styles.guideCardNum}>02</Text>
@@ -423,7 +537,6 @@ function renderFoneticaGuide() {
         <Text style={styles.guideCardTitle}>Fonemas Característicos</Text>
 
         <View style={styles.consonantList}>
-          {/* Fonema Q */}
           <View style={styles.consonantItem}>
             <View style={styles.consonantHeader}>
               <View style={styles.consonantBadge}>
@@ -446,7 +559,6 @@ function renderFoneticaGuide() {
             </View>
           </View>
 
-          {/* Fonema SH */}
           <View style={styles.consonantItem}>
             <View style={styles.consonantHeader}>
               <View style={styles.consonantBadge}>
@@ -468,64 +580,15 @@ function renderFoneticaGuide() {
               </View>
             </View>
           </View>
-
-          {/* Fonema LL */}
-          <View style={styles.consonantItem}>
-            <View style={styles.consonantHeader}>
-              <View style={styles.consonantBadge}>
-                <Text style={styles.consonantLetter}>LL</Text>
-              </View>
-              <View style={styles.consonantInfo}>
-                <Text style={styles.consonantName}>Lateral Palatal Sonoro</Text>
-                <Text style={styles.consonantTip}>Sonido de &quot;elle&quot; andina clásica</Text>
-              </View>
-            </View>
-            <View style={styles.audioExampleRow}>
-              <View style={styles.audioExamplePill}>
-                <Text style={styles.audioExampleText}>Killa (Luna)</Text>
-                <AudioPronounceButton text="Killa" size="small" />
-              </View>
-              <View style={styles.audioExamplePill}>
-                <Text style={styles.audioExampleText}>Llaqta (Pueblo)</Text>
-                <AudioPronounceButton text="Llaqta" size="small" />
-              </View>
-            </View>
-          </View>
-
-          {/* Semivocal W */}
-          <View style={styles.consonantItem}>
-            <View style={styles.consonantHeader}>
-              <View style={styles.consonantBadge}>
-                <Text style={styles.consonantLetter}>W</Text>
-              </View>
-              <View style={styles.consonantInfo}>
-                <Text style={styles.consonantName}>Semivocal Labiovelar</Text>
-                <Text style={styles.consonantTip}>Suave como una &quot;u&quot; en diptongo, nunca dura</Text>
-              </View>
-            </View>
-            <View style={styles.audioExampleRow}>
-              <View style={styles.audioExamplePill}>
-                <Text style={styles.audioExampleText}>Wasi (Casa)</Text>
-                <AudioPronounceButton text="Wasi" size="small" />
-              </View>
-              <View style={styles.audioExamplePill}>
-                <Text style={styles.audioExampleText}>Wawa (Bebé)</Text>
-                <AudioPronounceButton text="Wawa" size="small" />
-              </View>
-            </View>
-          </View>
         </View>
       </View>
-
     </View>
   );
 }
 
-/** Módulo 2: Estructura Gramatical */
 function renderGramaticaGuide() {
   return (
     <View style={styles.guideContentArea}>
-      {/* 1. Pronombres Personales */}
       <View style={styles.guideCard}>
         <View style={styles.guideCardHeader}>
           <Text style={styles.guideCardNum}>01</Text>
@@ -559,7 +622,6 @@ function renderGramaticaGuide() {
         </View>
       </View>
 
-      {/* 2. Sufijos Esenciales */}
       <View style={styles.guideCard}>
         <View style={styles.guideCardHeader}>
           <Text style={styles.guideCardNum}>02</Text>
@@ -590,78 +652,21 @@ function renderGramaticaGuide() {
               <AudioPronounceButton text="Allinllachu" size="small" />
             </View>
           </View>
-
-          <View style={styles.suffixCard}>
-            <Text style={styles.suffixTag}>-kuna</Text>
-            <Text style={styles.suffixType}>Pluralizador</Text>
-            <Text style={styles.suffixDesc}>Se agrega a cualquier sustantivo para pluralizarlo.</Text>
-            <View style={styles.examplePill}>
-              <Text style={styles.exampleText}>Wasikuna (Casas)</Text>
-              <AudioPronounceButton text="Wasikuna" size="small" />
-            </View>
-          </View>
-
-          <View style={styles.suffixCard}>
-            <Text style={styles.suffixTag}>-manta</Text>
-            <Text style={styles.suffixType}>Origen / Procedencia</Text>
-            <Text style={styles.suffixDesc}>Equivale a &quot;de&quot;, &quot;desde&quot; o &quot;acerca de&quot;.</Text>
-            <View style={styles.examplePill}>
-              <Text style={styles.exampleText}>Qosqomanta kani</Text>
-              <AudioPronounceButton text="Qosqomanta kani" size="small" />
-            </View>
-          </View>
         </View>
       </View>
-
-      {/* 3. Conjugación en Presente */}
-      <View style={styles.guideCard}>
-        <View style={styles.guideCardHeader}>
-          <Text style={styles.guideCardNum}>03</Text>
-          <Text style={styles.guideCardTag}>RUWAY • CONJUGACIÓN</Text>
-        </View>
-        <Text style={styles.guideCardTitle}>Presente Indicativo (Rimay = Hablar)</Text>
-        <Text style={styles.guideBodyText}>
-          Se retira la -y del infinitivo y se agrega la desinencia correspondiente:
-        </Text>
-
-        <View style={styles.conjugationWrap}>
-          {[
-            { person: 'Ñoqa', verb: 'Rimani', trans: 'Yo hablo', root: 'Rima-ni' },
-            { person: 'Qam', verb: 'Rimanki', trans: 'Tú hablas', root: 'Rima-nki' },
-            { person: 'Pay', verb: 'Riman', trans: 'Él / Ella habla', root: 'Rima-n' },
-            { person: 'Ñoqanchik', verb: 'Rimanchik', trans: 'Nosotros hablamos', root: 'Rima-nchik' },
-            { person: 'Paykuna', verb: 'Rimanku', trans: 'Ellos hablan', root: 'Rima-nku' },
-          ].map((c, i) => (
-            <View key={i} style={styles.conjRow}>
-              <View style={styles.conjLeft}>
-                <Text style={styles.conjPerson}>{c.person}</Text>
-                <Text style={styles.conjVerb}>{c.verb}</Text>
-                <Text style={styles.conjRoot}>{c.root} ({c.trans})</Text>
-              </View>
-              <AudioPronounceButton text={`${c.person} ${c.verb}`} size="small" />
-            </View>
-          ))}
-        </View>
-      </View>
-
     </View>
   );
 }
 
-/** Módulo 3: Vocabulario Andino */
 function renderVocabularioGuide() {
   return (
     <View style={styles.guideContentArea}>
-      {/* 1. Yupaykuna: Números */}
       <View style={styles.guideCard}>
         <View style={styles.guideCardHeader}>
           <Text style={styles.guideCardNum}>01</Text>
           <Text style={styles.guideCardTag}>YUPAYKUNA • NÚMEROS</Text>
         </View>
         <Text style={styles.guideCardTitle}>Conteo Decimal Andino (1 al 10)</Text>
-        <Text style={styles.guideBodyText}>
-          El sistema numérico incaico es perfectamente regular, decimal y acumulativo:
-        </Text>
 
         <View style={styles.numbersGrid}>
           {[
@@ -686,17 +691,8 @@ function renderVocabularioGuide() {
             </View>
           ))}
         </View>
-
-        <View style={styles.tipBox}>
-          <Text style={styles.tipTitle}>🔢 Construcción de decenas y centenas</Text>
-          <Text style={styles.tipDesc}>
-            11 es <Text style={styles.boldText}>Chunka hukniyoq</Text>, 20 es <Text style={styles.boldText}>Iskay chunka</Text>,
-            100 es <Text style={styles.boldText}>Pachak</Text> y 1000 es <Text style={styles.boldText}>Waranqa</Text>.
-          </Text>
-        </View>
       </View>
 
-      {/* 2. Ayllu: Familia */}
       <View style={styles.guideCard}>
         <View style={styles.guideCardHeader}>
           <Text style={styles.guideCardNum}>02</Text>
@@ -709,12 +705,8 @@ function renderVocabularioGuide() {
             { q: 'Tayta', es: 'Padre / Señor', note: 'Respeto al jefe de hogar' },
             { q: 'Mama', es: 'Madre / Señora', note: 'Matriarca andina' },
             { q: 'Wawa', es: 'Bebé / Hijo(a) de mujer', note: 'Hijo dicho por la madre' },
-            { q: 'Churi', es: 'Hijo de varón', note: 'Hijo varón de un padre' },
-            { q: 'Ususi', es: 'Hija de varón', note: 'Hija mujer de un padre' },
             { q: 'Awicho', es: 'Abuelo', note: 'Sabio anciano de la comunidad' },
             { q: 'Awicha', es: 'Abuela', note: 'Sabia anciana de la comunidad' },
-            { q: 'Tura', es: 'Hermano de mujer', note: 'Dicho exclusivamente por la hermana' },
-            { q: 'Pana', es: 'Hermana de varón', note: 'Dicho exclusivamente por el hermano' },
           ].map((f, idx) => (
             <View key={idx} style={styles.familyCard}>
               <View style={styles.familyHeader}>
@@ -727,16 +719,13 @@ function renderVocabularioGuide() {
           ))}
         </View>
       </View>
-
     </View>
   );
 }
 
-/** Módulo 4: Diálogos Cotidianos */
 function renderDialogosGuide() {
   return (
     <View style={styles.guideContentArea}>
-      {/* 1. Saludos y Cortesía */}
       <View style={styles.guideCard}>
         <View style={styles.guideCardHeader}>
           <Text style={styles.guideCardNum}>01</Text>
@@ -748,345 +737,533 @@ function renderDialogosGuide() {
           {[
             { q: 'Allinllachu', es: '¿Estás bien? (Saludo formal)', tip: 'La respuesta natural es: Allinmi (Estoy bien)' },
             { q: 'Allin p’unchay', es: 'Buenos días', tip: 'Saludo al iniciar la mañana' },
-            { q: 'Allin tuta', es: 'Buenas noches', tip: 'Despedida o saludo nocturno' },
-            { q: 'Añay / Sulpayki', es: 'Muchas gracias', tip: 'Agradecimiento sincero de corazón' },
-            { q: 'Tupananchiskama', es: 'Hasta que nos volvamos a ver', tip: 'No existe el "adiós" definitivo en el mundo andino' },
+            { q: 'Añay', es: 'Muchas gracias', tip: 'Palabra sagrada de agradecimiento' },
+            { q: 'Tupananchiskama', es: 'Hasta volver a vernos', tip: 'En los Andes no hay adiós definitivo' },
           ].map((p, idx) => (
-            <View key={idx} style={styles.phraseCard}>
-              <View style={styles.phraseHeader}>
-                <Text style={styles.phraseQuechua}>{p.q}</Text>
-                <AudioPronounceButton text={p.q} size="small" />
+            <View key={idx} style={styles.phraseRow}>
+              <View style={styles.phraseLeft}>
+                <Text style={styles.phraseQ}>{p.q}</Text>
+                <Text style={styles.phraseEs}>{p.es}</Text>
+                <Text style={styles.phraseTip}>💡 {p.tip}</Text>
               </View>
-              <Text style={styles.phraseEs}>{p.es}</Text>
-              <Text style={styles.phraseTip}>✦ {p.tip}</Text>
+              <AudioPronounceButton text={p.q} size="small" />
             </View>
           ))}
         </View>
       </View>
-
-      {/* 2. Código Ético y Diálogo Modelo */}
-      <View style={styles.guideCard}>
-        <View style={styles.guideCardHeader}>
-          <Text style={styles.guideCardNum}>02</Text>
-          <Text style={styles.guideCardTag}>RIMANAKUY • DIÁLOGO MODELO</Text>
-        </View>
-        <Text style={styles.guideCardTitle}>Conversación Cotidiana en el Ayllu</Text>
-
-        <View style={styles.dialogueBox}>
-          <View style={styles.dialogueBubbleA}>
-            <View style={styles.dialogueSpeakerRow}>
-              <Text style={styles.dialogueSpeaker}>Persona A:</Text>
-              <AudioPronounceButton text="Allin p'unchay! Imaynallam kashanki?" size="small" />
-            </View>
-            <Text style={styles.dialogueQuechua}>{"Allin p'unchay! Imaynallam kashanki?"}</Text>
-            <Text style={styles.dialogueEs}>¡Buenos días! ¿Cómo estás?</Text>
-          </View>
-
-          <View style={styles.dialogueBubbleB}>
-            <View style={styles.dialogueSpeakerRow}>
-              <Text style={styles.dialogueSpeaker}>Persona B:</Text>
-              <AudioPronounceButton text="Allinllami kashani, añay! Qamrí?" size="small" />
-            </View>
-            <Text style={styles.dialogueQuechua}>Allinllami kashani, añay! Qamrí?</Text>
-            <Text style={styles.dialogueEs}>¡Estoy bien, gracias! ¿Y tú?</Text>
-          </View>
-
-          <View style={styles.dialogueBubbleA}>
-            <View style={styles.dialogueSpeakerRow}>
-              <Text style={styles.dialogueSpeaker}>Persona A:</Text>
-              <AudioPronounceButton text="Ñoqapas allinllami, tupananchiskama!" size="small" />
-            </View>
-            <Text style={styles.dialogueQuechua}>Ñoqapas allinllami, tupananchiskama!</Text>
-            <Text style={styles.dialogueEs}>¡Yo también bien, hasta que nos volvamos a ver!</Text>
-          </View>
-        </View>
-
-        <View style={styles.tipBox}>
-          <Text style={styles.tipTitle}>👑 Código Ético Ancestral</Text>
-          <Text style={styles.tipDesc}>
-            <Text style={styles.boldText}>Ama suwa, ama llulla, ama qella</Text> (No seas ladrón, no seas mentiroso, no seas ocioso).
-          </Text>
-          <View style={{ marginTop: 8 }}>
-            <AudioPronounceButton text="Ama suwa, ama llulla, ama qella" size="small" showLabel />
-          </View>
-        </View>
-      </View>
-
     </View>
   );
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   ESTILOS VISUALES
+   ESTILOS VISUALES PREMIUM CON PALETA ANDINA
    ═══════════════════════════════════════════════════════════════════ */
+
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8F5EE' },
-  content: { padding: 14, paddingBottom: 40 },
-
-  /* Tab bar interior */
-  tabBar: {
-    flexDirection: 'row',
-    backgroundColor: '#FFFDF9',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#EAE3D6',
-    gap: 8,
-  },
-  tabBtn: {
+  container: {
     flex: 1,
-    paddingVertical: 9,
-    alignItems: 'center',
-    borderRadius: 14,
-    backgroundColor: '#F3EFE7',
-    borderWidth: 1,
-    borderColor: '#EAE3D6',
+    backgroundColor: CREAM,
   },
-  tabBtnActive: {
-    backgroundColor: '#DDF1ED',
-    borderColor: '#1B8B8C',
-  },
-  tabText: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: '#7A6A5A',
-  },
-  tabTextActive: {
-    color: '#0E5A60',
-    fontWeight: '900',
+  scrollContent: {
+    paddingBottom: 40,
   },
 
-  /* Banner de sección */
-  sectionBannerContainer: {
-    marginBottom: 16,
-    borderRadius: 22,
+  /* Hero Banner */
+  heroBannerWrap: {
+    marginHorizontal: 16,
+    marginTop: 12,
+    borderRadius: 20,
     overflow: 'hidden',
-    backgroundColor: '#0F5B62',
-    elevation: 3,
-    shadowColor: '#1A332E',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.12,
-    shadowRadius: 6,
+    shadowColor: TEAL_DARK,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 10,
+    elevation: 4,
   },
-  sectionBannerBg: { width: '100%' },
-  sectionBannerImg: { opacity: 0.4, resizeMode: 'cover' },
-  sectionBannerOverlay: {
-    backgroundColor: 'rgba(11, 75, 82, 0.82)',
-    paddingTop: 16,
-    paddingHorizontal: 16,
+  heroBannerBg: {
+    width: '100%',
   },
-  bannerTag: {
-    color: '#FBD46D',
+  heroBannerImg: {
+    borderRadius: 20,
+  },
+  heroBannerOverlay: {
+    backgroundColor: 'rgba(14, 77, 85, 0.88)',
+    paddingVertical: 20,
+    paddingHorizontal: 18,
+  },
+  heroBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  heroBadge: {
+    backgroundColor: 'rgba(212, 139, 10, 0.35)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: GOLD,
+  },
+  heroBadgeText: {
     fontSize: 10,
     fontWeight: '900',
+    color: '#FFE29A',
     letterSpacing: 0.8,
-    marginBottom: 3,
   },
-  bannerTitle: {
-    color: '#FFFFFF',
-    fontSize: 20,
+  heroSymbol: {
+    color: '#FFE29A',
+    fontSize: 14,
+  },
+  heroTitle: {
+    fontSize: 24,
     fontWeight: '900',
-    marginBottom: 3,
+    color: '#FFFFFF',
+    marginBottom: 6,
   },
-  bannerDesc: {
-    color: 'rgba(255, 255, 255, 0.92)',
-    fontSize: 12,
-    lineHeight: 16,
-    marginBottom: 12,
+  heroSubtitle: {
+    fontSize: 13,
+    color: '#E0F2F1',
+    lineHeight: 19,
+    marginBottom: 10,
   },
-  bannerTextileRibbon: {
-    backgroundColor: '#0A3F45',
-    paddingVertical: 4,
-    marginHorizontal: -16,
-    alignItems: 'center',
-    justifyContent: 'center',
+  textileRibbon: {
+    marginTop: 4,
+    opacity: 0.5,
   },
   textileRibbonText: {
-    fontSize: 9,
-    color: '#E8B966',
-    letterSpacing: 3,
-    fontWeight: '700',
+    color: '#FFD700',
+    fontSize: 11,
+    letterSpacing: 2,
   },
 
-  /* Tarjetas de Módulos */
-  moduleCard: {
+  /* Buscador Universal */
+  searchSection: {
+    paddingHorizontal: 16,
+    marginTop: 14,
+  },
+  searchBar: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    marginBottom: 12,
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    height: 50,
     borderWidth: 1.5,
-    borderColor: '#ECE5D8',
-    overflow: 'hidden',
-    padding: 14,
-    elevation: 2,
-    shadowColor: '#3A2E26',
+    borderColor: BORDER,
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
-    shadowRadius: 4,
+    shadowRadius: 6,
+    elevation: 2,
   },
-  accentBar: {
+  searchIcon: {
+    fontSize: 18,
+    marginRight: 10,
+  },
+  searchInput: {
+    flex: 1,
+    fontSize: 14,
+    color: TEXT_DARK,
+    fontWeight: '600',
+  },
+  clearSearchBtn: {
+    padding: 6,
+  },
+  clearSearchText: {
+    fontSize: 14,
+    color: TEXT_MUTED,
+    fontWeight: '700',
+  },
+  searchStatsRow: {
+    paddingHorizontal: 20,
+    marginTop: 8,
+    marginBottom: 2,
+  },
+  searchStatsText: {
+    fontSize: 12,
+    color: TEXT_MUTED,
+  },
+  boldText: {
+    fontWeight: '800',
+  },
+
+  /* Pastillas Temáticas (Filtros) */
+  pillsScroll: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 8,
+  },
+  pillBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 20,
+    borderWidth: 1.5,
+    borderColor: BORDER,
+    gap: 6,
+  },
+  pillBtnActive: {
+    backgroundColor: TEAL,
+    borderColor: TEAL,
+  },
+  pillIcon: {
+    fontSize: 14,
+  },
+  pillText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: TEXT_DARK,
+  },
+  pillTextActive: {
+    color: '#FFFFFF',
+  },
+
+  /* Bloque de Sección General */
+  sectionBlock: {
+    marginTop: 14,
+  },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+    paddingHorizontal: 18,
+    marginBottom: 12,
+  },
+  sectionCategoryTag: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: TEAL,
+    letterSpacing: 1,
+    marginBottom: 2,
+  },
+  sectionMainTitle: {
+    fontSize: 19,
+    fontWeight: '900',
+    color: TEXT_DARK,
+  },
+  sectionPillCount: {
+    backgroundColor: TEAL_LIGHT,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  sectionPillCountText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: TEAL_DARK,
+  },
+
+  /* Cuentos del Ayllu (Carrusel Horizontal) */
+  storiesCarousel: {
+    paddingHorizontal: 16,
+    gap: 12,
+    paddingBottom: 6,
+  },
+  storyShelfCard: {
+    width: 250,
+    backgroundColor: CARD_BG,
+    borderRadius: 18,
+    padding: 16,
+    borderWidth: 1.5,
+    borderColor: BORDER,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 2,
+    justifyContent: 'space-between',
+  },
+  storyCardTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  storyIconCircle: {
+    fontSize: 26,
+  },
+  storyTagBadge: {
+    backgroundColor: GOLD_LIGHT,
+    borderColor: GOLD,
+    borderWidth: 1,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+  },
+  storyTagText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: GOLD_DARK,
+  },
+  storyCardTitle: {
+    fontSize: 15,
+    fontWeight: '900',
+    color: TEXT_DARK,
+    marginBottom: 2,
+  },
+  storyCardQuechua: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: TEAL,
+    marginBottom: 6,
+  },
+  storyCardDesc: {
+    fontSize: 12,
+    color: TEXT_MUTED,
+    lineHeight: 17,
+    marginBottom: 14,
+  },
+  storyActionBtn: {
+    backgroundColor: TEAL,
+    paddingVertical: 8,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  storyActionBtnText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+
+  /* Grid de Elementos Culturales */
+  itemsGrid: {
+    paddingHorizontal: 16,
+    gap: 12,
+  },
+  itemCard: {
+    backgroundColor: CARD_BG,
+    borderRadius: 18,
+    padding: 16,
+    borderWidth: 1.5,
+    borderColor: BORDER,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+    elevation: 2,
+  },
+  itemTopRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  itemCategoryBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: TEAL_LIGHT,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 10,
+    gap: 6,
+  },
+  itemEmoji: {
+    fontSize: 13,
+  },
+  itemCategoryBadgeText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: TEAL_DARK,
+  },
+  itemActionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  quickTranslateBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#F3F4F6',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  quickTranslateIcon: {
+    fontSize: 14,
+  },
+  itemTitlesWrap: {
+    marginBottom: 8,
+  },
+  itemQuechua: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: TEXT_DARK,
+  },
+  itemPhonetic: {
+    fontSize: 12,
+    color: TEAL,
+    fontWeight: '600',
+    marginVertical: 2,
+  },
+  itemSpanish: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: GOLD_DARK,
+    marginTop: 2,
+  },
+  itemDesc: {
+    fontSize: 13,
+    color: '#4B5563',
+    lineHeight: 18,
+    marginBottom: 10,
+  },
+  itemCulturalNoteBox: {
+    backgroundColor: '#FFFDF5',
+    borderLeftWidth: 3,
+    borderLeftColor: GOLD,
+    padding: 10,
+    borderRadius: 8,
+  },
+  culturalNoteTag: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: GOLD_DARK,
+    letterSpacing: 0.6,
+    marginBottom: 2,
+  },
+  culturalNoteText: {
+    fontSize: 12,
+    color: '#605030',
+    lineHeight: 17,
+  },
+
+  /* Módulos de Guía Lingüística */
+  closeGuideBtn: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 10,
+    backgroundColor: '#FEE2E2',
+  },
+  closeGuideText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#B91C1C',
+  },
+  modulesGrid: {
+    paddingHorizontal: 16,
+    gap: 10,
+  },
+  moduleMiniCard: {
+    flexDirection: 'row',
+    backgroundColor: CARD_BG,
+    borderRadius: 16,
+    padding: 12,
+    borderWidth: 1.5,
+    borderColor: BORDER,
+    alignItems: 'center',
+    overflow: 'hidden',
+  },
+  moduleAccentStrip: {
     position: 'absolute',
     left: 0,
     top: 0,
     bottom: 0,
     width: 6,
   },
-  moduleIcon: {
+  moduleMiniIcon: {
     width: 48,
     height: 48,
-    resizeMode: 'contain',
-    marginRight: 14,
+    marginLeft: 4,
+    marginRight: 12,
   },
-  moduleBody: {
+  moduleMiniBody: {
     flex: 1,
   },
-  moduleHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+  moduleMiniTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: TEXT_DARK,
+  },
+  moduleMiniQuechua: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: TEAL,
     marginBottom: 2,
   },
-  moduleTitle: {
-    fontSize: 15,
-    fontWeight: '900',
-    color: '#1F2937',
-  },
-  guidePill: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 10,
-  },
-  guidePillText: {
-    fontSize: 10,
-    fontWeight: '900',
-  },
-  moduleQuechuaSub: {
+  moduleMiniDesc: {
     fontSize: 11,
-    fontWeight: '700',
-    color: '#1B8B8C',
-    fontStyle: 'italic',
-    marginBottom: 3,
-  },
-  moduleDesc: {
-    fontSize: 11,
-    color: '#6B7280',
-    marginBottom: 8,
+    color: TEXT_MUTED,
     lineHeight: 15,
+    marginBottom: 4,
   },
-  progressRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  moduleReadMoreRow: {
+    marginTop: 2,
   },
-  progressBg: {
-    flex: 1,
-    height: 6,
-    backgroundColor: '#EAE3D6',
-    borderRadius: 3,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    borderRadius: 3,
-  },
-  progressLabel: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: '#7A6A5A',
-  },
-
-  /* Vista de Guía de Módulo */
-  guideWrapper: {
-    paddingBottom: 20,
-  },
-  backToModulesBtn: {
-    alignSelf: 'flex-start',
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1.5,
-    borderColor: '#ECE5D8',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 14,
-    marginBottom: 14,
-  },
-  backToModulesText: {
-    color: '#0E5A60',
+  moduleReadMoreText: {
     fontSize: 12,
     fontWeight: '800',
   },
-  moduleHeroCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 22,
+
+  /* Vista de Guía Activa */
+  activeGuideContainer: {
+    paddingHorizontal: 16,
+  },
+  activeGuideHero: {
+    backgroundColor: CARD_BG,
+    borderRadius: 18,
     padding: 16,
     borderWidth: 2,
-    marginBottom: 16,
-    elevation: 2,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 5,
+    marginBottom: 14,
   },
-  moduleHeroTop: {
+  activeGuideHeroTop: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
     marginBottom: 8,
   },
-  moduleHeroIcon: {
+  activeGuideHeroIcon: {
     width: 44,
     height: 44,
-    resizeMode: 'contain',
+    marginRight: 12,
   },
-  moduleHeroText: {
+  activeGuideHeroTitles: {
     flex: 1,
   },
-  moduleHeroBadge: {
+  activeGuideBadge: {
     fontSize: 10,
     fontWeight: '900',
     letterSpacing: 0.8,
   },
-  moduleHeroTitle: {
+  activeGuideTitle: {
     fontSize: 18,
     fontWeight: '900',
-    color: '#1F2937',
+    color: TEXT_DARK,
   },
-  moduleHeroDesc: {
-    fontSize: 12,
-    color: '#4B5563',
-    lineHeight: 17,
+  activeGuideDesc: {
+    fontSize: 13,
+    color: TEXT_MUTED,
+    lineHeight: 18,
   },
-  bottomBackBtn: {
+  bottomCloseGuideBtn: {
     backgroundColor: '#FFFFFF',
     borderWidth: 1.5,
-    borderColor: '#ECE5D8',
-    paddingVertical: 12,
-    borderRadius: 16,
+    borderColor: BORDER,
+    borderRadius: 12,
+    paddingVertical: 10,
     alignItems: 'center',
     marginTop: 10,
-    marginBottom: 20,
+    marginBottom: 16,
   },
-  bottomBackBtnText: {
-    color: '#7A6A5A',
+  bottomCloseGuideText: {
     fontSize: 13,
     fontWeight: '800',
+    color: TEAL_DARK,
   },
 
-  /* Elementos de contenido de guía */
+  /* Guías Internas */
   guideContentArea: {
-    gap: 14,
+    gap: 12,
   },
   guideCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
+    backgroundColor: CARD_BG,
+    borderRadius: 16,
     padding: 16,
     borderWidth: 1.5,
-    borderColor: '#ECE5D8',
-    elevation: 1,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 4,
+    borderColor: BORDER,
   },
   guideCardHeader: {
     flexDirection: 'row',
@@ -1095,195 +1272,163 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   guideCardNum: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '900',
     color: TEAL,
-    backgroundColor: TEAL_LIGHT,
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-    borderRadius: 6,
   },
   guideCardTag: {
     fontSize: 10,
-    fontWeight: '900',
-    color: GOLD,
-    letterSpacing: 0.5,
+    fontWeight: '800',
+    color: TEXT_MUTED,
+    letterSpacing: 0.8,
   },
   guideCardTitle: {
     fontSize: 16,
     fontWeight: '900',
-    color: '#1F2937',
+    color: TEXT_DARK,
     marginBottom: 6,
   },
   guideBodyText: {
-    fontSize: 12,
+    fontSize: 13,
     color: '#4B5563',
     lineHeight: 18,
     marginBottom: 12,
   },
-  boldText: {
-    fontWeight: '800',
-    color: '#1F2937',
-  },
   highlightTeal: {
-    fontWeight: '900',
     color: TEAL,
+    fontWeight: '900',
   },
-
-  /* Vocales */
   vowelRow: {
     flexDirection: 'row',
     gap: 8,
-    marginTop: 4,
   },
   vowelItem: {
     flex: 1,
-    backgroundColor: '#F8F5EE',
-    borderRadius: 14,
+    backgroundColor: TEAL_LIGHT,
+    borderRadius: 12,
     padding: 10,
-    alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#EAE3D6',
+    borderColor: '#C2E7E2',
   },
   vowelTop: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
-    width: '100%',
+    alignItems: 'center',
     marginBottom: 4,
   },
   vowelLetter: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '900',
-    color: TEAL,
+    color: TEAL_DARK,
   },
   vowelWord: {
     fontSize: 13,
-    fontWeight: '900',
-    color: '#1F2937',
-    marginTop: 2,
+    fontWeight: '800',
+    color: TEXT_DARK,
   },
   vowelTrans: {
     fontSize: 10,
-    color: '#6B7280',
-    textAlign: 'center',
-    marginTop: 1,
+    color: TEXT_MUTED,
   },
-
-  /* Consonantes andinas */
   consonantList: {
     gap: 10,
-    marginTop: 4,
   },
   consonantItem: {
-    backgroundColor: '#F9F7F2',
-    borderRadius: 14,
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
     padding: 12,
     borderWidth: 1,
-    borderColor: '#ECE5D8',
+    borderColor: '#E5E7EB',
   },
   consonantHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
     marginBottom: 8,
   },
   consonantBadge: {
-    width: 34,
-    height: 34,
-    borderRadius: 10,
+    width: 32,
+    height: 32,
+    borderRadius: 8,
     backgroundColor: TEAL,
     alignItems: 'center',
     justifyContent: 'center',
+    marginRight: 10,
   },
   consonantLetter: {
-    color: '#FFFFFF',
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '900',
+    color: '#FFFFFF',
   },
   consonantInfo: {
     flex: 1,
   },
   consonantName: {
     fontSize: 13,
-    fontWeight: '900',
-    color: '#1F2937',
+    fontWeight: '800',
+    color: TEXT_DARK,
   },
   consonantTip: {
     fontSize: 11,
-    color: '#6B7280',
+    color: TEXT_MUTED,
   },
   audioExampleRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     gap: 8,
   },
   audioExamplePill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#E8DFD0',
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    borderRadius: 12,
-    gap: 6,
-  },
-  audioExampleText: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: '#1F2937',
-  },
-
-  /* Tablas de Pronombres y Conjugación */
-  tableList: {
-    borderWidth: 1,
-    borderColor: '#ECE5D8',
-    borderRadius: 14,
-    overflow: 'hidden',
-    marginTop: 4,
-  },
-  tableRow: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 9,
-    paddingHorizontal: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3EFE7',
     backgroundColor: '#FFFFFF',
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  audioExampleText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: TEXT_DARK,
+  },
+  tableList: {
+    gap: 8,
+  },
+  tableRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: '#F9FAFB',
+    padding: 10,
+    borderRadius: 10,
   },
   rowLeft: {
     flex: 1,
-    paddingRight: 8,
   },
   rowQuechua: {
     fontSize: 14,
-    fontWeight: '900',
-    color: '#0E5A60',
+    fontWeight: '800',
+    color: TEXT_DARK,
   },
   rowEs: {
     fontSize: 12,
+    color: GOLD_DARK,
     fontWeight: '700',
-    color: '#1F2937',
   },
   rowNote: {
     fontSize: 10,
-    color: '#6B7280',
-    fontStyle: 'italic',
+    color: TEXT_MUTED,
   },
-
-  /* Sufijos */
   suffixGrid: {
-    gap: 10,
-    marginTop: 4,
+    gap: 8,
   },
   suffixCard: {
-    backgroundColor: '#F9F7F2',
-    borderRadius: 14,
-    padding: 12,
+    backgroundColor: '#F9FAFB',
+    borderRadius: 10,
+    padding: 10,
     borderWidth: 1,
-    borderColor: '#ECE5D8',
+    borderColor: '#E5E7EB',
   },
   suffixTag: {
     fontSize: 14,
@@ -1291,86 +1436,45 @@ const styles = StyleSheet.create({
     color: ORANGE,
   },
   suffixType: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: '#1F2937',
+    fontSize: 12,
+    fontWeight: '700',
+    color: TEXT_DARK,
     marginBottom: 2,
   },
   suffixDesc: {
     fontSize: 11,
-    color: '#6B7280',
+    color: TEXT_MUTED,
     marginBottom: 6,
-    lineHeight: 15,
   },
   examplePill: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
+    alignItems: 'center',
     backgroundColor: '#FFFFFF',
-    paddingVertical: 5,
     paddingHorizontal: 10,
-    borderRadius: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#E8DFD0',
+    borderColor: '#E5E7EB',
   },
   exampleText: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: '#1F2937',
+    fontSize: 12,
+    fontWeight: '700',
+    color: TEXT_DARK,
   },
-
-  /* Conjugación */
-  conjugationWrap: {
-    borderWidth: 1,
-    borderColor: '#ECE5D8',
-    borderRadius: 14,
-    overflow: 'hidden',
-    marginTop: 4,
-  },
-  conjRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F3EFE7',
-    backgroundColor: '#FFFFFF',
-  },
-  conjLeft: {
-    flex: 1,
-  },
-  conjPerson: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: '#9CA3AF',
-  },
-  conjVerb: {
-    fontSize: 13,
-    fontWeight: '900',
-    color: ORANGE,
-  },
-  conjRoot: {
-    fontSize: 11,
-    color: '#4B5563',
-  },
-
-  /* Números */
   numbersGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
-    marginTop: 4,
-    marginBottom: 8,
   },
   numberItem: {
     width: '48%',
-    backgroundColor: '#F9F7F2',
-    borderRadius: 12,
+    backgroundColor: '#F9FAFB',
     padding: 8,
+    borderRadius: 10,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#ECE5D8',
+    borderColor: '#E5E7EB',
   },
   numberDigitBadge: {
     backgroundColor: TEAL,
@@ -1382,294 +1486,170 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   numberDigit: {
-    color: '#FFFFFF',
     fontSize: 11,
     fontWeight: '900',
+    color: '#FFFFFF',
   },
   numberQuechua: {
-    fontSize: 13,
-    fontWeight: '900',
-    color: '#1F2937',
+    fontSize: 14,
+    fontWeight: '800',
+    color: TEXT_DARK,
   },
   numberEs: {
-    fontSize: 10,
-    color: '#6B7280',
+    fontSize: 11,
+    color: TEXT_MUTED,
     marginBottom: 4,
   },
-
-  /* Familia */
   familyGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
     gap: 8,
-    marginTop: 4,
   },
   familyCard: {
-    width: '48%',
-    backgroundColor: '#F9F7F2',
-    borderRadius: 12,
+    backgroundColor: '#F9FAFB',
     padding: 10,
+    borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#ECE5D8',
+    borderColor: '#E5E7EB',
   },
   familyHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 2,
   },
   familyQuechua: {
-    fontSize: 13,
-    fontWeight: '900',
-    color: TEAL_DARK,
+    fontSize: 14,
+    fontWeight: '800',
+    color: TEXT_DARK,
   },
   familyEs: {
-    fontSize: 11,
+    fontSize: 12,
+    color: TEAL_DARK,
     fontWeight: '700',
-    color: '#1F2937',
-    marginBottom: 2,
   },
   familyNote: {
-    fontSize: 9,
-    color: '#6B7280',
-    lineHeight: 12,
+    fontSize: 10,
+    color: TEXT_MUTED,
   },
-
-  /* Frases y Diálogos */
   phrasesList: {
     gap: 8,
-    marginTop: 4,
   },
-  phraseCard: {
-    backgroundColor: '#F9F7F2',
-    borderRadius: 14,
-    padding: 10,
-    borderWidth: 1,
-    borderColor: '#ECE5D8',
-  },
-  phraseHeader: {
+  phraseRow: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 2,
-  },
-  phraseQuechua: {
-    fontSize: 14,
-    fontWeight: '900',
-    color: GREEN,
-  },
-  phraseEs: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#1F2937',
-  },
-  phraseTip: {
-    fontSize: 10,
-    color: '#6B7280',
-    fontStyle: 'italic',
-    marginTop: 2,
-  },
-  dialogueBox: {
-    backgroundColor: '#F8F5EE',
-    borderRadius: 14,
+    alignItems: 'center',
+    backgroundColor: '#F9FAFB',
     padding: 10,
-    gap: 8,
-    marginTop: 4,
-    marginBottom: 10,
+    borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#ECE5D8',
+    borderColor: '#E5E7EB',
   },
-  dialogueBubbleA: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 8,
-    borderLeftWidth: 3,
-    borderLeftColor: TEAL,
-  },
-  dialogueBubbleB: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 8,
-    borderLeftWidth: 3,
-    borderLeftColor: GOLD,
-  },
-  dialogueSpeakerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 2,
-  },
-  dialogueSpeaker: {
-    fontSize: 10,
-    fontWeight: '900',
-    color: '#9CA3AF',
-  },
-  dialogueQuechua: {
-    fontSize: 12,
-    fontWeight: '800',
-    color: '#1F2937',
-  },
-  dialogueEs: {
-    fontSize: 10,
-    color: '#6B7280',
-    fontStyle: 'italic',
-  },
-
-  /* Tip Box */
-  tipBox: {
-    backgroundColor: GOLD_LIGHT,
-    borderRadius: 12,
-    padding: 10,
-    borderWidth: 1,
-    borderColor: '#F1D28C',
-    marginTop: 4,
-  },
-  tipTitle: {
-    fontSize: 11,
-    fontWeight: '900',
-    color: '#7A4D00',
-    marginBottom: 2,
-  },
-  tipDesc: {
-    fontSize: 11,
-    color: '#6B4C18',
-    lineHeight: 15,
-  },
-
-  /* Glosario */
-  sectionHeaderBox: {
-    marginBottom: 12,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '900',
-    color: '#1F2937',
-    marginBottom: 2,
-  },
-  sectionSubtitle: {
-    fontSize: 12,
-    color: '#6B7280',
-    lineHeight: 16,
-  },
-  searchInput: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1.5,
-    borderColor: '#ECE5D8',
-    borderRadius: 16,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    fontSize: 13,
-    color: '#2A1A0A',
-    marginBottom: 12,
-    shadowColor: '#3A2E26',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 3,
-  },
-  wordCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 18,
-    padding: 12,
-    marginBottom: 10,
-    borderWidth: 1.5,
-    borderColor: '#ECE5D8',
-    elevation: 2,
-    shadowColor: '#3A2E26',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 3,
-  },
-  wordMain: {
+  phraseLeft: {
     flex: 1,
     paddingRight: 8,
   },
-  wordQuechua: {
-    fontSize: 16,
-    fontWeight: '900',
-    color: '#0E4D55',
+  phraseQ: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: TEXT_DARK,
+  },
+  phraseEs: {
+    fontSize: 12,
+    color: GREEN,
+    fontWeight: '700',
     marginBottom: 2,
   },
-  wordSpanish: {
-    fontSize: 12,
-    color: '#374151',
-    fontWeight: '600',
-  },
-  wordPhonetic: {
+  phraseTip: {
     fontSize: 10,
-    color: '#9CA3AF',
-    fontStyle: 'italic',
-    marginTop: 2,
-  },
-  categoryBadge: {
-    backgroundColor: '#F3EFE7',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#E8DFD0',
-  },
-  categoryText: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: '#7A6A5A',
+    color: TEXT_MUTED,
   },
 
-  /* Historias */
-  storyCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  /* Empty State */
+  emptyStateCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 14,
-    marginBottom: 12,
+    marginHorizontal: 16,
+    borderRadius: 18,
+    padding: 24,
+    alignItems: 'center',
     borderWidth: 1.5,
-    borderColor: '#ECE5D8',
-    elevation: 2,
-    shadowColor: '#3A2E26',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
+    borderColor: BORDER,
+    marginTop: 20,
   },
-  storyIcon: {
-    fontSize: 32,
-    marginRight: 12,
+  emptyStateIcon: {
+    fontSize: 40,
+    marginBottom: 10,
   },
-  storyBody: {
-    flex: 1,
-  },
-  storyBadge: {
-    alignSelf: 'flex-start',
-    backgroundColor: '#DDF1ED',
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 8,
-    marginBottom: 3,
-  },
-  storyLevel: {
-    fontSize: 9,
+  emptyStateTitle: {
+    fontSize: 17,
     fontWeight: '900',
-    color: '#0E5A60',
-    letterSpacing: 0.3,
+    color: TEXT_DARK,
+    marginBottom: 6,
+    textAlign: 'center',
   },
-  storyTitle: {
-    fontSize: 15,
+  emptyStateSubtitle: {
+    fontSize: 13,
+    color: TEXT_MUTED,
+    textAlign: 'center',
+    lineHeight: 18,
+    marginBottom: 16,
+  },
+  emptyStateBtn: {
+    backgroundColor: TEAL,
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+  },
+  emptyStateBtnText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+
+  /* Banner Inferior Puente hacia el Traductor */
+  translatorBannerWrap: {
+    paddingHorizontal: 16,
+    marginTop: 20,
+  },
+  translatorBanner: {
+    backgroundColor: TEAL_DARK,
+    borderRadius: 18,
+    padding: 18,
+    shadowColor: TEAL_DARK,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  translatorBannerTextWrap: {
+    marginBottom: 12,
+  },
+  translatorBannerTag: {
+    fontSize: 10,
     fontWeight: '900',
-    color: '#1F2937',
-    marginBottom: 2,
+    color: '#A7F3D0',
+    letterSpacing: 0.8,
+    marginBottom: 4,
   },
-  storyQuechua: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#1B8B8C',
-    fontStyle: 'italic',
-    marginBottom: 3,
+  translatorBannerTitle: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#FFFFFF',
+    marginBottom: 4,
   },
-  storyDesc: {
-    fontSize: 11,
-    color: '#6B7280',
-    lineHeight: 15,
+  translatorBannerDesc: {
+    fontSize: 12,
+    color: '#D1FAE5',
+    lineHeight: 17,
+  },
+  translatorBannerBtn: {
+    backgroundColor: GOLD,
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+  },
+  translatorBannerBtnText: {
+    fontSize: 13,
+    fontWeight: '900',
+    color: '#FFFFFF',
   },
 });
