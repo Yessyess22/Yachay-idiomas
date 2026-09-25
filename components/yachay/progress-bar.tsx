@@ -17,7 +17,7 @@ const DOT_SIZE = 10;
 export function ProgressBar({
   progress,
   height = 8,
-  color = '#1B8B8C',
+  color = '#00C853',
   trackColor = '#EAE3D6',
   showDot = false,
   style,

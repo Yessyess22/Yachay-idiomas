@@ -20,17 +20,17 @@ import { YachayTopBar } from '@/components/yachay/yachay-top-bar';
 import { Card } from '@/components/yachay/card';
 import { ProgressBar } from '@/components/yachay/progress-bar';
 
-const TEAL = '#1B8B8C';
-const TEAL_DARK = '#0E4D55';
-const TEAL_LIGHT = '#DDF1ED';
-const GOLD = '#D48B0A';
-const GOLD_LIGHT = '#FFF9E6';
-const GOLD_DARK = '#9E6404';
+const TEAL = '#00C853';
+const TEAL_DARK = '#009624';
+const TEAL_LIGHT = '#E8F8F0';
+const GOLD = '#FFB300';
+const GOLD_LIGHT = '#FFF8E1';
+const GOLD_DARK = '#C67C00';
 const PARCHMENT = '#F8F5EE';
 const BORDER_COLOR = '#ECE5D8';
-const GREEN = '#1B8B8C';
-const TEXT_DARK = '#2C2520';
-const TEXT_MUTED = '#7A6E65';
+const GREEN = '#00C853';
+const TEXT_DARK = '#0F172A';
+const TEXT_MUTED = '#64748B';
 
 type ProfileTab = 'expediente' | 'logros' | 'liga';
 
@@ -424,15 +424,6 @@ export default function ProfileScreen() {
               </View>
               <Text style={styles.shopBannerArrow}>→</Text>
             </TouchableOpacity>
-
-            {/* Botón Cerrar Sesión */}
-            <TouchableOpacity
-              style={styles.signOutBtn}
-              onPress={handleSignOut}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.signOutText}>🚪 Cerrar Sesión</Text>
-            </TouchableOpacity>
           </View>
         )}
 
@@ -627,6 +618,30 @@ export default function ProfileScreen() {
             )}
           </View>
         )}
+
+        {/* Botón de Créditos y Acerca de Yachay */}
+        <View style={styles.footerActions}>
+          <TouchableOpacity
+            style={styles.aboutAppBtn}
+            onPress={() => router.push('/modal' as any)}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.aboutAppIcon}>🏛️</Text>
+            <View style={styles.aboutAppInfo}>
+              <Text style={styles.aboutAppTitle}>Acerca de Yachay & Créditos</Text>
+              <Text style={styles.aboutAppSub}>Desarrolladores · UPDS · Misión Cultural</Text>
+            </View>
+            <Text style={styles.aboutAppArrow}>➔</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.signOutBtn}
+            onPress={handleSignOut}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.signOutText}>🚪 Cerrar Sesión</Text>
+          </TouchableOpacity>
+        </View>
 
         <View style={{ height: 40 }} />
       </ScrollView>
@@ -961,20 +976,26 @@ const styles = StyleSheet.create({
     color: TEAL,
   },
 
-  /* Botón de Salir */
+  /* Botón de Salir (Rojo Destacado) */
   signOutBtn: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 14,
-    paddingVertical: 12,
+    backgroundColor: '#FF3366',
+    borderRadius: 16,
+    paddingVertical: 14,
     alignItems: 'center',
-    borderWidth: 1.5,
-    borderColor: '#E5E7EB',
-    marginBottom: 10,
+    borderBottomWidth: 4,
+    borderBottomColor: '#BE123C',
+    shadowColor: '#FF3366',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 2,
+    marginTop: 4,
   },
   signOutText: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: '#DC2626',
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#FFFFFF',
+    letterSpacing: 0.5,
   },
 
   /* Cabecera de Pestaña de Logros */
@@ -1269,5 +1290,50 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     color: TEXT_MUTED,
+  },
+
+  /* Footer Actions */
+  footerActions: {
+    marginTop: 20,
+    gap: 12,
+  },
+  aboutAppBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 18,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  aboutAppIcon: {
+    fontSize: 24,
+    marginRight: 12,
+  },
+  aboutAppInfo: {
+    flex: 1,
+  },
+  aboutAppTitle: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: TEXT_DARK,
+  },
+  aboutAppSub: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: TEXT_MUTED,
+    marginTop: 1,
+  },
+  aboutAppArrow: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: TEAL,
+    marginLeft: 8,
   },
 });

@@ -47,7 +47,7 @@ export async function requestNotificationPermissions(): Promise<boolean> {
         name: 'Recordatorio de Racha',
         importance: Notifications.AndroidImportance.DEFAULT,
         vibrationPattern: [0, 250, 250, 250],
-        lightColor: '#1B8B8C',
+        lightColor: '#00C853',
       });
     }
     const { status: existingStatus } = await Notifications.getPermissionsAsync();

@@ -32,7 +32,8 @@ import { WordBankExercise } from '@/components/yachay/exercises/word-bank-exerci
 import { MatchingPairsExercise } from '@/components/yachay/exercises/matching-pairs-exercise';
 import { useYachiBounce } from '@/hooks/use-yachi-bounce';
 import { extractCorePhoneme } from '@/src/utils/phoneticGuide';
-import { LESSON_CONTENT_PACKS, LessonContentPack, LessonExerciseEntry } from '@/src/content/lessonContent';
+import { LESSON_CONTENT_PACKS, LessonContentPack, LessonExerciseEntry, LessonVocabularyEntry } from '@/src/content/lessonContent';
+import { LessonTeaching } from '@/components/yachay/lesson-teaching';
 import { playQuechuaAudio } from '@/src/services/voiceService';
 import {
   isSoundEnabled,
@@ -43,14 +44,13 @@ import {
   playTapSound,
 } from '@/src/services/soundService';
 
-const TEAL = '#1B8B8C';
-const TEAL_DARK = '#136566';
+const TEAL = '#00C853';
+const TEAL_DARK = '#009624';
 const CREAM = '#FAF7F2';
-const GREEN = '#1B8B8C';
-const GREEN_DARK = '#0E4D55';
-const RED = '#EA5455';
-
-type VocabCard = { quechua: string; spanish: string };
+const GREEN = '#00C853';
+const GREEN_DARK = '#009624';
+const RED = '#FF3366';
+type VocabCard = LessonVocabularyEntry;
 
 /**
  * Tarjetas de vocabulario fijas para lecciones cuyas preguntas son trivia
@@ -634,6 +634,10 @@ export default function LessonScreen() {
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
 
+  // Estados de fase pedagógica (Fase 1: Enseñanza -> Fase 2: Práctica)
+  const [lessonPhase, setLessonPhase] = useState<'teach' | 'practice'>('teach');
+  const [teachingPack, setTeachingPack] = useState<LessonContentPack | null>(null);
+
   // Estados de selección y feedback modal
   const [selectedOptionId, setSelectedOptionId] = useState<number | null>(null);
   const [typedAnswer, setTypedAnswer] = useState('');
@@ -669,9 +673,10 @@ export default function LessonScreen() {
       try {
         const contentPack = LESSON_CONTENT_PACKS[lessonId];
         if (contentPack) {
-          const vCards = contentPack.vocabulary.map(({ quechua, spanish }) => ({ quechua, spanish }));
-          setLessonVocabulary(vCards);
+          setTeachingPack(contentPack);
+          setLessonVocabulary(contentPack.vocabulary);
           setExercises(buildPackExerciseList(contentPack));
+          setLessonPhase('teach');
           setLoading(false);
           return;
         }
@@ -940,7 +945,7 @@ export default function LessonScreen() {
     );
   }
 
-  if (error || exercises.length === 0) {
+  if (error || (lessonPhase === 'practice' && exercises.length === 0)) {
     return (
       <View style={styles.centered}>
         <Text style={styles.errorText}>
@@ -948,6 +953,22 @@ export default function LessonScreen() {
         </Text>
         <Button label="Volver" onPress={() => router.back()} />
       </View>
+    );
+  }
+
+  // ─── Fase 1: Enseñanza Previa y Vocabulario ────────────────
+  if (lessonPhase === 'teach' && teachingPack) {
+    return (
+      <LessonTeaching
+        title={teachingPack.title}
+        focus={teachingPack.focus}
+        vocabulary={teachingPack.vocabulary}
+        onComplete={() => {
+          setCurrentIndex(0);
+          setLessonPhase('practice');
+        }}
+        onBack={() => router.back()}
+      />
     );
   }
 
@@ -1323,6 +1344,7 @@ export default function LessonScreen() {
         {currentExercise.kind === 'speaking' && (
           <View style={styles.speakingContainer}>
             <PronunciationExercise
+              key={`speaking-${currentExercise.id}-${currentIndex}`}
               expectedText={currentExercise.targetWord}
               translation={currentExercise.translation}
               isPhrase={currentExercise.isPhrase}
@@ -1817,7 +1839,7 @@ const styles = StyleSheet.create({
   reviewTitle: {
     fontSize: 24,
     fontWeight: '900',
-    color: '#0E4D55',
+    color: '#00701A',
     textAlign: 'center',
     marginBottom: 8,
   },
@@ -1852,8 +1874,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#E0F2F1',
   },
   reviewOptionCorrect: {
-    borderColor: '#1B8B8C',
-    backgroundColor: '#E0F2F1',
+    borderColor: '#00C853',
+    backgroundColor: '#E8F8F0',
   },
   reviewOptionWrong: {
     borderColor: '#E56868',
@@ -1872,10 +1894,10 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   reviewFeedbackSuccess: {
-    color: '#0E4D55',
+    color: '#00701A',
   },
   reviewFeedbackError: {
-    color: '#B42318',
+    color: '#FF3366',
   },
   reviewActions: {
     marginTop: 4,
@@ -1931,7 +1953,7 @@ const styles = StyleSheet.create({
   cultureCrossLinkTag: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#1B8B8C',
+    color: '#00C853',
     letterSpacing: 0.8,
   },
   cultureCrossLinkEmoji: {
@@ -1940,7 +1962,7 @@ const styles = StyleSheet.create({
   cultureCrossLinkTitle: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#0E4D55',
+    color: '#00701A',
     marginBottom: 4,
   },
   cultureCrossLinkDesc: {
@@ -1950,7 +1972,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   cultureCrossLinkBtn: {
-    backgroundColor: '#1B8B8C',
+    backgroundColor: '#00C853',
     borderRadius: 10,
     paddingVertical: 10,
     paddingHorizontal: 14,

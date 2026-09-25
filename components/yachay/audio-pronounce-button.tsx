@@ -22,7 +22,7 @@ interface AudioPronounceButtonProps {
   label?: string;
 }
 
-const TEAL = '#1B8B8C';
+const TEAL = '#00C853';
 
 export function AudioPronounceButton({
   text,

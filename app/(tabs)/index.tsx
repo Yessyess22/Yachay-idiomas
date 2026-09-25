@@ -1,502 +1,525 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
+  ActivityIndicator,
   Image,
   ImageBackground,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
-  useWindowDimensions,
   View,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import * as Haptics from 'expo-haptics';
+import { useFocusEffect, useRouter } from 'expo-router';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withSequence,
+  withTiming,
+} from 'react-native-reanimated';
 import { useAuth } from '@/src/context/AuthContext';
-import { useGame } from '@/src/context/GameContext';
 import { questionService } from '@/src/services/questionService';
 import { progressService } from '@/src/services/progressService';
 import { YachayTopBar } from '@/components/yachay/yachay-top-bar';
-import { Card } from '@/components/yachay/card';
 import { ProgressBar } from '@/components/yachay/progress-bar';
+import {
+  deriveLearningPath,
+  type LearningPathNode,
+} from '@/components/yachay/learning-path';
 
-const TEAL = '#1B8B8C';
-const GREEN = '#1B8B8C';
-const BLUE = '#2980B9';
-const ORANGE = '#E67E22';
-const PURPLE = '#8E44AD';
+const TEAL = '#00C853';
+const TEAL_DARK = '#009624';
+const GOLD = '#FFB300';
+const GOLD_DARK = '#C67C00';
+const MUTED = '#64748B';
+const GRAY_LOCKED = '#CBD5E1';
+const GRAY_LOCKED_DARK = '#94A3B8';
 
-interface LessonNode {
-  id: number;
-  title: string;
-  subtitle: string;
-  categorySlug: string;
-  levelNumber: 1 | 2 | 3;
-  levelColor: string;
-  levelLabel: string;
-  completed: boolean;
-  active: boolean;
-  locked: boolean;
-  type: 'lesson' | 'exam';
-  /** Solo para nodos type='exam': level_id que consume examService.fetchExamByLevel */
-  levelId?: number;
+// ─── PALETA ANDINA WIPHALA PARA CADA NODO ───────────────────
+interface WiphalaPalette {
+  name: string;
+  face: string;
+  shadow: string;
+  sparkle: string;
+  accent: string;
 }
 
-const INITIAL_SERPENTINE_NODES: LessonNode[] = [
-  // Nivel 1 — Achahala y Fonética (Verde Esmeralda)
+const WIPHALA_PALETTES: WiphalaPalette[] = [
+  // 1. Amarillo Inti (Sol / Energía Vital / Inicio Dorado)
   {
-    id: 1,
-    title: 'Achahala',
-    subtitle: 'Vocales y Consonantes',
-    categorySlug: 'abecedario',
-    levelNumber: 1,
-    levelColor: GREEN,
-    levelLabel: 'NIVEL 1',
-    completed: false,
-    active: true,
-    locked: false,
-    type: 'lesson',
+    name: 'Inti Amarillo',
+    face: '#FFD600',
+    shadow: '#F57F17',
+    sparkle: '#FFF9C4',
+    accent: '#FFFDE7',
   },
+  // 2. Azul Cyan Mayu (Río Celestial / Sabiduría)
   {
-    id: 100,
-    title: 'Examen de Abecedario',
-    subtitle: 'Evaluación de Vocales y Consonantes',
-    categorySlug: 'abecedario',
-    levelNumber: 1,
-    levelColor: PURPLE,
-    levelLabel: 'EXAMEN',
-    completed: false,
-    active: false,
-    locked: true,
-    type: 'exam',
-    levelId: 1,
+    name: 'Mayu Azul',
+    face: '#00B0FF',
+    shadow: '#0081CB',
+    sparkle: '#E1F5FE',
+    accent: '#F0F9FF',
   },
-
-  // Nivel 2 — Yupaykuna / Números (Azul Lago Titicaca)
+  // 3. Rojo Carmesí / Fuego Ancestral (Examen 1)
   {
-    id: 2,
-    title: 'Yupaykuna',
-    subtitle: 'Números del 1 al 10',
-    categorySlug: 'numeros',
-    levelNumber: 2,
-    levelColor: BLUE,
-    levelLabel: 'NIVEL 2',
-    completed: false,
-    active: false,
-    locked: true,
-    type: 'lesson',
+    name: 'Nina Rojo',
+    face: '#FF1744',
+    shadow: '#C51162',
+    sparkle: '#FFCDD2',
+    accent: '#FFEBEE',
   },
+  // 4. Verde Kawsay (Vida / Fertilidad / Naturaleza)
   {
-    id: 200,
-    title: 'Examen de Números',
-    subtitle: 'Evaluación de Números',
-    categorySlug: 'numeros',
-    levelNumber: 2,
-    levelColor: PURPLE,
-    levelLabel: 'EXAMEN',
-    completed: false,
-    active: false,
-    locked: true,
-    type: 'exam',
-    levelId: 2,
+    name: 'Kawsay Verde',
+    face: '#00E676',
+    shadow: '#009624',
+    sparkle: '#C8E6C9',
+    accent: '#E8F5E9',
   },
-
-  // Nivel 3 — Palabras y Vocabulario (Terracota Andino)
+  // 5. Morado Ayllu (Espiritualidad / Sabiduría Ancestral)
   {
-    id: 3,
-    title: 'Rimaykuna',
-    subtitle: 'Saludos y Familia',
-    categorySlug: 'palabras',
-    levelNumber: 3,
-    levelColor: ORANGE,
-    levelLabel: 'NIVEL 3',
-    completed: false,
-    active: false,
-    locked: true,
-    type: 'lesson',
+    name: 'Ayllu Morado',
+    face: '#A855F7',
+    shadow: '#6B21A8',
+    sparkle: '#F3E8FF',
+    accent: '#FAF5FF',
   },
+  // 6. Naranja Kultura (Sabiduría Andina / Arte / Examen 2)
   {
-    id: 300,
-    title: 'Examen de Palabras',
-    subtitle: 'Evaluación de Saludos y Familia',
-    categorySlug: 'palabras',
-    levelNumber: 3,
-    levelColor: PURPLE,
-    levelLabel: 'EXAMEN',
-    completed: false,
-    active: false,
-    locked: true,
-    type: 'exam',
-    levelId: 3,
+    name: 'Kultura Naranja',
+    face: '#FF6D00',
+    shadow: '#D84315',
+    sparkle: '#FFE0B2',
+    accent: '#FFF3E0',
+  },
+  // 7. Rosa Magenta Neón (Amor / Alegría)
+  {
+    name: 'Pacha Rosa',
+    face: '#FF2A85',
+    shadow: '#AD1457',
+    sparkle: '#FCE4EC',
+    accent: '#FDF2F8',
+  },
+  // 8. Azul Índigo / Zafiro (Profundidad / Cielo Nocturno)
+  {
+    name: 'Chaska Azul',
+    face: '#3B82F6',
+    shadow: '#1D4ED8',
+    sparkle: '#DBEAFE',
+    accent: '#EFF6FF',
+  },
+  // 9. Oro Supremo 24K (Gran Examen Final Nivel 3)
+  {
+    name: 'Quri Imperial 24K',
+    face: '#FFB300',
+    shadow: '#E65100',
+    sparkle: '#FFF8E1',
+    accent: '#FFFDE7',
   },
 ];
 
+// Secuencia de zigzag tipo Duolingo (offsets horizontales)
+const ZIGZAG_OFFSETS = [0, -42, 42, -42, 42, 0, -42, 42, 0];
+
+/** Mascota interactiva Yachi que acompaña y trota al lado del progreso activo */
+function YachiCompanion({ offsetX, isExam }: { offsetX: number; isExam: boolean }) {
+  const jumpY = useSharedValue(0);
+  const rot = useSharedValue(0);
+  const isRightSide = offsetX <= 0;
+
+  React.useEffect(() => {
+    jumpY.value = withRepeat(
+      withSequence(
+        withTiming(-8, { duration: 380 }),
+        withTiming(0, { duration: 380 })
+      ),
+      -1,
+      true
+    );
+    rot.value = withRepeat(
+      withSequence(
+        withTiming(-4, { duration: 380 }),
+        withTiming(4, { duration: 380 })
+      ),
+      -1,
+      true
+    );
+  }, []);
+
+  const companionAnim = useAnimatedStyle(() => ({
+    transform: [
+      { translateY: jumpY.value },
+      { rotate: `${rot.value}deg` },
+      { scaleX: isRightSide ? 1 : -1 },
+    ],
+  }));
+
+  const bubbleAnim = useAnimatedStyle(() => ({
+    transform: [{ translateY: jumpY.value * 0.5 }],
+  }));
+
+  const handleTapYachi = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
+    jumpY.value = withSequence(
+      withTiming(-22, { duration: 160 }),
+      withTiming(0, { duration: 200 })
+    );
+  };
+
+  return (
+    <View
+      style={[
+        styles.companionWrapper,
+        isRightSide ? styles.companionRight : styles.companionLeft,
+      ]}
+      pointerEvents="box-none"
+    >
+      {/* Burbujita de voz de Yachi animando el paso */}
+      <Animated.View style={[styles.companionSpeechBubble, bubbleAnim]}>
+        <Text style={styles.companionSpeechText}>
+          {isExam ? '¡Atipanki! 👑' : '¡Hakuchu! 🦙'}
+        </Text>
+        <View
+          style={[
+            styles.companionBubblePointer,
+            isRightSide ? styles.bubblePointerLeft : styles.bubblePointerRight,
+          ]}
+        />
+      </Animated.View>
+
+      {/* Mascota Yachi trotando/saltando */}
+      <TouchableOpacity onPress={handleTapYachi} activeOpacity={0.85}>
+        <Animated.Image
+          source={require('@/assets/images/llamita/07_feliz.png')}
+          style={[styles.companionLlamaImage, companionAnim]}
+          resizeMode="contain"
+        />
+      </TouchableOpacity>
+    </View>
+  );
+}
+
 export default function HomeScreen() {
   const { user, profile } = useAuth();
-  const { streakDays, xp, gems } = useGame();
   const router = useRouter();
-  const { width } = useWindowDimensions();
+  const uid = user?.uid || (user as any)?.id;
 
-  // Adaptación de anchos para pantallas móviles vs desktop
-  const isDesktop = width >= 720;
-  const sideCardWidth = isDesktop ? 135 : Math.max(98, Math.min(115, (width - 150) / 2));
+  const [completedLessonIds, setCompletedLessonIds] = useState<number[]>([]);
+  const [passedLevelIds, setPassedLevelIds] = useState<Set<number>>(new Set());
+  const [loading, setLoading] = useState(true);
 
-  const [nodes, setNodes] = useState<LessonNode[]>(INITIAL_SERPENTINE_NODES);
+  // Animación del badge flotante "¡CONTINUAR!"
+  const floatY = useSharedValue(0);
 
-  useEffect(() => {
-    let isMounted = true;
+  React.useEffect(() => {
+    floatY.value = withRepeat(
+      withSequence(
+        withTiming(-6, { duration: 900 }),
+        withTiming(0, { duration: 900 })
+      ),
+      -1,
+      true
+    );
+  }, [floatY]);
 
-    (async () => {
-      // Consulta de lecciones y exámenes aprobados (tanto en AsyncStorage local como en Supabase)
-      const uid = user?.uid || (user as any)?.id;
-      let completedLessonIds = new Set<number>();
-      let passedLevelIds = new Set<number>();
+  const floatAnimStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: floatY.value }],
+  }));
 
-      if (uid) {
-        try {
-          const [lessonIds, passedLevels] = await Promise.all([
-            questionService.getCompletedLessonIds(uid),
-            progressService.fetchPassedLevels(uid),
-          ]);
-          completedLessonIds = new Set(lessonIds);
-          passedLevelIds = passedLevels;
-        } catch (e) {
-          console.warn('Error fetching completed progress:', e);
-        }
+  const loadProgress = useCallback(async () => {
+    setLoading(true);
+    let completed: number[] = [];
+    let passed = new Set<number>();
+
+    if (uid) {
+      try {
+        completed = await questionService.getCompletedLessonIds(uid);
+      } catch (err) {
+        console.warn('Error al cargar progreso de lecciones:', err);
       }
 
-      if (!isMounted) return;
-
-      // Progresión estricta por niveles:
-      // Nivel 1 (Abecedario): Requiere Lecciones 1 (Vocales) Y 2 (Consonantes)
-      const allLessonsL1 = completedLessonIds.has(1) && completedLessonIds.has(2);
-      const exam1Passed = passedLevelIds.has(1);
-
-      // Nivel 2 (Números): Requiere Examen 1 aprobado + Lecciones 3 (1-5) Y 4 (6-10)
-      const allLessonsL2 = completedLessonIds.has(3) && completedLessonIds.has(4);
-      const exam2Passed = passedLevelIds.has(2);
-
-      // Nivel 3 (Palabras): Requiere Examen 2 aprobado + Lecciones 5 (Saludos) Y 6 (Familia)
-      const allLessonsL3 = completedLessonIds.has(5) && completedLessonIds.has(6);
-      const exam3Passed = passedLevelIds.has(3);
-
-      const updatedNodes = INITIAL_SERPENTINE_NODES.map((node) => {
-        // Nivel 1: Achahala (Lecciones)
-        if (node.id === 1) {
-          return {
-            ...node,
-            completed: allLessonsL1,
-            active: !allLessonsL1,
-            locked: false,
-          };
-        }
-        // Examen Nivel 1: Solo se desbloquea al terminar TODAS las lecciones del Nivel 1
-        if (node.id === 100) {
-          return {
-            ...node,
-            completed: exam1Passed,
-            active: allLessonsL1 && !exam1Passed,
-            locked: !allLessonsL1,
-          };
-        }
-
-        // Nivel 2: Yupaykuna (Solo se desbloquea al APROBAR el Examen 1)
-        if (node.id === 2) {
-          return {
-            ...node,
-            completed: allLessonsL2,
-            active: exam1Passed && !allLessonsL2,
-            locked: !exam1Passed,
-          };
-        }
-        // Examen Nivel 2: Solo al completar lecciones del Nivel 2
-        if (node.id === 200) {
-          return {
-            ...node,
-            completed: exam2Passed,
-            active: allLessonsL2 && !exam2Passed,
-            locked: !allLessonsL2,
-          };
-        }
-
-        // Nivel 3: Rimaykuna (Solo se desbloquea al APROBAR el Examen 2)
-        if (node.id === 3) {
-          return {
-            ...node,
-            completed: allLessonsL3,
-            active: exam2Passed && !allLessonsL3,
-            locked: !exam2Passed,
-          };
-        }
-        // Examen Nivel 3: Solo al completar lecciones del Nivel 3
-        if (node.id === 300) {
-          return {
-            ...node,
-            completed: exam3Passed,
-            active: allLessonsL3 && !exam3Passed,
-            locked: !allLessonsL3,
-          };
-        }
-
-        return node;
-      });
-
-      if (isMounted) {
-        setNodes(updatedNodes);
+      try {
+        passed = await progressService.fetchPassedLevels(uid);
+      } catch (err) {
+        console.warn('Error al cargar progreso de exámenes:', err);
       }
-    })();
+    }
 
-    return () => {
-      isMounted = false;
-    };
-  }, [user, xp]);
+    setCompletedLessonIds(Array.isArray(completed) ? completed : []);
+    setPassedLevelIds(passed instanceof Set ? passed : new Set<number>());
+    setLoading(false);
+  }, [uid]);
 
-  function handleNodePress(node: LessonNode) {
+  useFocusEffect(
+    useCallback(() => {
+      void loadProgress();
+    }, [loadProgress])
+  );
+
+  const path = useMemo(
+    () => deriveLearningPath({ completedLessonIds, passedLevelIds }),
+    [completedLessonIds, passedLevelIds]
+  );
+
+  const username = profile?.username || user?.email?.split('@')[0] || 'Yachachiq';
+
+  function handleNodePress(node: LearningPathNode) {
     if (node.locked) return;
-    if (node.type === 'exam') {
+
+    if (node.type === 'exam' && node.levelId) {
       router.push({
         pathname: '/level/exam/[levelId]' as any,
         params: { levelId: String(node.levelId) },
       });
       return;
     }
-    router.push({
-      pathname: '/category/[slug]' as any,
-      params: { slug: node.categorySlug },
-    });
+
+    if (node.type === 'lesson' && node.lessonId) {
+      router.push({
+        pathname: '/lesson/[id]' as any,
+        params: { id: String(node.lessonId) },
+      });
+    }
   }
 
-  const username = profile?.username || user?.email?.split('@')[0] || 'Yachachiq';
-  const currentCompleted = nodes.filter((n) => n.completed).length;
+  // Agrupar nodos por nivel para mostrar banners de sección
+  const levelGroups = useMemo(() => {
+    const groups: { level: 1 | 2 | 3; title: string; subtitle: string; color: string; nodes: LearningPathNode[] }[] = [
+      {
+        level: 1,
+        title: 'NIVEL 1 · ACHAHALA Y FONÉTICA',
+        subtitle: 'Aprende los sonidos y vocales originarias del Runasimi',
+        color: '#F59E0B',
+        nodes: path.nodes.filter((n) => n.levelNumber === 1),
+      },
+      {
+        level: 2,
+        title: 'NIVEL 2 · YUPAYKUNA / NÚMEROS',
+        subtitle: 'Aprende a contar del 1 al 10 en Quechua',
+        color: '#00C853',
+        nodes: path.nodes.filter((n) => n.levelNumber === 2),
+      },
+      {
+        level: 3,
+        title: 'NIVEL 3 · RIMAYKUNA / EXPRESIONES',
+        subtitle: 'Saludos cotidianos y lazos familiares andinos',
+        color: '#00B0FF',
+        nodes: path.nodes.filter((n) => n.levelNumber === 3),
+      },
+    ];
+    return groups;
+  }, [path.nodes]);
 
-  /**
-   * CÁLCULO DE OFFSET EN ZIGZAG:
-   * - Los dos primeros nodos (index 0 y index 1) están a los lados de las tarjetas:
-   *   tienen offset estrictamente 0 (alineados al centro vertical), con 40px+ de separación
-   *   respecto a los bordes de las tarjetas laterales para NUNCA superponerse.
-   * - A partir del nodo 2 (index >= 2), las tarjetas laterales ya terminaron arriba,
-   *   por lo que el camino fluye libremente en zigzag suave (+/- 28px).
-   */
-  function getNodeOffset(index: number): number {
-    if (index === 0 || index === 1) return 0; // Entre tarjetas: 100% centrado y despejado
-    const curveSequence = [-26, 0, 26, -26, 0, 26, 0];
-    return curveSequence[(index - 2) % curveSequence.length];
+  let globalNodeIndex = 0;
+
+  if (loading && completedLessonIds.length === 0) {
+    return (
+      <View style={styles.root}>
+        <YachayTopBar />
+        <View style={styles.centered}>
+          <ActivityIndicator size="large" color={TEAL} />
+          <Text style={styles.loadingText}>Cargando el camino del saber…</Text>
+        </View>
+      </View>
+    );
   }
-
-  const completedRatio = Math.min(1, Math.max(0, currentCompleted / nodes.length));
-  const progPct = Math.round(completedRatio * 100);
 
   return (
     <View style={styles.root}>
       <YachayTopBar />
-
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* Banner Superior de Sección estilo Mockup */}
-        <View style={styles.sectionBannerContainer}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Banner Superior Principal */}
+        <View style={styles.heroBannerContainer}>
           <ImageBackground
             source={require('@/assets/images/cards/tarjeta_montana.png')}
-            style={styles.sectionBannerBg}
-            imageStyle={styles.sectionBannerImg}
+            style={styles.heroBannerBg}
+            imageStyle={styles.heroBannerImg}
           >
-            <View style={styles.sectionBannerOverlay}>
-              <View style={styles.bannerContentRow}>
-                <View style={styles.bannerLeft}>
-                  <Text style={styles.bannerTag}>SECCIÓN 1 • RUNASIMI BÁSICO</Text>
-                  <Text style={styles.bannerTitle}>El Camino del Saber</Text>
-                  <Text style={styles.bannerDesc}>
-                    Aprende fonemas, números y expresiones tradicionales.
+            <View style={styles.heroBannerOverlay}>
+              <Text style={styles.heroTag}>EL CAMINO DEL SABER • RUNASIMI</Text>
+              <Text style={styles.heroTitle}>Allillanchu, {username} 🏔️</Text>
+              <Text style={styles.heroSubtitle}>
+                Aprende paso a paso: completa las lecciones y desbloquea el examen.
+              </Text>
+
+              <View style={styles.progressContainer}>
+                <View style={styles.progressLabelRow}>
+                  <Text style={styles.progressLabel}>Tu progreso general</Text>
+                  <Text style={styles.progressPercent}>
+                    {path.completedCount} de {path.totalLessons} lecciones
                   </Text>
                 </View>
-              </View>
-
-              {/* Cenefa textil andina geométrica inferior */}
-              <View style={styles.bannerTextileRibbon}>
-                <Text style={styles.textileRibbonText}>
-                  ▲▼▲▼ ❖ ◆ ❖ ◆ ▲▼▲▼ ❖ ◆ ❖ ◆ ▲▼▲▼ ❖ ◆ ❖ ◆ ▲▼▲▼ ❖ ◆ ❖ ◆ ▲▼▲▼
-                </Text>
+                <ProgressBar
+                  progress={path.completedCount / path.totalLessons}
+                  color={GOLD}
+                  height={8}
+                />
               </View>
             </View>
           </ImageBackground>
         </View>
 
-        {/* ─── CONTENEDOR PRINCIPAL DE 3 COLUMNAS EXACTO AL MOCKUP ─── */}
-        <View style={styles.columnsWrapper}>
-          {/* ── COLUMNA IZQUIERDA: Meta Diaria ── */}
-          <View style={[styles.sideColLeft, { width: sideCardWidth }]}>
-            <Card radius={20} padding={12} style={styles.metaCard}>
-              <Text style={styles.metaTitle}>Meta Diaria</Text>
-              <Text style={styles.metaSub}>
-                {currentCompleted} de {nodes.length} lecciones hoy
-              </Text>
-
-              {/* Barra de progreso con punto indicador al extremo */}
-              <ProgressBar
-                progress={Math.max(6, progPct)}
-                height={6}
-                color={GREEN}
-                trackColor="#EAE3D6"
-                showDot
-                style={styles.metaProgTrack}
-              />
-
-              {/* Stats con iconos claros */}
-              <View style={styles.metaStatLine}>
-                <Text style={styles.metaStatIcon}>⚡</Text>
-                <Text style={styles.metaStatText}>XP: +{xp || 0}</Text>
-              </View>
-              <View style={styles.metaStatLine}>
-                <Text style={styles.metaStatIcon}>🪙</Text>
-                <Text style={styles.metaStatText}>Coins: +{(xp || 0) + (gems || 0)}</Text>
+        {/* Caminito Serpentine por Secciones de Nivel */}
+        <View style={styles.pathContainer}>
+          {levelGroups.map((group) => (
+            <View key={`level-${group.level}`} style={styles.levelSection}>
+              {/* Encabezado de Sección estilo Duolingo */}
+              <View style={[styles.sectionBanner, { backgroundColor: group.color }]}>
+                <Text style={styles.sectionBannerTag}>SECCIÓN {group.level}</Text>
+                <Text style={styles.sectionBannerTitle}>{group.title}</Text>
+                <Text style={styles.sectionBannerSub}>{group.subtitle}</Text>
               </View>
 
-              <TouchableOpacity
-                onPress={() => router.push('/(tabs)/explore' as any)}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.metaLinkText}>Ver Desafíos →</Text>
-              </TouchableOpacity>
+              {/* Nodos del Caminito en Zigzag con Diseños Andinos Wiphala */}
+              <View style={styles.nodesWrapper}>
+                {group.nodes.map((node) => {
+                  const nodeIndex = globalNodeIndex++;
+                  const isCompleted = node.completed;
+                  const isActive = node.active;
+                  const isLocked = node.locked;
+                  const isExam = node.type === 'exam';
+                  const offsetX = ZIGZAG_OFFSETS[nodeIndex % ZIGZAG_OFFSETS.length];
 
-              {/* Silueta de montaña al pie de la tarjeta */}
-              <View style={styles.metaMountainFooter}>
-                <Text style={styles.metaMountainDeco}>🏔️ ⛰️ 🏔️</Text>
-              </View>
-            </Card>
-          </View>
+                  // Cada redondito tiene un color único y diferente de la Wiphala
+                  const palette = WIPHALA_PALETTES[nodeIndex % WIPHALA_PALETTES.length];
 
-          {/* ── COLUMNA CENTRAL: Camino del Saber ── */}
-          <View style={styles.pathCenterCol}>
-            {nodes.map((node, index) => {
-              const isCompleted = node.completed;
-              const isActive = node.active;
-              const isLocked = node.locked;
-              const isExam = node.type === 'exam';
-              const showEmpezarAbove = isActive;
-              const offsetX = getNodeOffset(index);
-
-              return (
-                <View
-                  key={node.id}
-                  style={[styles.nodeGroup, { transform: [{ translateX: offsetX }] }]}
-                >
-                  {/* Conector o sendero entre nodos con adorno de pasto andino (ichu) */}
-                  {index > 0 && (
-                    <View style={styles.connectorWrap}>
-                      {/* Pastito andino decorativo al lado del sendero */}
-                      {index % 2 === 1 ? (
-                        <Text style={styles.ichuLeft}>🌾</Text>
-                      ) : (
-                        <Text style={styles.ichuRight}>🌾</Text>
-                      )}
-                      <View
-                        style={[
-                          styles.trailConnector,
-                          isLocked ? styles.trailConnectorLocked : styles.trailConnectorActive,
-                        ]}
-                      />
-                    </View>
-                  )}
-
-                  {/* Globo interactivo ¡EMPEZAR! en el nodo activo */}
-                  {showEmpezarAbove && (
-                    <TouchableOpacity
-                      style={styles.empezarBtn}
-                      onPress={() => handleNodePress(node)}
-                      activeOpacity={0.85}
+                  return (
+                    <View
+                      key={node.key}
+                      style={[
+                        styles.nodeGroup,
+                        { transform: [{ translateX: offsetX }] },
+                      ]}
                     >
-                      <Text style={styles.empezarText}>¡EMPEZAR!</Text>
-                      <View style={styles.empezarArrow} />
-                    </TouchableOpacity>
-                  )}
+                      {/* Mascota Yachi trotando al lado del nodo activo */}
+                      {isActive && (
+                        <YachiCompanion offsetX={offsetX} isExam={isExam} />
+                      )}
 
-                  {/* Botón Circular del Nodo */}
-                  <TouchableOpacity
-                    style={[
-                      styles.nodeBtn,
-                      isActive && styles.nodeBtnActive,
-                      isLocked && styles.nodeBtnLocked,
-                      isCompleted && styles.nodeBtnCompleted,
-                    ]}
-                    onPress={() => handleNodePress(node)}
-                    disabled={isLocked}
-                    activeOpacity={0.8}
-                  >
-                    {isLocked ? (
-                      <Text style={styles.lockEmoji}>🔒</Text>
-                    ) : isExam ? (
-                      <Image
-                        source={require('@/assets/images/logros/logro_hablante_corona.png')}
-                        style={styles.nodeImg}
-                      />
-                    ) : (
-                      <Image
-                        source={require('@/assets/images/logros/logro_principiante_chullo.png')}
-                        style={styles.nodeImg}
-                      />
-                    )}
+                      {/* Badge flotante "¡CONTINUAR!" sobre el nodo activo */}
+                      {isActive && (
+                        <Animated.View style={[styles.activeFloatingBadge, floatAnimStyle]}>
+                          <Text style={styles.activeFloatingBadgeText}>
+                            {isExam ? '¡EXAMEN!' : '¡CONTINUAR!'}
+                          </Text>
+                          <View style={styles.activeFloatingArrow} />
+                        </Animated.View>
+                      )}
 
-                    {/* Badge de completado con check */}
-                    {isCompleted && (
-                      <View style={styles.checkBadge}>
-                        <Text style={styles.checkMark}>✓</Text>
+                      {/* Botón Circular 3D con Paleta Wiphala y Diseños Andinos */}
+                      <TouchableOpacity
+                        style={[
+                          styles.stoneButton,
+                          {
+                            backgroundColor: palette.shadow,
+                          },
+                          isExam && styles.stoneButtonExam,
+                          isActive && styles.stoneButtonActiveScale,
+                          isLocked && styles.stoneButtonLocked,
+                        ]}
+                        onPress={() => handleNodePress(node)}
+                        disabled={isLocked}
+                        activeOpacity={0.82}
+                        accessibilityRole="button"
+                        accessibilityLabel={`${isExam ? 'Examen' : 'Lección'}: ${node.title}. ${isCompleted ? 'Completado' : isLocked ? 'Bloqueado' : 'Disponible'}`}
+                      >
+                        {/* Cara superior del botón con relieve y textura andina */}
+                        <View
+                          style={[
+                            styles.stoneFace,
+                            {
+                              backgroundColor: palette.face,
+                            },
+                            isExam && styles.stoneFaceExam,
+                            isActive && styles.stoneFaceActiveBorder,
+                          ]}
+                        >
+                          {/* Capa de bloqueo translúcida para nodos bloqueados */}
+                          {isLocked && <View style={styles.stoneLockedOverlay} />}
+                          {/* Brillo 3D tipo cristal superior */}
+                          <View style={styles.stoneShine} />
+
+                          {/* Borde interior decorativo con puntitos textiles */}
+                          <View
+                            style={[
+                              styles.stoneInnerDottedRing,
+                              {
+                                borderColor: isLocked
+                                  ? 'rgba(0,0,0,0.08)'
+                                  : 'rgba(255,255,255,0.4)',
+                              },
+                            ]}
+                          />
+
+                          {/* Estrellitas y destellos decorativos andinos en esquinas */}
+                          {!isLocked && (
+                            <>
+                              <Text style={[styles.stoneSparkleTopRight, { color: palette.sparkle }]}>
+                                {isExam ? '✨' : '✦'}
+                              </Text>
+                              <Text style={[styles.stoneSparkleBottomLeft, { color: palette.sparkle }]}>
+                                {isExam ? '✦' : '•'}
+                              </Text>
+                            </>
+                          )}
+
+                          {/* Puntitos cardinales andinos */}
+                          {!isLocked && (
+                            <>
+                              <View style={[styles.stoneDotNorth, { backgroundColor: palette.sparkle }]} />
+                              <View style={[styles.stoneDotSouth, { backgroundColor: palette.sparkle }]} />
+                            </>
+                          )}
+
+                          {/* Ícono central */}
+                          <Text style={styles.stoneIcon}>
+                            {isLocked
+                              ? '🔒'
+                              : isCompleted
+                              ? '✓'
+                              : isExam
+                              ? '👑'
+                              : '★'}
+                          </Text>
+
+                          {/* 3 Estrellitas doradas de maestría en lecciones completadas */}
+                          {isCompleted && !isLocked && !isExam && (
+                            <View style={styles.completedStarsRow}>
+                              <Text style={styles.completedMiniStar}>⭐</Text>
+                              <Text style={styles.completedMiniStarCenter}>⭐</Text>
+                              <Text style={styles.completedMiniStar}>⭐</Text>
+                            </View>
+                          )}
+                        </View>
+                      </TouchableOpacity>
+
+                      {/* Título descriptivo debajo del botón */}
+                      <View style={styles.nodeLabelWrap}>
+                        <Text style={[styles.nodeLabelTitle, isLocked && styles.nodeLabelLocked]}>
+                          {node.title}
+                        </Text>
+                        <Text style={[styles.nodeLabelSub, isLocked && styles.nodeLabelLocked]}>
+                          {isExam ? 'Examen de Nivel' : node.subtitle}
+                        </Text>
                       </View>
-                    )}
-                  </TouchableOpacity>
 
-                  {/* Tag de color de Nivel */}
-                  <View
-                    style={[
-                      styles.levelTag,
-                      isLocked ? styles.levelTagLocked : styles.levelTagActive,
-                    ]}
-                  >
-                    <Text style={styles.levelTagText}>{node.levelLabel}</Text>
-                  </View>
-
-                  {/* Título y subtítulo del nodo */}
-                  <Text style={[styles.nodeTitle, isLocked && styles.nodeTitleLocked]}>
-                    {node.title}
-                  </Text>
-                  <Text style={[styles.nodeSub, isLocked && styles.nodeSubLocked]}>
-                    {node.subtitle}
-                  </Text>
-                </View>
-              );
-            })}
-            <View style={{ height: 80 }} />
-          </View>
-
-          {/* ── COLUMNA DERECHA: Llamita Motivacional (Yachi) ── */}
-          <View style={[styles.sideColRight, { width: sideCardWidth }]}>
-            <Card radius={20} padding={10} style={styles.llamitaCard}>
-              <Image
-                source={require('@/assets/images/llamita/06_emocionado.png')}
-                style={styles.llamitaImg}
-                resizeMode="contain"
-              />
-              <Text style={styles.llamitaMood}>¡Emocionado!</Text>
-              <Text style={styles.llamitaGreet}>¡Sigue así, {username}!</Text>
-              <Text style={styles.llamitaDays}>
-                {Math.max(1, streakDays || 1)} {Math.max(1, streakDays || 1) === 1 ? 'día' : 'días'} aprendiendo
-              </Text>
-              <Text style={styles.llamitaMsg}>¡Estás en racha de oro! 🔥</Text>
-
-              {/* Decoración textil andina en base de la tarjeta */}
-              <Text style={styles.llamitaDecoBottom}>◇ ◆ ◇ ◆ ◇</Text>
-            </Card>
-
-            {/* Acceso Directo al Traductor de Voz */}
-            <TouchableOpacity
-              style={styles.translatorShortcutCard}
-              onPress={() => router.push('/(tabs)/translator' as any)}
-              activeOpacity={0.85}
-            >
-              <View style={styles.translatorHeaderRow}>
-                <Text style={styles.translatorMicIcon}>🎙️</Text>
-                <Text style={styles.translatorTag}>TRADUCTOR IA</Text>
+                      {/* Sendero punteado conector hacia el siguiente nodo */}
+                      <View style={styles.pathTrailDots}>
+                        <View style={styles.trailDot} />
+                        <View style={styles.trailDot} />
+                        <View style={styles.trailDot} />
+                      </View>
+                    </View>
+                  );
+                })}
               </View>
-              <Text style={styles.translatorCardTitle}>Español ↔ Quechua</Text>
-              <Text style={styles.translatorCardSub}>Traduce texto y voz</Text>
-              <Text style={styles.translatorActionText}>Abrir →</Text>
-            </TouchableOpacity>
-          </View>
+            </View>
+          ))}
         </View>
       </ScrollView>
     </View>
@@ -506,217 +529,162 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: '#F8F5EE',
+    backgroundColor: '#FAF7F2',
   },
   scrollContent: {
-    flexGrow: 1,
-    paddingBottom: 40,
+    paddingBottom: 50,
+  },
+  centered: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 15,
+    color: MUTED,
+    fontWeight: '600',
   },
 
-  /* Banner de sección con fondo de montaña y cenefa textil */
-  sectionBannerContainer: {
-    marginHorizontal: 14,
-    marginTop: 12,
+  // ── HERO BANNER ───────────────────────────────────────────
+  heroBannerContainer: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 8,
+    maxWidth: 680,
+    width: '100%',
+    alignSelf: 'center',
+  },
+  heroBannerBg: {
     borderRadius: 22,
     overflow: 'hidden',
-    backgroundColor: '#0F5B62',
-    elevation: 3,
-    shadowColor: '#1A332E',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.12,
-    shadowRadius: 6,
+    backgroundColor: TEAL_DARK,
   },
-  sectionBannerBg: {
-    width: '100%',
-  },
-  sectionBannerImg: {
-    opacity: 0.45,
+  heroBannerImg: {
+    opacity: 0.35,
     resizeMode: 'cover',
   },
-  sectionBannerOverlay: {
-    backgroundColor: 'rgba(11, 75, 82, 0.82)',
+  heroBannerOverlay: {
+    padding: 20,
+    backgroundColor: 'rgba(14, 77, 85, 0.75)',
   },
-  bannerContentRow: {
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  bannerLeft: {
-    flex: 1,
-    paddingRight: 10,
-  },
-  bannerTag: {
-    color: '#FBD46D',
-    fontSize: 10,
-    fontWeight: '900',
-    letterSpacing: 0.8,
-    marginBottom: 2,
-  },
-  bannerTitle: {
-    color: '#FFFFFF',
-    fontSize: 22,
-    fontWeight: '900',
-    letterSpacing: -0.3,
-    marginBottom: 3,
-  },
-  bannerDesc: {
-    color: 'rgba(255, 255, 255, 0.92)',
-    fontSize: 12,
-    lineHeight: 16,
-  },
-  bannerTextileRibbon: {
-    backgroundColor: '#0A3F45',
-    paddingVertical: 4,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255,255,255,0.15)',
-  },
-  textileRibbonText: {
-    fontSize: 9,
-    color: '#E8B966',
-    letterSpacing: 3,
-    fontWeight: '700',
-  },
-
-  /* Contenedor de 3 columnas */
-  columnsWrapper: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'flex-start',
-    paddingHorizontal: 6,
-    paddingTop: 16,
-  },
-
-  /* Tarjeta Meta Diaria (Izquierda) */
-  sideColLeft: {
-    position: 'sticky' as any,
-    top: 12,
-  },
-  metaCard: {
-    shadowOpacity: 0.06,
-    shadowRadius: 4,
-    elevation: 2,
-    overflow: 'hidden',
-  },
-  metaTitle: {
-    fontSize: 14,
-    fontWeight: '900',
-    color: '#1F2937',
-    marginBottom: 2,
-  },
-  metaSub: {
+  heroTag: {
     fontSize: 11,
-    color: '#6B7280',
-    marginBottom: 8,
-    lineHeight: 14,
-  },
-  metaProgTrack: {
-    marginBottom: 10,
-  },
-  metaStatLine: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
+    fontWeight: '900',
+    color: '#F4D03F',
+    letterSpacing: 1,
     marginBottom: 4,
   },
-  metaStatIcon: {
+  heroTitle: {
+    fontSize: 22,
+    fontWeight: '900',
+    color: '#FFFFFF',
+    letterSpacing: -0.3,
+  },
+  heroSubtitle: {
+    fontSize: 13,
+    color: '#E0F2F1',
+    marginTop: 2,
+    lineHeight: 18,
+  },
+  progressContainer: {
+    marginTop: 14,
+    backgroundColor: 'rgba(0, 0, 0, 0.25)',
+    padding: 12,
+    borderRadius: 14,
+  },
+  progressLabelRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 6,
+  },
+  progressLabel: {
     fontSize: 12,
+    color: '#FFFFFF',
+    fontWeight: '700',
   },
-  metaStatText: {
-    fontSize: 11,
+  progressPercent: {
+    fontSize: 12,
+    color: '#F4D03F',
     fontWeight: '800',
-    color: '#2A1A0A',
-  },
-  metaLinkText: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: TEAL,
-    textDecorationLine: 'underline',
-    marginTop: 6,
-  },
-  metaMountainFooter: {
-    alignItems: 'center',
-    marginTop: 8,
-    opacity: 0.45,
-  },
-  metaMountainDeco: {
-    fontSize: 10,
-    letterSpacing: 2,
   },
 
-  /* Columna Central del Camino */
-  pathCenterCol: {
-    flex: 1,
-    minWidth: 120,
-    maxWidth: 155,
+  // ── CAMINITO Y SECCIONES ───────────────────────────────────
+  pathContainer: {
+    maxWidth: 480,
+    width: '100%',
+    alignSelf: 'center',
+    paddingHorizontal: 16,
+    marginTop: 10,
+  },
+  levelSection: {
+    marginBottom: 20,
+  },
+  sectionBanner: {
+    borderRadius: 18,
+    paddingVertical: 14,
+    paddingHorizontal: 18,
+    marginBottom: 26,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.12,
+    shadowRadius: 5,
+    elevation: 3,
+  },
+  sectionBannerTag: {
+    fontSize: 11,
+    fontWeight: '900',
+    color: 'rgba(255, 255, 255, 0.85)',
+    letterSpacing: 0.8,
+  },
+  sectionBannerTitle: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#FFFFFF',
+    marginTop: 2,
+  },
+  sectionBannerSub: {
+    fontSize: 12,
+    color: '#FFFFFF',
+    opacity: 0.9,
+    marginTop: 2,
+  },
+
+  nodesWrapper: {
     alignItems: 'center',
   },
   nodeGroup: {
     alignItems: 'center',
-    marginVertical: 8,
-    width: 130,
-  },
-  connectorWrap: {
-    width: '100%',
-    alignItems: 'center',
-    justifyContent: 'center',
+    marginVertical: 4,
     position: 'relative',
-    height: 32,
-    marginBottom: 4,
-  },
-  trailConnector: {
-    width: 6,
-    height: '100%',
-    borderRadius: 3,
-  },
-  trailConnectorActive: {
-    backgroundColor: '#C5DEC8',
-  },
-  trailConnectorLocked: {
-    backgroundColor: '#E2DAD0',
-  },
-  ichuLeft: {
-    position: 'absolute',
-    left: 8,
-    top: 4,
-    fontSize: 16,
-    opacity: 0.75,
-  },
-  ichuRight: {
-    position: 'absolute',
-    right: 8,
-    top: 4,
-    fontSize: 16,
-    opacity: 0.75,
   },
 
-  /* Globo ¡EMPEZAR! */
-  empezarBtn: {
-    backgroundColor: GREEN,
-    paddingHorizontal: 16,
+  // ── BADGE FLOTANTE "¡CONTINUAR!" ──────────────────────────
+  activeFloatingBadge: {
+    backgroundColor: GOLD,
+    paddingHorizontal: 14,
     paddingVertical: 6,
-    borderRadius: 14,
-    marginBottom: 6,
-    alignItems: 'center',
-    position: 'relative',
-    shadowColor: '#1A6635',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
+    borderRadius: 12,
+    position: 'absolute',
+    top: -34,
+    zIndex: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
     shadowRadius: 4,
     elevation: 4,
   },
-  empezarText: {
+  activeFloatingBadgeText: {
     color: '#FFFFFF',
     fontSize: 12,
     fontWeight: '900',
-    letterSpacing: 0.6,
+    letterSpacing: 0.5,
   },
-  empezarArrow: {
+  activeFloatingArrow: {
     position: 'absolute',
     bottom: -6,
+    alignSelf: 'center',
     width: 0,
     height: 0,
     borderLeftWidth: 6,
@@ -724,202 +692,228 @@ const styles = StyleSheet.create({
     borderTopWidth: 6,
     borderLeftColor: 'transparent',
     borderRightColor: 'transparent',
-    borderTopColor: GREEN,
+    borderTopColor: GOLD,
   },
 
-  /* Botón Circular del Nodo */
-  nodeBtn: {
-    width: 74,
-    height: 74,
-    borderRadius: 37,
-    justifyContent: 'center',
-    alignItems: 'center',
-    position: 'relative',
-    shadowColor: '#3A2E26',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.12,
-    shadowRadius: 5,
-    elevation: 3,
-  },
-  nodeBtnActive: {
-    backgroundColor: '#FFFFFF',
-    borderWidth: 4.5,
-    borderColor: GREEN,
-  },
-  nodeBtnLocked: {
-    backgroundColor: '#EAE4DA',
-    borderWidth: 3.5,
-    borderColor: '#C8BEB2',
-  },
-  nodeBtnCompleted: {
-    backgroundColor: GREEN,
-    borderWidth: 4.5,
-    borderColor: '#0E4D55',
-  },
-  nodeImg: {
-    width: 38,
-    height: 38,
-    resizeMode: 'contain',
-  },
-  lockEmoji: {
-    fontSize: 26,
-  },
-  checkBadge: {
+  // ── MASCOTA YACHI COMPANION EN EL CAMINITO ───────────────
+  companionWrapper: {
     position: 'absolute',
-    bottom: -2,
-    right: -2,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 11,
-    width: 22,
-    height: 22,
-    justifyContent: 'center',
+    top: 4,
+    zIndex: 25,
     alignItems: 'center',
-    borderWidth: 2,
-    borderColor: GREEN,
   },
-  checkMark: {
-    color: GREEN,
+  companionRight: {
+    right: -80,
+  },
+  companionLeft: {
+    left: -80,
+  },
+  companionLlamaImage: {
+    width: 60,
+    height: 64,
+  },
+  companionSpeechBubble: {
+    backgroundColor: '#FFFFFF',
+    paddingVertical: 3,
+    paddingHorizontal: 8,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: '#FFD600',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 4,
+    elevation: 3,
+    marginBottom: 4,
+  },
+  companionSpeechText: {
     fontSize: 11,
     fontWeight: '900',
+    color: '#D97706',
+  },
+  companionBubblePointer: {
+    position: 'absolute',
+    bottom: -5,
+    width: 0,
+    height: 0,
+    borderLeftWidth: 4,
+    borderRightWidth: 4,
+    borderTopWidth: 5,
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
+    borderTopColor: '#FFD600',
+    alignSelf: 'center',
+  },
+  bubblePointerLeft: {
+    left: 8,
+    alignSelf: 'flex-start',
+  },
+  bubblePointerRight: {
+    right: 8,
+    alignSelf: 'flex-end',
   },
 
-  /* Tag de Nivel */
-  levelTag: {
-    marginTop: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 3,
+  // ── BOTÓN CIRCULAR 3D WIPHALA & ANDINO ───────────────────
+  stoneButton: {
+    width: 78,
+    height: 78,
+    borderRadius: 39,
+    paddingBottom: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.18,
+    shadowRadius: 6,
+    elevation: 5,
+  },
+  stoneButtonExam: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+  },
+  stoneButtonActiveScale: {
+    transform: [{ scale: 1.06 }],
+  },
+  stoneButtonLocked: {
+    shadowOpacity: 0.08,
+    elevation: 2,
+    opacity: 0.88,
+  },
+
+  stoneFace: {
+    flex: 1,
+    borderRadius: 39,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  stoneFaceExam: {
+    borderRadius: 44,
+  },
+  stoneFaceActiveBorder: {
+    borderWidth: 3,
+    borderColor: '#FFFFFF',
+    shadowColor: '#FFF',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 8,
+  },
+  stoneLockedOverlay: {
+    ...StyleSheet.absoluteFill,
+    backgroundColor: 'rgba(15, 23, 42, 0.22)',
+  },
+
+  // Diseñitos: Brillo 3D superior tipo cristal
+  stoneShine: {
+    position: 'absolute',
+    top: 3,
+    width: '68%',
+    height: 14,
     borderRadius: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.32)',
   },
-  levelTagActive: {
-    backgroundColor: GREEN,
+
+  // Diseñitos: Anillo interior decorativo con puntitos
+  stoneInnerDottedRing: {
+    position: 'absolute',
+    top: 5,
+    bottom: 5,
+    left: 5,
+    right: 5,
+    borderRadius: 34,
+    borderWidth: 1.5,
+    borderStyle: 'dashed',
   },
-  levelTagLocked: {
-    backgroundColor: '#9E9589',
-  },
-  levelTagText: {
-    color: '#FFFFFF',
+
+  // Diseñitos: Estrellitas y destellos en las esquinas
+  stoneSparkleTopRight: {
+    position: 'absolute',
+    top: 6,
+    right: 9,
     fontSize: 10,
     fontWeight: '900',
-    letterSpacing: 0.5,
+  },
+  stoneSparkleBottomLeft: {
+    position: 'absolute',
+    bottom: 6,
+    left: 9,
+    fontSize: 10,
+    fontWeight: '900',
   },
 
-  /* Títulos de nodos */
-  nodeTitle: {
-    marginTop: 4,
-    fontSize: 15,
+  // Diseñitos: Puntitos cardinales andinos
+  stoneDotNorth: {
+    position: 'absolute',
+    top: 4,
+    width: 3.5,
+    height: 3.5,
+    borderRadius: 2,
+  },
+  stoneDotSouth: {
+    position: 'absolute',
+    bottom: 4,
+    width: 3.5,
+    height: 3.5,
+    borderRadius: 2,
+  },
+
+  stoneIcon: {
+    fontSize: 26,
+    color: '#FFFFFF',
     fontWeight: '900',
-    color: '#1A1A1A',
+    textShadowColor: 'rgba(0, 0, 0, 0.25)',
+    textShadowOffset: { width: 0, height: 1.5 },
+    textShadowRadius: 3,
+  },
+
+  // Estrellitas de maestría doradas
+  completedStarsRow: {
+    position: 'absolute',
+    bottom: 5,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 1.5,
+  },
+  completedMiniStar: {
+    fontSize: 8,
+  },
+  completedMiniStarCenter: {
+    fontSize: 10,
+    marginBottom: 2,
+  },
+
+  // ── ETIQUETAS DEBAJO DEL NODO ──────────────────────────────
+  nodeLabelWrap: {
+    alignItems: 'center',
+    marginTop: 8,
+    maxWidth: 160,
+  },
+  nodeLabelTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#2C2B29',
     textAlign: 'center',
   },
-  nodeTitleLocked: {
-    color: '#2B2621',
-  },
-  nodeSub: {
-    fontSize: 11,
-    color: '#666666',
+  nodeLabelSub: {
+    fontSize: 12,
+    color: MUTED,
     textAlign: 'center',
     marginTop: 1,
   },
-  nodeSubLocked: {
-    color: '#6E665E',
+  nodeLabelLocked: {
+    color: '#A09B91',
   },
 
-  /* Tarjeta Llamita (Derecha) */
-  sideColRight: {
-    position: 'sticky' as any,
-    top: 12,
-  },
-  llamitaCard: {
+  // ── PUNTOS CONECTORES ─────────────────────────────────────
+  pathTrailDots: {
     alignItems: 'center',
-    shadowOpacity: 0.06,
-    shadowRadius: 4,
-    elevation: 2,
-    overflow: 'hidden',
+    marginVertical: 6,
+    gap: 5,
   },
-  llamitaImg: {
-    width: 64,
-    height: 64,
-    marginBottom: 4,
-  },
-  llamitaMood: {
-    fontSize: 9,
-    color: '#757575',
-    fontWeight: '700',
-    marginBottom: 2,
-  },
-  llamitaGreet: {
-    fontSize: 13,
-    fontWeight: '900',
-    color: '#1F2937',
-    textAlign: 'center',
-    marginBottom: 3,
-  },
-  llamitaDays: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: TEAL,
-    textAlign: 'center',
-    marginBottom: 3,
-  },
-  llamitaMsg: {
-    fontSize: 10,
-    color: '#D35400',
-    textAlign: 'center',
-    fontWeight: '800',
-    lineHeight: 13,
-  },
-  llamitaDecoBottom: {
-    marginTop: 6,
-    fontSize: 8,
-    color: '#D4A373',
-    letterSpacing: 2,
-    fontWeight: '700',
-  },
-  translatorShortcutCard: {
-    marginTop: 12,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    padding: 12,
-    borderWidth: 1.5,
-    borderColor: '#B2DFDB',
-    alignItems: 'center',
-    shadowColor: TEAL,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  translatorHeaderRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginBottom: 4,
-  },
-  translatorMicIcon: {
-    fontSize: 14,
-  },
-  translatorTag: {
-    fontSize: 9,
-    fontWeight: '800',
-    color: TEAL,
-    letterSpacing: 0.5,
-  },
-  translatorCardTitle: {
-    fontSize: 12,
-    fontWeight: '900',
-    color: '#0E4D55',
-    textAlign: 'center',
-    marginBottom: 2,
-  },
-  translatorCardSub: {
-    fontSize: 10,
-    color: '#666666',
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  translatorActionText: {
-    fontSize: 11,
-    fontWeight: '800',
-    color: TEAL,
+  trailDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#DCD4C6',
   },
 });

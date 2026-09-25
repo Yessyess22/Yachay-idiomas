@@ -14,7 +14,7 @@ import { shopService } from '@/src/services/shopService';
 import { YachayTopBar } from '@/components/yachay/yachay-top-bar';
 import { Card } from '@/components/yachay/card';
 
-const TEAL = '#1B8B8C';
+const TEAL = '#00C853';
 const PARCHMENT = '#F8F5EE';
 
 interface ShopItem {
@@ -222,7 +222,7 @@ const styles = StyleSheet.create({
 
   /* Banner de Tesoro */
   treasureBanner: {
-    backgroundColor: '#0E4D55',
+    backgroundColor: '#009624',
     marginHorizontal: 16,
     marginTop: 12,
     marginBottom: 8,
@@ -235,9 +235,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     borderWidth: 1.5,
-    borderColor: '#1B8B8C',
+    borderColor: '#00C853',
     position: 'relative',
-    shadowColor: '#0E4D55',
+    shadowColor: '#009624',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 8,

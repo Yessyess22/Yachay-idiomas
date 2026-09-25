@@ -104,7 +104,7 @@ const styles = StyleSheet.create({
   subtitleTeal: {
     fontSize: 22,
     fontWeight: '800',
-    color: '#1B8B8C',
+    color: '#00C853',
     textAlign: 'center',
     lineHeight: 28,
   },
@@ -120,13 +120,13 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   primaryButton: {
-    backgroundColor: '#1B8B8C',
+    backgroundColor: '#00C853',
     height: 56,
     borderRadius: 18,
     justifyContent: 'center',
     alignItems: 'center',
     borderBottomWidth: 4,
-    borderBottomColor: '#0E4D55',
+    borderBottomColor: '#009624',
     elevation: 3,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
@@ -151,7 +151,7 @@ const styles = StyleSheet.create({
     borderBottomColor: '#D1D5DB',
   },
   secondaryButtonText: {
-    color: '#1B8B8C',
+    color: '#00C853',
     fontSize: 18,
     fontWeight: '900',
     letterSpacing: 1,

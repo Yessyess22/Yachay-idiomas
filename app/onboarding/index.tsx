@@ -10,11 +10,11 @@ import {
   View,
 } from 'react-native';
 
-const TEAL = '#1B8B8C';
-const TEAL_DARK = '#136566';
+const TEAL = '#00C853';
+const TEAL_DARK = '#009624';
 const CREAM = '#FAF7F2';
-const GREEN = '#1B8B8C';
-const GREEN_DARK = '#0E4D55';
+const GREEN = '#00C853';
+const GREEN_DARK = '#009624';
 
 type DailyGoal = 'casual' | 'regular' | 'intenso';
 
@@ -40,7 +40,7 @@ export default function OnboardingScreen() {
   }
 
   function nextStep() {
-    setStep((s) => Math.min(s + 1, 3));
+    setStep((s) => Math.min(s + 1, 4));
   }
 
   function prevStep() {
@@ -52,11 +52,11 @@ export default function OnboardingScreen() {
       {/* Header: skip button */}
       <View style={styles.header}>
         <View style={styles.dotsRow}>
-          {[0, 1, 2, 3].map((i) => (
+          {[0, 1, 2, 3, 4].map((i) => (
             <View key={i} style={[styles.dot, step === i && styles.dotActive]} />
           ))}
         </View>
-        {step < 3 && (
+        {step < 4 && (
           <TouchableOpacity onPress={completeOnboarding} style={styles.skipBtn}>
             <Text style={styles.skipText}>Omitir</Text>
           </TouchableOpacity>
@@ -66,13 +66,14 @@ export default function OnboardingScreen() {
       {/* Step content */}
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {step === 0 && <StepWelcome />}
-        {step === 1 && <StepMechanics />}
-        {step === 2 && <StepGoal dailyGoal={dailyGoal} onSelect={setDailyGoal} />}
-        {step === 3 && <StepAccess onGuest={handleGuest} onAuth={completeOnboarding} />}
+        {step === 1 && <StepCurriculum />}
+        {step === 2 && <StepMechanics />}
+        {step === 3 && <StepGoal dailyGoal={dailyGoal} onSelect={setDailyGoal} />}
+        {step === 4 && <StepAccess onGuest={handleGuest} onAuth={completeOnboarding} />}
       </ScrollView>
 
       {/* Footer nav */}
-      {step < 3 && (
+      {step < 4 && (
         <View style={styles.footer}>
           {step > 0 ? (
             <TouchableOpacity onPress={prevStep} style={styles.backBtn}>
@@ -111,7 +112,93 @@ function StepWelcome() {
   );
 }
 
-// ─── Step 1: Dinámica de Juego ───────────────────────────────────────────────
+// ─── Step 1: Tu Ruta de Aprendizaje (Malla Curricular) ────────────────────────
+
+function StepCurriculum() {
+  const MODULES = [
+    {
+      level: 'NIVEL 1',
+      title: 'Achahala & Fonética',
+      desc: 'Sistema trivocálico (A, I, U) y consonantes originarias (Q, K, LL, CH).',
+      emoji: '🗣️',
+      color: '#F59E0B',
+      badge: 'Básico',
+    },
+    {
+      level: 'NIVEL 2',
+      title: 'Yupaykuna / Números',
+      desc: 'Aprende a contar del 1 al 10 en Quechua para comercio y vida cotidiana.',
+      emoji: '🔢',
+      color: '#00C853',
+      badge: 'Contabilidad',
+    },
+    {
+      level: 'NIVEL 3',
+      title: 'Rimaykuna / Expresiones',
+      desc: 'Saludos diarios (Allillanchu), cortesía y lazos familiares (Ayllu).',
+      emoji: '💬',
+      color: '#00B0FF',
+      badge: 'Conversación',
+    },
+    {
+      level: 'EVALUACIÓN',
+      title: 'Exámenes de Nivel',
+      desc: 'Pruebas sumativas con micrófono, pares y bancos de palabras para certificar tu avance.',
+      emoji: '👑',
+      color: '#7C3AED',
+      badge: 'Certificación',
+    },
+  ];
+
+  return (
+    <View style={styles.stepWrap}>
+      <Text style={styles.stepTag}>TU RUTA DE APRENDIZAJE</Text>
+      <Text style={styles.stepTitle}>¿Qué aprenderás{'\n'}en Yachay?</Text>
+      <Text style={styles.stepDesc}>
+        Un método estructurado donde primero escuchas y aprendes, luego practicas y finalmente demuestras tu sabiduría.
+      </Text>
+
+      {MODULES.map((m) => (
+        <View key={m.title} style={[styles.currCard, { borderLeftColor: m.color }]}>
+          <View style={[styles.currEmojiWrap, { backgroundColor: m.color + '1A' }]}>
+            <Text style={styles.currEmoji}>{m.emoji}</Text>
+          </View>
+          <View style={styles.currInfo}>
+            <View style={styles.currTagRow}>
+              <Text style={[styles.currLevel, { color: m.color }]}>{m.level}</Text>
+              <View style={styles.currBadge}>
+                <Text style={styles.currBadgeText}>{m.badge}</Text>
+              </View>
+            </View>
+            <Text style={styles.currTitle}>{m.title}</Text>
+            <Text style={styles.currDesc}>{m.desc}</Text>
+          </View>
+        </View>
+      ))}
+
+      {/* 3 Habilidades Clave */}
+      <View style={styles.skillsBanner}>
+        <Text style={styles.skillsBannerTitle}>🎯 3 Habilidades que desarrollarás:</Text>
+        <View style={styles.skillsRow}>
+          <View style={styles.skillItem}>
+            <Text style={styles.skillIcon}>🎧</Text>
+            <Text style={styles.skillLabel}>Escuchar</Text>
+          </View>
+          <View style={styles.skillItem}>
+            <Text style={styles.skillIcon}>🎙️</Text>
+            <Text style={styles.skillLabel}>Pronunciar</Text>
+          </View>
+          <View style={styles.skillItem}>
+            <Text style={styles.skillIcon}>✍️</Text>
+            <Text style={styles.skillLabel}>Escribir</Text>
+          </View>
+        </View>
+      </View>
+    </View>
+  );
+}
+
+// ─── Step 2: Dinámica de Juego ───────────────────────────────────────────────
 
 function StepMechanics() {
   const ITEMS = [
@@ -338,7 +425,7 @@ const styles = StyleSheet.create({
   badgeText: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#0E4D55',
+    color: '#00701A',
     textAlign: 'center',
   },
 
@@ -458,5 +545,105 @@ const styles = StyleSheet.create({
     lineHeight: 16,
     paddingHorizontal: 16,
     paddingBottom: 24,
+  },
+
+  // Curriculum step styles
+  currCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF',
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 10,
+    width: '100%',
+    borderWidth: 1.5,
+    borderColor: '#E8E2D9',
+    borderLeftWidth: 5,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+  },
+  currEmojiWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  currEmoji: {
+    fontSize: 22,
+  },
+  currInfo: {
+    flex: 1,
+  },
+  currTagRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 2,
+  },
+  currLevel: {
+    fontSize: 11,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+  currBadge: {
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  currBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    color: '#475569',
+  },
+  currTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#1E293B',
+    marginBottom: 2,
+  },
+  currDesc: {
+    fontSize: 12,
+    color: '#64748B',
+    lineHeight: 16,
+  },
+  skillsBanner: {
+    backgroundColor: '#FFF',
+    borderRadius: 16,
+    padding: 14,
+    marginTop: 4,
+    marginBottom: 16,
+    width: '100%',
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+  },
+  skillsBannerTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#1E293B',
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  skillsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+  },
+  skillItem: {
+    alignItems: 'center',
+  },
+  skillIcon: {
+    fontSize: 24,
+    marginBottom: 4,
+  },
+  skillLabel: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#00701A',
   },
 });

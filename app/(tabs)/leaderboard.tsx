@@ -15,9 +15,9 @@ import { leaderboardService } from '@/src/services/leaderboardService';
 import { LeaderboardEntry } from '@/src/types';
 import { YachayTopBar } from '@/components/yachay/yachay-top-bar';
 
-const TEAL = '#1B8B8C';
-const TEAL_DARK = '#0E4D55';
-const GOLD = '#E5A00D';
+const TEAL = '#00C853';
+const TEAL_DARK = '#009624';
+const GOLD = '#FFB300';
 const PARCHMENT = '#F8F5EE';
 const BORDER_COLOR = '#ECE5D8';
 
@@ -300,7 +300,7 @@ const styles = StyleSheet.create({
   },
   /* Banner de Racha */
   rachaBanner: {
-    backgroundColor: '#0E4D55',
+    backgroundColor: '#009624',
     marginHorizontal: 16,
     marginTop: 12,
     marginBottom: 10,
@@ -313,9 +313,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     borderWidth: 1.5,
-    borderColor: '#1B8B8C',
+    borderColor: '#00C853',
     position: 'relative',
-    shadowColor: '#0E4D55',
+    shadowColor: '#009624',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
     shadowRadius: 8,
@@ -556,8 +556,8 @@ const styles = StyleSheet.create({
     borderColor: '#FBD46D',
   },
   rankCardMe: {
-    backgroundColor: '#EBF7F5',
-    borderColor: '#1B8B8C',
+    backgroundColor: '#E8F8F0',
+    borderColor: '#00C853',
     borderWidth: 2,
   },
   rankBadgeCol: {

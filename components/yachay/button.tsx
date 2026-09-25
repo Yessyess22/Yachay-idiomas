@@ -3,9 +3,9 @@ import { StyleSheet, Text, TouchableOpacity, type StyleProp, type TextStyle, typ
 type ButtonVariant = 'primary' | 'danger' | 'teal';
 
 const VARIANT_COLORS: Record<ButtonVariant, { bg: string; border: string }> = {
-  primary: { bg: '#1B8B8C', border: '#0E4D55' },
-  danger: { bg: '#EA5455', border: '#C0392B' },
-  teal: { bg: '#1B8B8C', border: '#0E4D55' },
+  primary: { bg: '#00C853', border: '#009624' },
+  danger: { bg: '#FF3366', border: '#C2185B' },
+  teal: { bg: '#00B0FF', border: '#0081CB' },
 };
 
 type ButtonProps = {

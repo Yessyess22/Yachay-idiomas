@@ -12,9 +12,9 @@ import { Card } from '@/components/yachay/card';
 import { AudioPronounceButton } from '@/components/yachay/audio-pronounce-button';
 import { getQuechuaPhoneticGuide } from '@/src/utils/phoneticGuide';
 
-const TEAL = '#1B8B8C';
+const TEAL = '#00C853';
 const PARCHMENT = '#F8F5EE';
-const GOLD = '#E5A00D';
+const GOLD = '#FFB300';
 
 const PHONEMES = ['a', 'i', 'u', 'ch', 'h', 'k', 'l', 'll', 'm', 'n', 'ñ', 'p', 'q', 'r', 's', 't', 'w', 'y', 'sh'];
 

@@ -3,7 +3,7 @@ import React from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
 import { HapticTab } from '@/components/haptic-tab';
 
-const TEAL = '#1B8B8C';
+const TEAL = '#00C853';
 
 function NavIcon({ source, focused }: { source: any; focused: boolean }) {
   return (

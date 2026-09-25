@@ -14,10 +14,10 @@ import {
   View,
 } from 'react-native';
 
-const TEAL = '#1B8B8C';
+const TEAL = '#00C853';
 const CREAM = '#FAF7F2';
-const GOLD = '#E5A00D';
-const GREEN = '#1B8B8C';
+const GOLD = '#FFB300';
+const GREEN = '#00C853';
 
 export default function CategoryDetailScreen() {
   const { slug } = useLocalSearchParams<{ slug: string }>();
@@ -102,7 +102,7 @@ export default function CategoryDetailScreen() {
 
       <View style={styles.andineBorder} />
 
-      {/* Accesos a Modo Historia / Práctica rápida */}
+      {/* Accesos a Lecciones guiadas con Yachi / Práctica rápida */}
       {(Boolean(STORIES[slug as string]) || lessons.some((l) => l.progress?.completed)) && (
         <View style={styles.actionsRow}>
           {STORIES[slug as string] && (
@@ -110,8 +110,10 @@ export default function CategoryDetailScreen() {
               style={styles.actionBtn}
               onPress={() => router.push({ pathname: '/story/[slug]', params: { slug: slug as string } })}
               activeOpacity={0.85}
+              accessibilityRole="button"
+              accessibilityLabel="Abrir lecciones guiadas con Yachi"
             >
-              <Text style={styles.actionBtnText}>📖 Modo Historia</Text>
+              <Text style={styles.actionBtnText}>📖 Lecciones guiadas con Yachi</Text>
             </TouchableOpacity>
           )}
           {lessons.some((l) => l.progress?.completed) && (
@@ -119,6 +121,8 @@ export default function CategoryDetailScreen() {
               style={styles.actionBtn}
               onPress={() => router.push({ pathname: '/practice/[slug]', params: { slug: slug as string } })}
               activeOpacity={0.85}
+              accessibilityRole="button"
+              accessibilityLabel="Abrir práctica rápida"
             >
               <Text style={styles.actionBtnText}>⏱️ Práctica rápida</Text>
             </TouchableOpacity>

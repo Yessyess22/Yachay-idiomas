@@ -13,11 +13,11 @@ import { playCorrectSound, playIncorrectSound, playTapSound } from '@/src/servic
 import { STORIES } from '@/src/content/stories';
 import { useYachiBounce } from '@/hooks/use-yachi-bounce';
 
-const TEAL = '#1B8B8C';
+const TEAL = '#00C853';
 const CREAM = '#FAF7F2';
-const GREEN = '#1B8B8C';
-const GREEN_DARK = '#0E4D55';
-const RED = '#EA5455';
+const GREEN = '#00C853';
+const GREEN_DARK = '#009624';
+const RED = '#FF3366';
 
 /**
  * Modo Historia: diálogo interactivo corto con Yachi. No usa GameContext —

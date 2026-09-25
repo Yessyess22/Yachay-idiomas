@@ -19,20 +19,20 @@ import {
   LIBRARY_STORIES,
 } from '@/src/content/libraryData';
 
-const TEAL = '#1B8B8C';
-const TEAL_DARK = '#0E4D55';
-const TEAL_LIGHT = '#EAF7F5';
-const GOLD = '#D48B0A';
-const GOLD_LIGHT = '#FFF9E6';
-const GOLD_DARK = '#9E6404';
-const BLUE = '#1A6BE5';
-const ORANGE = '#E5771A';
-const GREEN = '#1B8B8C';
+const TEAL = '#00C853';
+const TEAL_DARK = '#009624';
+const TEAL_LIGHT = '#E8F8F0';
+const GOLD = '#FFB300';
+const GOLD_LIGHT = '#FFF8E1';
+const GOLD_DARK = '#C67C00';
+const BLUE = '#00B0FF';
+const ORANGE = '#FF6D00';
+const GREEN = '#00C853';
 const CREAM = '#FAF7F2';
 const CARD_BG = '#FFFFFF';
-const BORDER = '#E6E0D5';
-const TEXT_DARK = '#1F2937';
-const TEXT_MUTED = '#6B7280';
+const BORDER = '#E2E8F0';
+const TEXT_DARK = '#0F172A';
+const TEXT_MUTED = '#64748B';
 
 type GuideModuleId = 'fonetica' | 'gramatica' | 'vocabulario' | 'dialogos';
 

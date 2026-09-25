@@ -4,7 +4,7 @@ import { useGame } from '@/src/context/GameContext';
 import { useAuth } from '@/src/context/AuthContext';
 import { useRouter } from 'expo-router';
 
-const TEAL = '#1B8B8C';
+const TEAL = '#00C853';
 
 export function YachayTopBar() {
   const { lives, streakDays, xp, restoreLives } = useGame();
@@ -167,7 +167,7 @@ const styles = StyleSheet.create({
   logoText: {
     fontSize: 22,
     fontWeight: '900',
-    color: '#0E4D55',
+    color: '#00701A',
     letterSpacing: -0.5,
   },
   statsRow: {
@@ -227,16 +227,16 @@ const styles = StyleSheet.create({
     color: '#5C4314',
   },
   pillTextNivel: {
-    color: '#0E4D55',
+    color: '#00701A',
   },
   pillTextStreak: {
-    color: '#9E3C0E',
+    color: '#D97706',
   },
   pillTextLives: {
-    color: '#B82828',
+    color: '#FF3366',
   },
   pillTextTranslator: {
-    color: '#0E4D55',
+    color: '#00701A',
   },
   /* Modal */
   overlay: {

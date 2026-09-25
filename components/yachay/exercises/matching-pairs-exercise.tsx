@@ -202,27 +202,30 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   cardSelected: {
-    borderColor: '#1B8B8C',
-    backgroundColor: '#E0F2F1',
+    borderColor: '#00C853',
+    backgroundColor: '#E8F8F0',
+    borderBottomColor: '#009624',
   },
   cardMatched: {
-    borderColor: '#0E4D55',
-    backgroundColor: '#D8F2EE',
-    opacity: 0.75,
+    borderColor: '#00C853',
+    backgroundColor: '#E8F8F0',
+    borderBottomColor: '#009624',
+    opacity: 0.65,
   },
   cardError: {
-    borderColor: '#FF4B4B',
-    backgroundColor: '#FFEBEE',
+    borderColor: '#FF3366',
+    backgroundColor: '#FFE4EC',
+    borderBottomColor: '#C2185B',
   },
   cardText: {
     fontSize: 16,
-    fontWeight: '700',
-    color: '#3C3C3C',
+    fontWeight: '800',
+    color: '#1E293B',
   },
   cardTextSelected: {
-    color: '#0E4D55',
+    color: '#00701A',
   },
   cardTextMatched: {
-    color: '#2E7D32',
+    color: '#009624',
   },
 });

@@ -68,6 +68,13 @@ export interface QuestionOption {
 /** Pregunta enriquecida con sus opciones (para renderizado en pantalla) */
 export interface QuestionWithOptions extends Question {
   options: QuestionOption[];
+  pairs?: { qu: string; es: string }[];
+  words?: string[];
+  correctSentence?: string;
+  audioWord?: string;
+  targetWord?: string;
+  translation?: string;
+  clue?: string;
 }
 
 // ============================================================

@@ -23,10 +23,10 @@ interface PronunciationExerciseProps {
   onFail?: () => void;
 }
 
-const TEAL = '#1B8B8C';
-const GREEN = '#1B8B8C';
-const RED = '#EA5455';
-const GOLD = '#E5A00D';
+const TEAL = '#00C853';
+const GREEN = '#00C853';
+const RED = '#FF3366';
+const GOLD = '#FFB300';
 
 type Phase = 'idle' | 'recording' | 'evaluating' | 'result' | 'done';
 
@@ -46,6 +46,14 @@ export function PronunciationExercise({
   const [attempts, setAttempts] = useState(0);
   const [result, setResult] = useState<PronunciationScore | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Reiniciar estado cada vez que cambia la palabra objetivo
+  React.useEffect(() => {
+    setPhase('idle');
+    setAttempts(0);
+    setResult(null);
+    setError(null);
+  }, [expectedText]);
 
   const coreWord = isPhrase ? expectedText.trim() : extractCorePhoneme(expectedText);
   const phonetic = getQuechuaPhoneticGuide(coreWord);

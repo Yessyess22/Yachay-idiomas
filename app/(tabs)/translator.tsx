@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
+  ImageBackground,
   ScrollView,
   StyleSheet,
   Text,
@@ -23,17 +24,17 @@ import {
 } from '@/src/services/voiceService';
 import { useYachiBounce } from '@/hooks/use-yachi-bounce';
 
-const TEAL = '#1B8B8C';
-const TEAL_DARK = '#0E4D55';
-const TEAL_LIGHT = '#EAF7F5';
-const GOLD = '#D48B0A';
-const GOLD_LIGHT = '#FFF9E6';
-const GOLD_DARK = '#9E6404';
+const TEAL = '#00C853';
+const TEAL_DARK = '#009624';
+const TEAL_LIGHT = '#E8F8F0';
+const GOLD = '#FFB300';
+const GOLD_LIGHT = '#FFF8E1';
+const GOLD_DARK = '#C67C00';
 const CREAM = '#FAF7F2';
 const CARD_BG = '#FFFFFF';
-const BORDER = '#E6E0D5';
-const TEXT_DARK = '#1F2937';
-const TEXT_MUTED = '#6B7280';
+const BORDER = '#E2E8F0';
+const TEXT_DARK = '#0F172A';
+const TEXT_MUTED = '#64748B';
 
 const QUICK_PHRASES = [
   { qu: 'Allillanchu?', es: '¿Cómo estás?' },
@@ -129,24 +130,43 @@ export default function TranslatorTabScreen() {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Cabecera del Traductor */}
-        <View style={styles.headerCard}>
-          <View style={styles.headerTitles}>
-            <View style={styles.badgeTag}>
-              <Text style={styles.badgeTagText}>SIMI T&apos;IKRAQ • DICCIONARIO DE BOLSILLO</Text>
+        {/* Banner Hero: Traductor Yachay (Mismo diseño de La Biblioteca Andina e Inicio) */}
+        <View style={styles.heroBannerWrap}>
+          <ImageBackground
+            source={require('@/assets/images/cards/tarjeta_montana.png')}
+            style={styles.heroBannerBg}
+            imageStyle={styles.heroBannerImg}
+          >
+            <View style={styles.heroBannerOverlay}>
+              <View style={styles.heroBadgeRow}>
+                <View style={styles.heroBadge}>
+                  <Text style={styles.heroBadgeText}>SIMI T&apos;IKRAQ • DICCIONARIO DE BOLSILLO</Text>
+                </View>
+                <Text style={styles.heroSymbol}>❖ 🗣️ ❖</Text>
+              </View>
+
+              <View style={styles.heroContentRow}>
+                <View style={styles.heroTitlesWrap}>
+                  <Text style={styles.heroTitle}>Traductor Yachay</Text>
+                  <Text style={styles.heroSubtitle}>
+                    Traduce al instante entre Español y Quechua con pronunciación fonética nativa asistida por IA.
+                  </Text>
+                </View>
+
+                <Animated.View style={[styles.llamaWrap, yachiStyle]}>
+                  <Image
+                    source={Illustrations.llamaSaludando}
+                    style={styles.llamaImage}
+                    contentFit="contain"
+                  />
+                </Animated.View>
+              </View>
+
+              <View style={styles.textileRibbon}>
+                <Text style={styles.textileRibbonText}>▲▼▲▼ ❖ ◆ ❖ ◆ ▲▼▲▼ ❖ ◆ ❖ ◆ ▲▼▲▼</Text>
+              </View>
             </View>
-            <Text style={styles.headerTitle}>Traductor Yachay</Text>
-            <Text style={styles.headerSub}>
-              Traduce al instante entre Español y Quechua con pronunciación fonética nativa.
-            </Text>
-          </View>
-          <Animated.View style={[styles.llamaWrap, yachiStyle]}>
-            <Image
-              source={Illustrations.llamaSaludando}
-              style={styles.llamaImage}
-              contentFit="contain"
-            />
-          </Animated.View>
+          </ImageBackground>
         </View>
 
         {/* Selector de Idiomas */}
@@ -346,58 +366,90 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
 
-  /* Cabecera */
-  headerCard: {
-    flexDirection: 'row',
-    backgroundColor: TEAL_DARK,
+  /* Hero Banner */
+  heroBannerWrap: {
     borderRadius: 20,
-    padding: 18,
-    alignItems: 'center',
-    marginBottom: 14,
+    overflow: 'hidden',
     shadowColor: TEAL_DARK,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 3,
+    shadowRadius: 10,
+    elevation: 4,
+    marginBottom: 14,
   },
-  headerTitles: {
-    flex: 1,
-    paddingRight: 10,
+  heroBannerBg: {
+    width: '100%',
   },
-  badgeTag: {
+  heroBannerImg: {
+    borderRadius: 20,
+  },
+  heroBannerOverlay: {
+    backgroundColor: 'rgba(14, 77, 85, 0.88)',
+    paddingVertical: 18,
+    paddingHorizontal: 16,
+  },
+  heroBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  heroBadge: {
     backgroundColor: 'rgba(212, 139, 10, 0.35)',
-    alignSelf: 'flex-start',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 10,
-    marginBottom: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: GOLD,
   },
-  badgeTagText: {
-    fontSize: 9,
+  heroBadgeText: {
+    fontSize: 10,
     fontWeight: '900',
     color: '#FFE29A',
     letterSpacing: 0.8,
   },
-  headerTitle: {
+  heroSymbol: {
+    color: '#FFE29A',
+    fontSize: 14,
+  },
+  heroContentRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  heroTitlesWrap: {
+    flex: 1,
+    paddingRight: 10,
+  },
+  heroTitle: {
     fontSize: 22,
     fontWeight: '900',
     color: '#FFFFFF',
     marginBottom: 4,
   },
-  headerSub: {
+  heroSubtitle: {
     fontSize: 12,
-    color: '#D1FAE5',
-    lineHeight: 17,
+    color: '#E0F2F1',
+    lineHeight: 18,
+    marginBottom: 10,
   },
   llamaWrap: {
-    width: 70,
-    height: 75,
+    width: 68,
+    height: 72,
   },
   llamaImage: {
     width: '100%',
     height: '100%',
+  },
+  textileRibbon: {
+    marginTop: 4,
+    alignItems: 'center',
+  },
+  textileRibbonText: {
+    color: 'rgba(255, 255, 255, 0.45)',
+    fontSize: 10,
+    letterSpacing: 1.5,
+    fontWeight: '700',
   },
 
   /* Selector de Idiomas */
