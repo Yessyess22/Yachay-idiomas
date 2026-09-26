@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Image, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Illustrations } from '@/constants/illustrations';
 import { useGame } from '@/src/context/GameContext';
 import { useAuth } from '@/src/context/AuthContext';
@@ -32,6 +33,7 @@ export function YachayTopBar() {
 
   return (
     <>
+      <SafeAreaView edges={['top']} style={styles.safeTopBar}>
       <View style={styles.bar}>
         {/* Adorno textil andino esquina izquierda */}
         <Text style={styles.cornerPatternLeft}>◇◆◇</Text>
@@ -104,6 +106,7 @@ export function YachayTopBar() {
         {/* Adorno textil andino esquina derecha */}
         <Text style={styles.cornerPatternRight}>◇◆◇</Text>
       </View>
+      </SafeAreaView>
 
       {/* Modal Vidas */}
       <Modal animationType="slide" transparent visible={livesModal} onRequestClose={() => setLivesModal(false)}>
@@ -117,10 +120,10 @@ export function YachayTopBar() {
                 : '¡Tus vidas están al máximo (5/5)! Se usan exclusivamente en los exámenes de nivel.'}
             </Text>
             {lives < 5 && (
-              <View style={{ width: '100%', gap: 8, marginBottom: 8 }}>
+              <View style={styles.livesActionGroup}>
                 {currentGems >= 5 && (
                   <TouchableOpacity
-                    style={[styles.refillBtn, { backgroundColor: '#00C853', borderBottomColor: '#009624' }]}
+                    style={[styles.refillBtn, styles.refillBtnGreen]}
                     onPress={() => {
                       consumeGems(5);
                       addLives(1);
@@ -132,7 +135,7 @@ export function YachayTopBar() {
                 )}
                 {currentGems >= 25 && (
                   <TouchableOpacity
-                    style={[styles.refillBtn, { backgroundColor: '#D97706', borderBottomColor: '#B45309' }]}
+                    style={[styles.refillBtn, styles.refillBtnGold]}
                     onPress={() => {
                       consumeGems(25);
                       restoreLives();
@@ -143,7 +146,7 @@ export function YachayTopBar() {
                   </TouchableOpacity>
                 )}
                 <TouchableOpacity
-                  style={[styles.refillBtn, { backgroundColor: '#0284C7', borderBottomColor: '#0369A1' }]}
+                  style={[styles.refillBtn, styles.refillBtnBlue]}
                   onPress={() => {
                     setLivesModal(false);
                     router.push('/(tabs)/shop' as any);
@@ -216,6 +219,9 @@ export function YachayTopBar() {
 }
 
 const styles = StyleSheet.create({
+  safeTopBar: {
+    backgroundColor: '#F9F6F0',
+  },
   bar: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -226,6 +232,23 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#EAE3D6',
     position: 'relative',
+  },
+  livesActionGroup: {
+    width: '100%',
+    gap: 8,
+    marginBottom: 8,
+  },
+  refillBtnGreen: {
+    backgroundColor: '#00C853',
+    borderBottomColor: '#009624',
+  },
+  refillBtnGold: {
+    backgroundColor: '#D97706',
+    borderBottomColor: '#B45309',
+  },
+  refillBtnBlue: {
+    backgroundColor: '#0284C7',
+    borderBottomColor: '#0369A1',
   },
   cornerPatternLeft: {
     position: 'absolute',

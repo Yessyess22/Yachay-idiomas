@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Image,
   ImageBackground,
   Modal,
@@ -14,6 +13,7 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 import { useFocusEffect, useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -209,10 +209,18 @@ export default function HomeScreen() {
   const { user, profile } = useAuth();
   const router = useRouter();
   const uid = user?.uid || (user as any)?.id;
+  const insets = useSafeAreaInsets();
 
   const [completedLessonIds, setCompletedLessonIds] = useState<number[]>([]);
   const [passedLevelIds, setPassedLevelIds] = useState<Set<number>>(new Set());
   const [loading, setLoading] = useState(true);
+  const [lockedToast, setLockedToast] = useState<string | null>(null);
+
+  // Ajusta la posición del toast para no solapar el indicador de inicio (iPhone X+)
+  const toastDynamicStyle = useMemo(
+    () => StyleSheet.create({ s: { bottom: Math.max(24, insets.bottom + 10) } }).s,
+    [insets.bottom]
+  );
 
   // Animación del badge flotante "¡CONTINUAR!"
   const floatY = useSharedValue(0);
@@ -280,11 +288,8 @@ export default function HomeScreen() {
   function handleNodePress(node: LearningPathNode) {
     if (node.locked) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
-      Alert.alert(
-        'Nivel Bloqueado 🔒',
-        node.reason || 'Debes aprobar el examen del nivel anterior para desbloquear estas lecciones.',
-        [{ text: 'Entendido' }]
-      );
+      setLockedToast(node.reason || 'Debes aprobar el examen del nivel anterior para desbloquear estas lecciones.');
+      setTimeout(() => setLockedToast(null), 3500);
       return;
     }
 
@@ -600,6 +605,14 @@ export default function HomeScreen() {
           )}
         </View>
       </ScrollView>
+
+      {/* Toast de nodo bloqueado (reemplaza Alert.alert) */}
+      {lockedToast !== null && (
+        <View style={[styles.lockedToast, toastDynamicStyle]} pointerEvents="none">
+          <Text style={styles.lockedToastIcon}>🔒</Text>
+          <Text style={styles.lockedToastText}>{lockedToast}</Text>
+        </View>
+      )}
 
       {/* Modal Festivo de Culminación de Curso y Agradecimiento */}
       <Modal
@@ -1417,5 +1430,34 @@ const styles = StyleSheet.create({
     color: '#64748B',
     fontSize: 13.5,
     fontWeight: '700',
+  },
+  lockedToast: {
+    position: 'absolute',
+    bottom: 24,
+    left: 20,
+    right: 20,
+    backgroundColor: '#1E293B',
+    borderRadius: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 8,
+    zIndex: 999,
+  },
+  lockedToastIcon: {
+    fontSize: 18,
+  },
+  lockedToastText: {
+    flex: 1,
+    fontSize: 13,
+    color: '#F1F5F9',
+    fontWeight: '600',
+    lineHeight: 18,
   },
 });

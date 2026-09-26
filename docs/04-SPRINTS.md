@@ -1,6 +1,6 @@
 # Plan de Sprints — Yachay Quechua
 
-**Versión:** 2.2 | **Fecha:** 2026-09-10 | **Última actualización:** 2026-09-20 | **Duración por sprint:** ~2 semanas académicas
+**Versión:** 2.4 | **Fecha:** 2026-09-10 | **Última actualización:** 2026-09-26 | **Duración por sprint:** ~2 semanas académicas
 
 ---
 
@@ -14,6 +14,8 @@
 | **Sprint 4** | Onboarding Inmersivo, Integración Final, QA y Pulido | 2026-10-20 → 2026-10-31 | ✅ Completado (cerrado el 2026-09-14) |
 | **Sprint 5** | Firebase Auth, Rediseño de Lecciones y Colección Insomnia | 2026-11-03 → 2026-11-14 | ✅ Completado (cerrado el 2026-09-17) |
 | **Sprint 6** | Audio Nativo (Expo Speech), Fonética Quechua, Resiliencia Offline y Notificaciones | 2026-11-17 → 2026-11-28 | ✅ Completado (cerrado el 2026-09-20) |
+| **Sprint 7** | Pedagogía Estructurada, Paleta Wiphala Neón, Gamificación Visual y Créditos Académicos | 2026-12-01 → 2026-12-12 | ✅ Completado (cerrado el 2026-09-25) |
+| **Sprint 8** | Safe Area, Realtime Leaderboard, Debounce Reactivo y Onboarding Cultural Inmersivo | 2026-12-15 → 2026-12-26 | ✅ Completado (cerrado el 2026-09-26) |
 
 ---
 
@@ -130,4 +132,42 @@
 | S6-T05 | Implementar el servicio de resiliencia offline (`offlineCache.ts`) usando AsyncStorage y el servicio de notificaciones locales de racha (`notificationService.ts`) a las 20:00. | Oscar Segovia | ✅ |
 | S6-T06 | Construir el microservicio local de TTS en Python (`tts_service.py`) con gTTS/pyttsx3 como respaldo de voz. | Oscar Segovia | ✅ |
 | S6-T07 | Cobertura de pruebas unitarias (`__tests__/voiceService.test.ts`), feedback háptico (`expo-haptics`) e incorporación del kit visual completo en `assets/images/kit-complementos/`. | Alejandro Padilla | ✅ |
+
+---
+
+## Sprint 7 — Pedagogía Estructurada, Paleta Wiphala Neón, Gamificación Visual y Créditos Académicos
+
+**Estado:** ✅ **COMPLETADO (100%)** | **Período:** 2026-12-01 → 2026-12-12 | **Cerrado:** 2026-09-25
+
+### Tareas del Sprint 7
+
+| ID | Descripción | Responsable | Estado |
+| :--- | :--- | :--- | :---: |
+| S7-T01 | Implementar flujo pedagógico en 3 fases en `app/lesson/[id].tsx`: Enseñar (tarjetas de vocabulario) ➡️ Practicar (ejercicios) ➡️ Evaluar (quiz sumativo). | Yesica Escobar | ✅ |
+| S7-T02 | Crear exámenes sumativos con Ronda de Refuerzo: si el usuario falla ≥ 2 preguntas, recibe un segundo intento con las preguntas incorrectas antes de poder avanzar. | Alejandro Padilla | ✅ |
+| S7-T03 | Aplicar la paleta Wiphala Neón (`#00C853`, `#FFB300`, `#FF3366`, `#00B0FF`, `#7C3AED`, `#FF6D00`) en la capa de tema (`constants/Theme.ts`). | Yesica Escobar | ✅ |
+| S7-T04 | Rediseñar el caminito de aprendizaje en `app/(tabs)/index.tsx` con 9 nodos únicos (colores intercalados del Wiphala Neón) y estilo serpentino 3D. | Yesica Escobar | ✅ |
+| S7-T05 | Desarrollar la mascota interactiva Yachi Companion con animación de rebote (`Animated.spring`), reacciones emocionales y retroalimentación háptica (`expo-haptics`). | Yesica Escobar | ✅ |
+| S7-T06 | Actualizar el Onboarding (`app/onboarding/index.tsx`) con un paso de Malla Curricular (Yachay Ñan) mostrando las 3 unidades temáticas. | Alejandro Padilla | ✅ |
+| S7-T07 | Crear el modal de Créditos Académicos (`app/modal.tsx`) con la ficha de Yessica Escobar, Alejandro Padilla y Oscar Segovia (UPDS — Ingeniería de Sistemas). | Oscar Segovia | ✅ |
+| S7-T08 | Unificar la cabecera del Traductor de Voz con el `YachayTopBar` y cerrar sprint: `tsc --noEmit` → 0 errores, Jest 17/17 PASS, triple auditoría grep. | Oscar Segovia | ✅ |
+
+---
+
+## Sprint 8 — Safe Area, Realtime Leaderboard, Debounce Reactivo y Onboarding Cultural Inmersivo
+
+**Estado:** ✅ **COMPLETADO (100%)** | **Período:** 2026-12-15 → 2026-12-26 | **Cerrado:** 2026-09-26
+
+### Tareas del Sprint 8
+
+| ID | Descripción | Responsable | Estado |
+| :--- | :--- | :--- | :---: |
+| S8-T01 | Integrar `SafeAreaProvider` en `app/_layout.tsx` y `SafeAreaView edges=['top']` en `YachayTopBar` para soporte nativo de notch y barra de estado. | Oscar Segovia | ✅ |
+| S8-T02 | Usar `useSafeAreaInsets` en `app/(tabs)/index.tsx` con `StyleSheet.create` en `useMemo` para ajustar dinámicamente el `bottom` del toast del nodo bloqueado (INV-02 ✅). | Yesica Escobar | ✅ |
+| S8-T03 | Añadir llamada inmediata (no debounced) a `leaderboardService.syncUserTotalXp()` dentro de `addXp` en `GameContext.tsx` para upsert al instante en `leaderboard_weekly`. | Alejandro Padilla | ✅ |
+| S8-T04 | Implementar `leaderboardService.subscribeToLeaderboardChanges()` con Supabase Realtime (`postgres_changes` en `leaderboard_weekly`) y conectarlo en `app/(tabs)/leaderboard.tsx` con patrón `useRef` para evitar closures obsoletos. | Alejandro Padilla | ✅ |
+| S8-T05 | Agregar mock de `leaderboardService` en `__tests__/GameContext.test.tsx` para resolver el error de WebSocket nativo en Node.js 18 al importar `supabase.ts`. Suite restaurada a 20/20 PASS. | Alejandro Padilla | ✅ |
+| S8-T06 | Reescribir `app/onboarding/index.tsx` con 6 pasos: ampliar Step 0 (StepWelcome) con mascota, burbuja de diálogo, etimología morfológica (YACHA- + -Y → YACHAY) y 3 pilares andinos; crear Step 1 (StepLinguistic) con sistema trivocálico A·I·U, variantes regionales y norma Chanka/Cusco-Collao. Fix INV-06 (imports desde `@/src/assets/images`). | Yesica Escobar | ✅ |
+| S8-T07 | Actualizar `app/modal.tsx` v2.0: fix INV-06 (`yachiPrincipal`), sección "Variante Lingüística Enseñada" en 3 columnas (Norma oficial · Sistema trivocálico · Cobertura), badge "Versión 2.0 · Edición Tawantinsuyu". | Yesica Escobar | ✅ |
+| S8-T08 | Actualizar `app/(tabs)/profile.tsx`: botón de créditos renombrado a "Créditos e Identidad Cultural". Cierre de sprint: `tsc --noEmit` → 0 errores, Jest **20/20 PASS**, triple auditoría grep — INV-02/03/04/06 sin hallazgos. | Oscar Segovia | ✅ |
 

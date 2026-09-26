@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { yachiPrincipal, yachiPiensa } from '@/src/assets/images';
 
 const TEAL = '#00C853';
 const TEAL_DARK = '#009624';
@@ -35,7 +36,7 @@ export default function OnboardingScreen() {
   }
 
   function nextStep() {
-    setStep((s) => Math.min(s + 1, 4));
+    setStep((s) => Math.min(s + 1, 5));
   }
 
   function prevStep() {
@@ -44,31 +45,32 @@ export default function OnboardingScreen() {
 
   return (
     <View style={styles.root}>
-      {/* Header: skip button */}
+      {/* Indicadores de progreso */}
       <View style={styles.header}>
         <View style={styles.dotsRow}>
-          {[0, 1, 2, 3, 4].map((i) => (
+          {[0, 1, 2, 3, 4, 5].map((i) => (
             <View key={i} style={[styles.dot, step === i && styles.dotActive]} />
           ))}
         </View>
-        {step < 4 && (
+        {step < 5 && (
           <TouchableOpacity onPress={completeOnboarding} style={styles.skipBtn}>
             <Text style={styles.skipText}>Omitir</Text>
           </TouchableOpacity>
         )}
       </View>
 
-      {/* Step content */}
+      {/* Contenido del paso actual */}
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {step === 0 && <StepWelcome />}
-        {step === 1 && <StepCurriculum />}
-        {step === 2 && <StepMechanics />}
-        {step === 3 && <StepGoal dailyGoal={dailyGoal} onSelect={setDailyGoal} />}
-        {step === 4 && <StepAccess onAuth={completeOnboarding} />}
+        {step === 1 && <StepLinguistic />}
+        {step === 2 && <StepCurriculum />}
+        {step === 3 && <StepMechanics />}
+        {step === 4 && <StepGoal dailyGoal={dailyGoal} onSelect={setDailyGoal} />}
+        {step === 5 && <StepAccess onAuth={completeOnboarding} />}
       </ScrollView>
 
-      {/* Footer nav */}
-      {step < 4 && (
+      {/* Navegación inferior */}
+      {step < 5 && (
         <View style={styles.footer}>
           {step > 0 ? (
             <TouchableOpacity onPress={prevStep} style={styles.backBtn}>
@@ -86,27 +88,159 @@ export default function OnboardingScreen() {
   );
 }
 
-// ─── Step 0: Bienvenida Cultural ────────────────────────────────────────────
+// ─── Step 0: Bienvenida Cultural con Etimología de "Yachay" ─────────────────
 
 function StepWelcome() {
   return (
     <View style={styles.stepWrap}>
-      <Image
-        source={require('@/assets/images/mascota_principal_saludo.png')}
-        style={styles.mascotLarge}
-        resizeMode="contain"
-      />
-      <Text style={styles.stepTag}>YACHAY · EL CAMINO DEL SABER</Text>
+      {/* Yachi con globo de diálogo pedagógico */}
+      <View style={styles.welcomeMascotRow}>
+        <Image source={yachiPrincipal} style={styles.mascotWelcome} resizeMode="contain" />
+        <View style={styles.welcomeSpeechBubble}>
+          <Text style={styles.welcomeSpeechText}>¡Allillanchu!{'\n'}¡Bienvenido! 🏔️</Text>
+          <View style={styles.welcomeSpeechTail} />
+        </View>
+      </View>
+
+      <Text style={styles.stepTag}>YACHAY · ETIMOLOGÍA Y SIGNIFICADO</Text>
       <Text style={styles.stepTitle}>Descubre el poder{'\n'}del Runasimi</Text>
+
+      {/* Tarjeta de análisis morfológico-etimológico */}
+      <View style={styles.etymologyCard}>
+        <Text style={styles.etymologyCardLabel}>✦ ANÁLISIS ETIMOLÓGICO ✦</Text>
+        <View style={styles.etymologyMorphRow}>
+          <View style={styles.etymologyMorpheme}>
+            <Text style={styles.morphRoot}>YACHA-</Text>
+            <Text style={styles.morphGloss}>raíz verbal</Text>
+            <Text style={styles.morphMeaning}>"saber, conocer"</Text>
+          </View>
+          <Text style={styles.etymologyPlus}>+</Text>
+          <View style={styles.etymologyMorpheme}>
+            <Text style={styles.morphRoot}>-Y</Text>
+            <Text style={styles.morphGloss}>infinitivo</Text>
+            <Text style={styles.morphMeaning}>"el acto de"</Text>
+          </View>
+          <Text style={styles.etymologyArrow}>→</Text>
+          <View style={styles.etymologyResult}>
+            <Text style={styles.resultWord}>YACHAY</Text>
+            <Text style={styles.resultMeaning}>"aprender · sabiduría"</Text>
+          </View>
+        </View>
+        <Text style={styles.etymologyExample}>
+          Ej: "Ima yachayta munanki?" · "¿Qué quieres aprender?"
+        </Text>
+      </View>
+
+      {/* Los 3 pilares de la filosofía andina */}
+      <Text style={styles.pillarsTitle}>Los 3 pilares de la filosofía andina:</Text>
+      <View style={styles.pillarsRow}>
+        <View style={[styles.pillarItem, styles.pillarTeal]}>
+          <Text style={styles.pillarEmoji}>💡</Text>
+          <Text style={styles.pillarWord}>YACHAY</Text>
+          <Text style={styles.pillarGloss}>Saber · Mente</Text>
+        </View>
+        <View style={[styles.pillarItem, styles.pillarRed]}>
+          <Text style={styles.pillarEmoji}>❤️</Text>
+          <Text style={styles.pillarWord}>MUNAY</Text>
+          <Text style={styles.pillarGloss}>Amor · Corazón</Text>
+        </View>
+        <View style={[styles.pillarItem, styles.pillarGold]}>
+          <Text style={styles.pillarEmoji}>💪</Text>
+          <Text style={styles.pillarWord}>LLANK'AY</Text>
+          <Text style={styles.pillarGloss}>Trabajo · Acción</Text>
+        </View>
+      </View>
+
       <Text style={styles.stepDesc}>
-        <Text style={{ fontWeight: 'bold', color: TEAL_DARK }}>Yachay</Text> significa sabiduría, conocimiento y el arte de aprender.{'\n\n'}
-        El quechua es la lengua viva originaria más hablada de los Andes. Conoce la sabiduría de nuestros ancestros junto a Yachi de forma divertida y a tu propio ritmo.
+        El quechua es la lengua viva originaria más hablada de los Andes, con más de{' '}
+        <Text style={styles.stepDescBold}>8 millones de hablantes</Text> en Bolivia, Perú,
+        Ecuador, Argentina, Colombia y Chile.
       </Text>
     </View>
   );
 }
 
-// ─── Step 1: Tu Ruta de Aprendizaje (Malla Curricular) ────────────────────────
+// ─── Step 1: Contexto Lingüístico del Runasimi ──────────────────────────────
+
+const LINGUISTIC_ITEMS = [
+  {
+    emoji: '🗣️',
+    title: '"Runa Simi" significa...',
+    desc: '"Runa" (persona) + "Simi" (boca/lengua) → "La Lengua del Pueblo Andino"',
+  },
+  {
+    emoji: '🌎',
+    title: 'Variantes regionales',
+    desc: 'El Runasimi posee múltiples variantes en 7 países: Perú, Bolivia, Ecuador, Colombia, Argentina, Chile y Brasil. Cada región preserva su pronunciación y léxico propios.',
+  },
+  {
+    emoji: '📚',
+    title: 'Norma oficial adoptada en Yachay',
+    desc: 'Esta app enseña las variedades de mayor difusión: Quechua Chanka (Ayacucho-Chanka) y Cusco-Collao, habladas por millones en los Andes centrales.',
+  },
+];
+
+function StepLinguistic() {
+  return (
+    <View style={styles.stepWrap}>
+      {/* Yachi pensando — con las 3 vocales del sistema trivocálico */}
+      <View style={styles.vowelThinkRow}>
+        <Image source={yachiPiensa} style={styles.mascotMedium} resizeMode="contain" />
+        <View style={styles.vowelBubblesWrap}>
+          <Text style={styles.vowelBubblesLabel}>Sistema oficial:</Text>
+          <View style={styles.vowelBubblesRow}>
+            <View style={styles.vowelBubble}>
+              <Text style={styles.vowelLetter}>A</Text>
+            </View>
+            <View style={[styles.vowelBubble, styles.vowelBubbleMid]}>
+              <Text style={styles.vowelLetter}>I</Text>
+            </View>
+            <View style={styles.vowelBubble}>
+              <Text style={styles.vowelLetter}>U</Text>
+            </View>
+          </View>
+        </View>
+      </View>
+
+      <Text style={styles.stepTag}>EL IDIOMA · CONTEXTO LINGÜÍSTICO</Text>
+      <Text style={styles.stepTitle}>El Runasimi{'\n'}y sus Variantes</Text>
+
+      {LINGUISTIC_ITEMS.map((item) => (
+        <View key={item.title} style={styles.lingCard}>
+          <Text style={styles.lingEmoji}>{item.emoji}</Text>
+          <View style={styles.lingInfo}>
+            <Text style={styles.lingTitle}>{item.title}</Text>
+            <Text style={styles.lingDesc}>{item.desc}</Text>
+          </View>
+        </View>
+      ))}
+
+      {/* Banner del sistema trivocálico */}
+      <View style={styles.trivocalBanner}>
+        <Text style={styles.trivocalBannerTitle}>🔤 Sistema Trivocálico · Solo 3 Vocales</Text>
+        <View style={styles.trivocalRow}>
+          <View style={styles.trivocalVowel}>
+            <Text style={styles.trivocalVowelLetter}>A</Text>
+            <Text style={styles.trivocalVowelEx}>"mama"</Text>
+          </View>
+          <View style={styles.trivocalVowel}>
+            <Text style={styles.trivocalVowelLetter}>I</Text>
+            <Text style={styles.trivocalVowelEx}>"inti"</Text>
+          </View>
+          <View style={styles.trivocalVowel}>
+            <Text style={styles.trivocalVowelLetter}>U</Text>
+            <Text style={styles.trivocalVowelEx}>"urqu"</Text>
+          </View>
+        </View>
+        <Text style={styles.trivocalNote}>
+          Las variantes "e" y "o" aparecen por influencia del español, pero no forman parte de la norma académica oficial.
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+// ─── Step 2: Tu Ruta de Aprendizaje (Malla Curricular) ──────────────────────
 
 function StepCurriculum() {
   const MODULES = [
@@ -192,7 +326,7 @@ function StepCurriculum() {
   );
 }
 
-// ─── Step 2: Dinámica de Juego ───────────────────────────────────────────────
+// ─── Step 3: Dinámica de Juego ───────────────────────────────────────────────
 
 function StepMechanics() {
   const ITEMS = [
@@ -218,7 +352,7 @@ function StepMechanics() {
   );
 }
 
-// ─── Step 2: Meta Diaria ────────────────────────────────────────────────────
+// ─── Step 4: Meta Diaria ─────────────────────────────────────────────────────
 
 function StepGoal({
   dailyGoal,
@@ -253,7 +387,7 @@ function StepGoal({
   );
 }
 
-// ─── Step 3: Acceso ─────────────────────────────────────────────────────────
+// ─── Step 5: Acceso ──────────────────────────────────────────────────────────
 
 function StepAccess({
   onAuth,
@@ -263,7 +397,7 @@ function StepAccess({
   return (
     <View style={styles.stepWrap}>
       <Image
-        source={require('@/assets/images/mascota_principal_saludo.png')}
+        source={yachiPrincipal}
         style={styles.mascotMedium}
         resizeMode="contain"
       />
@@ -300,17 +434,17 @@ const styles = StyleSheet.create({
   },
   dotsRow: {
     flexDirection: 'row',
-    gap: 8,
+    gap: 6,
   },
   dot: {
-    width: 8,
-    height: 8,
+    width: 7,
+    height: 7,
     borderRadius: 4,
     backgroundColor: '#D5D5D5',
   },
   dotActive: {
     backgroundColor: TEAL,
-    width: 24,
+    width: 20,
   },
   skipBtn: {
     padding: 8,
@@ -360,7 +494,7 @@ const styles = StyleSheet.create({
     fontWeight: '900',
   },
 
-  // Step wrapper
+  // ── Wrapper de paso ────────────────────────────────────────────────────────
   stepWrap: {
     paddingTop: 16,
     alignItems: 'center',
@@ -389,8 +523,16 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     paddingHorizontal: 8,
   },
+  stepDescBold: {
+    fontWeight: 'bold',
+    color: TEAL_DARK,
+  },
 
-  // Mascots
+  // ── Mascotas ───────────────────────────────────────────────────────────────
+  mascotWelcome: {
+    width: 110,
+    height: 110,
+  },
   mascotLarge: {
     width: 200,
     height: 200,
@@ -402,125 +544,317 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
 
-  // Badge
-  badge: {
-    backgroundColor: '#E0F2F1',
-    borderRadius: 12,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderWidth: 1,
-    borderColor: '#B2DFDB',
+  // ── Step 0: Welcome — globo de bienvenida ──────────────────────────────────
+  welcomeMascotRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 14,
+    gap: 12,
+    width: '100%',
   },
-  badgeText: {
-    fontSize: 13,
+  welcomeSpeechBubble: {
+    flex: 1,
+    backgroundColor: '#FFF8E1',
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: '#F59E0B',
+    padding: 12,
+    position: 'relative',
+  },
+  welcomeSpeechText: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#B45309',
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  welcomeSpeechTail: {
+    position: 'absolute',
+    left: -9,
+    top: 14,
+    width: 0,
+    height: 0,
+    borderTopWidth: 7,
+    borderBottomWidth: 7,
+    borderRightWidth: 9,
+    borderTopColor: 'transparent',
+    borderBottomColor: 'transparent',
+    borderRightColor: '#F59E0B',
+  },
+
+  // ── Step 0: Welcome — card etimológica ────────────────────────────────────
+  etymologyCard: {
+    backgroundColor: '#FFFBEB',
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 14,
+    width: '100%',
+    borderWidth: 1.5,
+    borderColor: '#FDE68A',
+  },
+  etymologyCardLabel: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: '#B45309',
+    letterSpacing: 0.8,
+    textAlign: 'center',
+    marginBottom: 10,
+  },
+  etymologyMorphRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-around',
+    flexWrap: 'wrap',
+    gap: 4,
+    marginBottom: 8,
+  },
+  etymologyMorpheme: {
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    padding: 8,
+    borderWidth: 1,
+    borderColor: '#FCD34D',
+    minWidth: 58,
+  },
+  morphRoot: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#92400E',
+  },
+  morphGloss: {
+    fontSize: 9,
     fontWeight: '700',
-    color: '#00701A',
+    color: '#78350F',
+    marginTop: 1,
+  },
+  morphMeaning: {
+    fontSize: 10,
+    color: '#B45309',
+    fontStyle: 'italic',
+    marginTop: 1,
     textAlign: 'center',
   },
+  etymologyPlus: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#D97706',
+  },
+  etymologyArrow: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#059669',
+  },
+  etymologyResult: {
+    alignItems: 'center',
+    backgroundColor: '#FEF3C7',
+    borderRadius: 10,
+    padding: 8,
+    borderWidth: 1.5,
+    borderColor: '#F59E0B',
+    minWidth: 58,
+  },
+  resultWord: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#00701A',
+  },
+  resultMeaning: {
+    fontSize: 9,
+    color: '#065F46',
+    fontWeight: '800',
+    marginTop: 1,
+    textAlign: 'center',
+  },
+  etymologyExample: {
+    fontSize: 11,
+    color: '#78350F',
+    fontStyle: 'italic',
+    textAlign: 'center',
+    lineHeight: 15,
+  },
 
-  // Mechanic cards
-  mechCard: {
+  // ── Step 0: Welcome — pilares andinos ─────────────────────────────────────
+  pillarsTitle: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#334155',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  pillarsRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 14,
+    width: '100%',
+  },
+  pillarItem: {
+    flex: 1,
+    alignItems: 'center',
+    borderRadius: 14,
+    padding: 10,
+    borderWidth: 1.5,
+  },
+  pillarTeal: {
+    backgroundColor: '#F0FDF4',
+    borderColor: '#86EFAC',
+  },
+  pillarRed: {
+    backgroundColor: '#FFF1F2',
+    borderColor: '#FECDD3',
+  },
+  pillarGold: {
+    backgroundColor: '#FFFBEB',
+    borderColor: '#FDE68A',
+  },
+  pillarEmoji: {
+    fontSize: 20,
+    marginBottom: 4,
+  },
+  pillarWord: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: '#1E293B',
+    textAlign: 'center',
+  },
+  pillarGloss: {
+    fontSize: 9,
+    color: '#64748B',
+    fontWeight: '700',
+    textAlign: 'center',
+    marginTop: 1,
+  },
+
+  // ── Step 1: Lingüístico — Yachi piensa + vocales ───────────────────────────
+  vowelThinkRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFF',
-    borderRadius: 16,
-    padding: 16,
     marginBottom: 12,
+    gap: 16,
+    width: '100%',
+  },
+  vowelBubblesWrap: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  vowelBubblesLabel: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#64748B',
+    marginBottom: 6,
+  },
+  vowelBubblesRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  vowelBubble: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#DBEAFE',
+    borderWidth: 2,
+    borderColor: '#3B82F6',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  vowelBubbleMid: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: '#EDE9FE',
+    borderColor: '#7C3AED',
+  },
+  vowelLetter: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: '#1E3A8A',
+  },
+
+  // ── Step 1: Lingüístico — tarjetas de info ─────────────────────────────────
+  lingCard: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: '#FFF',
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 10,
     width: '100%',
     borderWidth: 1,
     borderColor: '#E8E2D9',
+    borderLeftWidth: 4,
+    borderLeftColor: TEAL,
     elevation: 1,
   },
-  mechEmoji: {
-    fontSize: 32,
-    marginRight: 14,
+  lingEmoji: {
+    fontSize: 24,
+    marginRight: 12,
+    marginTop: 2,
   },
-  mechText: {
+  lingInfo: {
     flex: 1,
   },
-  mechTitle: {
-    fontSize: 16,
+  lingTitle: {
+    fontSize: 14,
     fontWeight: '800',
-    color: '#1A1A1A',
-    marginBottom: 2,
+    color: '#1E293B',
+    marginBottom: 3,
   },
-  mechDesc: {
-    fontSize: 13,
-    color: '#666',
-    lineHeight: 18,
+  lingDesc: {
+    fontSize: 12,
+    color: '#475569',
+    lineHeight: 17,
   },
 
-  // Goal cards
-  goalCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFF',
+  // ── Step 1: Lingüístico — banner trivocálico ───────────────────────────────
+  trivocalBanner: {
+    backgroundColor: '#EFF6FF',
     borderRadius: 16,
-    padding: 18,
+    padding: 14,
     marginBottom: 12,
     width: '100%',
-    borderWidth: 2,
-    borderColor: '#E8E2D9',
-    elevation: 1,
+    borderWidth: 1.5,
+    borderColor: '#BFDBFE',
   },
-  goalCardActive: {
-    borderColor: TEAL,
-    backgroundColor: '#F0FAFA',
-  },
-  goalEmoji: {
-    fontSize: 30,
-    marginRight: 16,
-  },
-  goalInfo: {
-    flex: 1,
-  },
-  goalLabel: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: '#1A1A1A',
-    marginBottom: 2,
-  },
-  goalLabelActive: {
-    color: TEAL,
-  },
-  goalMinutes: {
+  trivocalBannerTitle: {
     fontSize: 13,
-    color: '#888',
-  },
-  goalCheck: {
-    fontSize: 20,
-    color: TEAL,
     fontWeight: '900',
-  },
-
-  // Access step
-  authBtn: {
-    backgroundColor: GREEN,
-    paddingVertical: 16,
-    paddingHorizontal: 24,
-    borderRadius: 18,
-    borderBottomWidth: 4,
-    borderBottomColor: GREEN_DARK,
-    width: '100%',
-    alignItems: 'center',
-    marginBottom: 20,
-    elevation: 4,
-  },
-  authBtnText: {
-    color: '#FFF',
-    fontSize: 17,
-    fontWeight: '900',
-  },
-  legalNote: {
-    fontSize: 11,
-    color: '#AAA',
+    color: '#1E3A8A',
+    marginBottom: 10,
     textAlign: 'center',
-    lineHeight: 16,
-    paddingHorizontal: 16,
-    paddingBottom: 24,
+  },
+  trivocalRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginBottom: 8,
+  },
+  trivocalVowel: {
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 10,
+    borderWidth: 1.5,
+    borderColor: '#93C5FD',
+    minWidth: 70,
+  },
+  trivocalVowelLetter: {
+    fontSize: 28,
+    fontWeight: '900',
+    color: '#1D4ED8',
+  },
+  trivocalVowelEx: {
+    fontSize: 11,
+    color: '#3B82F6',
+    fontWeight: '700',
+    fontStyle: 'italic',
+  },
+  trivocalNote: {
+    fontSize: 11,
+    color: '#1E40AF',
+    textAlign: 'center',
+    lineHeight: 15,
   },
 
-  // Curriculum step styles
+  // ── Step 2: Curriculum ─────────────────────────────────────────────────────
   currCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -618,5 +952,123 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '800',
     color: '#00701A',
+  },
+
+  // ── Step 3: Mecánicas ──────────────────────────────────────────────────────
+  mechCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
+    width: '100%',
+    borderWidth: 1,
+    borderColor: '#E8E2D9',
+    elevation: 1,
+  },
+  mechEmoji: {
+    fontSize: 32,
+    marginRight: 14,
+  },
+  mechText: {
+    flex: 1,
+  },
+  mechTitle: {
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#1A1A1A',
+    marginBottom: 2,
+  },
+  mechDesc: {
+    fontSize: 13,
+    color: '#666',
+    lineHeight: 18,
+  },
+
+  // ── Step 4: Meta Diaria ────────────────────────────────────────────────────
+  goalCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFF',
+    borderRadius: 16,
+    padding: 18,
+    marginBottom: 12,
+    width: '100%',
+    borderWidth: 2,
+    borderColor: '#E8E2D9',
+    elevation: 1,
+  },
+  goalCardActive: {
+    borderColor: TEAL,
+    backgroundColor: '#F0FAFA',
+  },
+  goalEmoji: {
+    fontSize: 30,
+    marginRight: 16,
+  },
+  goalInfo: {
+    flex: 1,
+  },
+  goalLabel: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#1A1A1A',
+    marginBottom: 2,
+  },
+  goalLabelActive: {
+    color: TEAL,
+  },
+  goalMinutes: {
+    fontSize: 13,
+    color: '#888',
+  },
+  goalCheck: {
+    fontSize: 20,
+    color: TEAL,
+    fontWeight: '900',
+  },
+
+  // ── Step 5: Acceso ─────────────────────────────────────────────────────────
+  authBtn: {
+    backgroundColor: GREEN,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
+    borderRadius: 18,
+    borderBottomWidth: 4,
+    borderBottomColor: GREEN_DARK,
+    width: '100%',
+    alignItems: 'center',
+    marginBottom: 20,
+    elevation: 4,
+  },
+  authBtnText: {
+    color: '#FFF',
+    fontSize: 17,
+    fontWeight: '900',
+  },
+  legalNote: {
+    fontSize: 11,
+    color: '#AAA',
+    textAlign: 'center',
+    lineHeight: 16,
+    paddingHorizontal: 16,
+    paddingBottom: 24,
+  },
+
+  // ── Badge genérico ─────────────────────────────────────────────────────────
+  badge: {
+    backgroundColor: '#E0F2F1',
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderWidth: 1,
+    borderColor: '#B2DFDB',
+  },
+  badgeText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#00701A',
+    textAlign: 'center',
   },
 });

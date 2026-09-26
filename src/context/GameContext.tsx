@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createContext, ReactNode, useCallback, useContext, useEffect, useReducer, useRef } from 'react';
 import { authService } from '@/src/services/authService';
+import { leaderboardService } from '@/src/services/leaderboardService';
 import { Profile } from '@/src/types';
 import { scheduleStreakReminder, cancelStreakReminder, requestNotificationPermissions } from '@/src/services/notificationService';
 
@@ -211,7 +212,11 @@ export function GameProvider({ children }: { children: ReactNode }) {
 
   const addXp = useCallback((amount: number) => {
     dispatch({ type: 'ADD_XP', amount });
-  }, []);
+    // Upsert inmediato a leaderboard_weekly sin esperar el debounce principal
+    if (userIdRef.current) {
+      leaderboardService.syncUserTotalXp(userIdRef.current, state.xp + amount).catch(() => {});
+    }
+  }, [state.xp]);
 
   const restoreLives = useCallback(() => {
     dispatch({ type: 'RESTORE_LIVES' });

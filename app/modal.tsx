@@ -1,7 +1,7 @@
 import React from 'react';
 import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Illustrations } from '@/constants/illustrations';
+import { yachiPrincipal } from '@/src/assets/images';
 
 const TEAL = '#00C853';
 const TEAL_DARK = '#009624';
@@ -26,7 +26,7 @@ export default function ModalScreen() {
           <View style={styles.header}>
             <View style={styles.mascotCircle}>
               <Image
-                source={Illustrations.logoYachayConLlama}
+                source={yachiPrincipal}
                 style={styles.llamaLogo}
                 resizeMode="contain"
               />
@@ -101,6 +101,43 @@ export default function ModalScreen() {
             </View>
           </View>
 
+          {/* Contexto Lingüístico del Runasimi */}
+          <View style={styles.linguisticBox}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionEmoji}>🗣️</Text>
+              <Text style={styles.sectionTitle}>Variante Lingüística Enseñada</Text>
+            </View>
+            <Text style={styles.linguisticIntro}>
+              El <Text style={styles.boldText}>Runasimi</Text> («Runa» = persona · «Simi» = boca/lengua) posee diversas variantes regionales en los Andes.
+            </Text>
+            <View style={styles.linguisticRow}>
+              <View style={styles.linguisticItem}>
+                <Text style={styles.linguisticItemEmoji}>📚</Text>
+                <Text style={styles.linguisticItemTitle}>Norma oficial</Text>
+                <Text style={styles.linguisticItemDesc}>
+                  Quechua Chanka{'\n'}(Ayacucho-Chanka){'\n'}y Cusco-Collao
+                </Text>
+              </View>
+              <View style={styles.linguisticItem}>
+                <Text style={styles.linguisticItemEmoji}>🔤</Text>
+                <Text style={styles.linguisticItemTitle}>Sistema trivocálico</Text>
+                <Text style={styles.linguisticItemDesc}>
+                  Solo 3 vocales{'\n'}A · I · U{'\n'}(norma académica)
+                </Text>
+              </View>
+              <View style={styles.linguisticItem}>
+                <Text style={styles.linguisticItemEmoji}>🌎</Text>
+                <Text style={styles.linguisticItemTitle}>Cobertura</Text>
+                <Text style={styles.linguisticItemDesc}>
+                  +8 millones de{'\n'}hablantes en{'\n'}7 países andinos
+                </Text>
+              </View>
+            </View>
+            <Text style={styles.linguisticNote}>
+              Las variantes "e" y "o" aparecen por influencia del español pero no forman parte de la norma académica oficial adoptada en Yachay.
+            </Text>
+          </View>
+
           {/* Equipo de Desarrollo */}
           <View style={styles.sectionBox}>
             <View style={styles.sectionHeader}>
@@ -125,7 +162,7 @@ export default function ModalScreen() {
 
           {/* Badge de Versión */}
           <View style={styles.versionBadge}>
-            <Text style={styles.versionText}>Versión 1.0.0 • Edición Tawantinsuyu</Text>
+            <Text style={styles.versionText}>Versión 2.0 • Edición Tawantinsuyu</Text>
           </View>
 
           {/* Botón de Cierre */}
@@ -365,6 +402,61 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: '#2E7D32',
     marginTop: 1,
+  },
+
+  /* Contexto Lingüístico */
+  linguisticBox: {
+    backgroundColor: '#F0F9FF',
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 12,
+    borderWidth: 1.5,
+    borderColor: '#BAE6FD',
+  },
+  linguisticIntro: {
+    fontSize: 12,
+    color: '#0369A1',
+    lineHeight: 17,
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  linguisticRow: {
+    flexDirection: 'row',
+    gap: 6,
+    marginBottom: 10,
+  },
+  linguisticItem: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 10,
+    padding: 8,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#7DD3FC',
+  },
+  linguisticItemEmoji: {
+    fontSize: 18,
+    marginBottom: 4,
+  },
+  linguisticItemTitle: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: '#0C4A6E',
+    textAlign: 'center',
+    marginBottom: 3,
+  },
+  linguisticItemDesc: {
+    fontSize: 9.5,
+    color: '#0369A1',
+    textAlign: 'center',
+    lineHeight: 13,
+  },
+  linguisticNote: {
+    fontSize: 10,
+    color: '#0284C7',
+    textAlign: 'center',
+    lineHeight: 14,
+    fontStyle: 'italic',
   },
 
   /* Desarrolladores */

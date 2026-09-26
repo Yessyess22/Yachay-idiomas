@@ -1,6 +1,6 @@
 # Plan de Tareas y Distribución del Equipo — Yachay Quechua
 
-**Versión:** 2.0 | **Fecha:** 2026-09-12 | **Última actualización:** 2026-09-14
+**Versión:** 2.2 | **Fecha:** 2026-09-12 | **Última actualización:** 2026-09-26
 
 ---
 
@@ -103,4 +103,34 @@
 | S6-T05 | Crear servicios de resiliencia offline (`offlineCache.ts`) y notificaciones locales de racha (`notificationService.ts`) | Oscar Segovia | ✅ Completado |
 | S6-T06 | Construir servidor local TTS en Python (`tts_service.py`) con gTTS/pyttsx3 | Oscar Segovia | ✅ Completado |
 | S6-T07 | Cobertura de pruebas unitarias (`__tests__/voiceService.test.ts`), feedback háptico (`expo-haptics`) y kit de assets de complementos | Alejandro Padilla | ✅ Completado |
+
+---
+
+### Sprint 7 — Pedagogía Estructurada, Paleta Wiphala Neón, Gamificación Visual y Créditos Académicos
+
+| ID | Tarea | Responsable | Estado |
+| :--- | :--- | :--- | :---: |
+| S7-T01 | Implementar flujo pedagógico en 3 fases en `app/lesson/[id].tsx`: Enseñar (vocab) ➡️ Practicar (ejercicios) ➡️ Evaluar (quiz). | Yesica Escobar | ✅ Completado |
+| S7-T02 | Crear exámenes sumativos con Ronda de Refuerzo: segundo intento si falla ≥ 2 preguntas, con las incorrectas reformuladas. | Alejandro Padilla | ✅ Completado |
+| S7-T03 | Aplicar paleta Wiphala Neón (`#00C853`, `#FFB300`, `#FF3366`, `#00B0FF`, `#7C3AED`, `#FF6D00`) en `constants/Theme.ts`. | Yesica Escobar | ✅ Completado |
+| S7-T04 | Rediseñar caminito en `app/(tabs)/index.tsx` con 9 nodos 3D en colores intercalados Wiphala. | Yesica Escobar | ✅ Completado |
+| S7-T05 | Desarrollar mascota Yachi Companion con `Animated.spring`, reacciones emocionales y hápticos (`expo-haptics`). | Yesica Escobar | ✅ Completado |
+| S7-T06 | Actualizar Onboarding con paso de Malla Curricular (Yachay Ñan) mostrando las 3 unidades temáticas. | Alejandro Padilla | ✅ Completado |
+| S7-T07 | Crear modal de Créditos Académicos (`app/modal.tsx`) con ficha del equipo UPDS — Ingeniería de Sistemas. | Oscar Segovia | ✅ Completado |
+| S7-T08 | Unificar cabecera del Traductor con `YachayTopBar`. Cierre de sprint: `tsc` → 0 errores, Jest 17/17 PASS, triple grep. | Oscar Segovia | ✅ Completado |
+
+---
+
+### Sprint 8 — Safe Area, Realtime Leaderboard, Debounce Reactivo y Onboarding Cultural Inmersivo
+
+| ID | Tarea | Responsable | Estado |
+| :--- | :--- | :--- | :---: |
+| S8-T01 | Integrar `SafeAreaProvider` en `app/_layout.tsx` y `SafeAreaView edges=['top']` en `YachayTopBar` (soporte notch iPhone X+). | Oscar Segovia | ✅ Completado |
+| S8-T02 | Usar `useSafeAreaInsets` + `StyleSheet.create` en `useMemo` en `app/(tabs)/index.tsx` para ajustar dinámicamente el toast del nodo bloqueado (INV-02 ✅). | Yesica Escobar | ✅ Completado |
+| S8-T03 | Añadir llamada inmediata a `leaderboardService.syncUserTotalXp()` en `addXp` del `GameContext` para upsert sin debounce. | Alejandro Padilla | ✅ Completado |
+| S8-T04 | Implementar Realtime leaderboard con `postgres_changes` en `leaderboard_weekly` y conectarlo en `leaderboard.tsx` con patrón `useRef`. | Alejandro Padilla | ✅ Completado |
+| S8-T05 | Agregar mock de `leaderboardService` en `__tests__/GameContext.test.tsx` para resolver error de WebSocket nativo en Node.js 18. Jest: 20/20 PASS. | Alejandro Padilla | ✅ Completado |
+| S8-T06 | Reescribir Onboarding (`app/onboarding/index.tsx`) con 6 pasos: etimología YACHA-/-Y, pilares andinos, Step 1 lingüístico (trivocálico A·I·U, Chanka/Cusco-Collao). Fix INV-06. | Yesica Escobar | ✅ Completado |
+| S8-T07 | Actualizar `app/modal.tsx` v2.0: sección "Variante Lingüística Enseñada" 3 columnas, fix INV-06 (`yachiPrincipal`), badge "Versión 2.0 · Edición Tawantinsuyu". | Yesica Escobar | ✅ Completado |
+| S8-T08 | Renombrar botón de créditos en `profile.tsx` a "Créditos e Identidad Cultural". Cierre: `tsc` → 0 errores, Jest **20/20 PASS**, triple grep — INV-02/03/04/06 limpios. | Oscar Segovia | ✅ Completado |
 

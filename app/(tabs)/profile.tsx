@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Image,
   Platform,
   RefreshControl,
@@ -64,6 +63,9 @@ export default function ProfileScreen() {
   const [loadingLeaderboard, setLoadingLeaderboard] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
+  const [feedbackMsg, setFeedbackMsg] = useState<string | null>(null);
+  const [feedbackIsError, setFeedbackIsError] = useState(false);
+  const [showSignOutConfirm, setShowSignOutConfirm] = useState(false);
 
   const userStreak = Math.max(1, streakDays ?? profile?.streak_count ?? 1);
   const userXp = xp ?? profile?.total_xp ?? 0;
@@ -194,26 +196,31 @@ export default function ProfileScreen() {
         addXp(res.xpReward);
         leaderboardService.recordWeeklyXp(uid, res.xpReward).catch(() => {});
       }
-      Alert.alert('¡Recompensa Reclamada! 🎉', `+${res.xpReward} XP y +${res.gemReward} Gemas 💎`);
+      setFeedbackIsError(false);
+      setFeedbackMsg(`¡Recompensa Reclamada! 🎉 +${res.xpReward} XP y +${res.gemReward} Gemas 💎`);
+      setTimeout(() => setFeedbackMsg(null), 3000);
       loadQuestsData();
       loadLeaderboardData();
     }
   };
 
-  async function handleSignOut() {
-    const performSignOut = async () => {
-      try {
-        setSigningOut(true);
-        await signOut();
-        router.replace('/(auth)' as any);
-      } catch (err) {
-        console.error('Error al cerrar sesión:', err);
-        Alert.alert('Error', 'No se pudo cerrar la sesión.');
-      } finally {
-        setSigningOut(false);
-      }
-    };
+  async function performSignOut() {
+    try {
+      setSigningOut(true);
+      await signOut();
+      router.replace('/(auth)' as any);
+    } catch (err) {
+      console.error('Error al cerrar sesión:', err);
+      setFeedbackIsError(true);
+      setFeedbackMsg('No se pudo cerrar la sesión. Intenta de nuevo.');
+      setTimeout(() => setFeedbackMsg(null), 3000);
+    } finally {
+      setSigningOut(false);
+      setShowSignOutConfirm(false);
+    }
+  }
 
+  async function handleSignOut() {
     if (Platform.OS === 'web') {
       const confirmed =
         typeof window !== 'undefined'
@@ -224,19 +231,7 @@ export default function ProfileScreen() {
       }
       return;
     }
-
-    Alert.alert(
-      'Cerrar Sesión',
-      '¿Estás seguro de que deseas salir de Yachay?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Cerrar Sesión',
-          style: 'destructive',
-          onPress: performSignOut,
-        },
-      ]
-    );
+    setShowSignOutConfirm(true);
   }
 
   const username =
@@ -670,8 +665,8 @@ export default function ProfileScreen() {
           >
             <Text style={styles.aboutAppIcon}>🏛️</Text>
             <View style={styles.aboutAppInfo}>
-              <Text style={styles.aboutAppTitle}>Acerca de Yachay & Créditos</Text>
-              <Text style={styles.aboutAppSub}>Desarrolladores · UPDS · Misión Cultural</Text>
+              <Text style={styles.aboutAppTitle}>Créditos e Identidad Cultural</Text>
+              <Text style={styles.aboutAppSub}>Etimología Yachay · Runasimi · UPDS · Misión sin fines de lucro</Text>
             </View>
             <Text style={styles.aboutAppArrow}>➔</Text>
           </TouchableOpacity>
@@ -690,8 +685,33 @@ export default function ProfileScreen() {
           </TouchableOpacity>
         </View>
 
-        <View style={{ height: 40 }} />
+        <View style={styles.spacerBottom} />
       </ScrollView>
+
+      {/* Toast de feedback (reemplaza Alert.alert) */}
+      {feedbackMsg !== null && (
+        <View style={[styles.feedbackToast, feedbackIsError ? styles.feedbackToastError : styles.feedbackToastSuccess]} pointerEvents="none">
+          <Text style={styles.feedbackToastText}>{feedbackMsg}</Text>
+        </View>
+      )}
+
+      {/* Confirmación de cierre de sesión (reemplaza Alert.alert nativo) */}
+      {showSignOutConfirm && (
+        <View style={styles.signOutOverlay}>
+          <View style={styles.signOutCard}>
+            <Text style={styles.signOutCardTitle}>¿Cerrar Sesión?</Text>
+            <Text style={styles.signOutCardDesc}>¿Estás seguro de que deseas salir de Yachay?</Text>
+            <View style={styles.signOutCardRow}>
+              <TouchableOpacity style={styles.signOutCancelBtn} onPress={() => setShowSignOutConfirm(false)}>
+                <Text style={styles.signOutCancelText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.signOutConfirmBtn} onPress={performSignOut}>
+                <Text style={styles.signOutConfirmText}>Cerrar Sesión</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      )}
     </View>
   );
 }
@@ -1419,5 +1439,107 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     color: TEAL,
     marginLeft: 8,
+  },
+  spacerBottom: {
+    height: 40,
+  },
+  feedbackToast: {
+    position: 'absolute',
+    bottom: 24,
+    left: 16,
+    right: 16,
+    borderRadius: 14,
+    paddingVertical: 13,
+    paddingHorizontal: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.18,
+    shadowRadius: 8,
+    elevation: 8,
+    zIndex: 999,
+  },
+  feedbackToastSuccess: {
+    backgroundColor: '#D1FAE5',
+    borderWidth: 1,
+    borderColor: '#6EE7B7',
+  },
+  feedbackToastError: {
+    backgroundColor: '#FEE2E2',
+    borderWidth: 1,
+    borderColor: '#FCA5A5',
+  },
+  feedbackToastText: {
+    fontSize: 13,
+    color: '#1E293B',
+    fontWeight: '700',
+    textAlign: 'center',
+  },
+  signOutOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(15, 23, 42, 0.65)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+    padding: 24,
+  },
+  signOutCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    padding: 24,
+    width: '100%',
+    maxWidth: 360,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
+    elevation: 12,
+  },
+  signOutCardTitle: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#0F172A',
+    marginBottom: 8,
+  },
+  signOutCardDesc: {
+    fontSize: 14,
+    color: '#64748B',
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 20,
+  },
+  signOutCardRow: {
+    flexDirection: 'row',
+    gap: 10,
+    width: '100%',
+  },
+  signOutCancelBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+    alignItems: 'center',
+  },
+  signOutCancelText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#64748B',
+  },
+  signOutConfirmBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 12,
+    backgroundColor: '#EF4444',
+    alignItems: 'center',
+  },
+  signOutConfirmText: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#FFFFFF',
   },
 });

@@ -3,6 +3,7 @@ import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router/react-naviga
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useRef } from 'react';
 import 'react-native-reanimated';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { GameProvider, useGame } from '@/src/context/GameContext';
@@ -75,14 +76,16 @@ export default function RootLayout() {
   const colorScheme = useColorScheme();
 
   return (
-    <AuthProvider>
-      <GameProvider>
-        <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-          <ProfileHydrator />
-          <RootLayoutNav />
-          <StatusBar style="auto" />
-        </ThemeProvider>
-      </GameProvider>
-    </AuthProvider>
+    <SafeAreaProvider>
+      <AuthProvider>
+        <GameProvider>
+          <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+            <ProfileHydrator />
+            <RootLayoutNav />
+            <StatusBar style="auto" />
+          </ThemeProvider>
+        </GameProvider>
+      </AuthProvider>
+    </SafeAreaProvider>
   );
 }

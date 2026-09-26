@@ -6,24 +6,23 @@ Este archivo es la ancla de contexto obligatoria para que el asistente de IA o c
 
 ## Estado Actual
 
-## Estado Actual
-
 | Campo | Valor |
 | :--- | :--- |
-| **Fase** | Fase 7 — Pedagogía Estructurada, Paleta Wiphala Neón, Gamificación Visual y Créditos Académicos |
-| **Sprint activo** | **Sprint 7 completado (100% ✅)** |
-| **Sprints Completados** | **Sprint 1 (100% ✅)**, **Sprint 2 (100% ✅)**, **Sprint 3 (100% ✅)**, **Sprint 4 (100% ✅)**, **Sprint 5 (100% ✅)**, **Sprint 6 (100% ✅)**, **Sprint 7 (100% ✅)** |
-| **Fecha de actualización** | 2026-09-25 |
+| **Fase** | Fase 8 — Safe Area, Realtime Leaderboard, Debounce Reactivo y Onboarding Cultural Inmersivo |
+| **Sprint activo** | **Sprint 8 completado (100% ✅)** |
+| **Sprints Completados** | Sprint 1 ✅ · Sprint 2 ✅ · Sprint 3 ✅ · Sprint 4 ✅ · Sprint 5 ✅ · Sprint 6 ✅ · Sprint 7 ✅ · **Sprint 8 ✅** |
+| **Fecha de actualización** | 2026-09-26 |
 | **Responsables** | Yessica Escobar, Alejandro Padilla, Oscar Segovia |
 | **Institución / Carrera** | Universidad Privada Domingo Savio — Ingeniería de Sistemas |
-| **Estado del Backend** | ✅ Firebase Auth (v12 modular) para identidades de usuario + Supabase PostgreSQL (esquema relacional 3FN): `profiles` (con `gems`, `lives`, `streak_count`, `streak_freeze_count`, `last_active_date`, `last_life_lost_at`), `daily_quests`, `badges`, `leaderboard_weekly`, `shop_items`, `user_inventory`. Colección Insomnia con 35 endpoints REST. |
-| **Estado del Frontend** | ✅ Expo 57 Web/Mobile, Firebase Auth, `GameContext` con hidratación y sincronización asíncrona, flujo pedagógico en 3 fases (Enseñar ➡️ Practicar ➡️ Evaluar), exámenes sumativos con Ronda de Refuerzo, paleta Wiphala Neón (`#00C853`, `#FFB300`, `#FF3366`, `#00B0FF`, `#7C3AED`, `#FF6D00`), caminito serpentine 3D con 9 nodos únicos, mascota interactiva Yachi Companion con rebote y hápticos, Onboarding con Malla Curricular, y modal de Créditos Académicos UPDS. |
-| **Deuda cerrada** | GAP-01 a GAP-07 ✅ + Plan de Mejoras Pedagógicas (7 Ejes y 4 Fases) 100% COMPLETADO. |
-| **Deuda pendiente** | Ninguna. 17/17 tests Jest pasando y 0 errores de TypeScript. |
+| **Estado del Backend** | ✅ Firebase Auth (v12 modular) + Supabase PostgreSQL 3FN: `profiles`, `daily_quests`, `badges`, `leaderboard_weekly` (con **Realtime subscription activa**), `shop_items`, `user_inventory`. Colección Insomnia con 35 endpoints REST. |
+| **Estado del Frontend** | ✅ Expo 57 Web/Mobile · Firebase Auth · `GameContext` con hidratación, debounce 800 ms y **upsert inmediato en `leaderboard_weekly`** via `addXp` · `SafeAreaProvider` + `SafeAreaView edges=['top']` + `useSafeAreaInsets` · Realtime leaderboard con patrón `useRef` · Onboarding **6 pasos** con etimología morfológica de Yachay y paso lingüístico Runasimi (Chanka/Cusco-Collao, trivocálico A·I·U) · Modal "Créditos e Identidad Cultural" v2.0 con sección lingüística · INV-02/03/04/06 al 100%. |
+| **Tests** | **20/20 PASS** (3 suites: `GameContext` T1-T6, `voiceService` 10, `learningPath` 4). `tsc --noEmit` → 0 errores. |
+| **Deuda cerrada** | GAP-01 a GAP-07 ✅ · INV-02 ✅ · INV-04 ✅ · INV-06 ✅ · Plan Pedagógico 100% ✅ |
+| **Deuda pendiente** | Ninguna. |
 
 ---
 
-## Objetivos del Sprint 1 al Sprint 7 — Estado Final
+## Objetivos del Sprint 1 al Sprint 8 — Estado Final
 
 - [x] **S1-T01 a S1-T09** Esquema relacional 3FN, migración inicial, seed, Docker (`10.10.10.0/24`), Clean Architecture y gobernanza en `docs/`.
 - [x] **S2-T01 a S2-T09** Capa de servicios (`authService`, `categoryService`, `questionService`, `supabase.ts`), AuthContext, Inicio, Categorías, Lección Quiz y Perfil con Logout.
@@ -32,6 +31,7 @@ Este archivo es la ancla de contexto obligatoria para que el asistente de IA o c
 - [x] **S5-T01 a S5-T05** Migración de autenticación a Firebase Auth (SDK v12 modular), persistencia AsyncStorage, traducción de errores Firebase, rediseño de lecciones con fase teórica de vocabulario, colección Insomnia con 35 endpoints REST.
 - [x] **S6-T01 a S6-T07** Sistema de síntesis de voz nativo `expo-speech` con opciones para voces Android, guía fonética del Quechua (`phoneticGuide.ts`), ejercicio interactivo de pronunciación, botón universal `AudioPronounceButton`, microservicio local Python TTS (`tts_service.py`), resiliencia offline (`offlineCache.ts`), notificaciones de racha (`notificationService.ts`), feedback háptico (`expo-haptics`) y kit visual de complementos.
 - [x] **S7-T01 a S7-T08** Flujo pedagógico en 3 fases ("Enseñar antes de evaluar"), exámenes sumativos con Ronda de Refuerzo y tipos mixtos, paleta Wiphala Neón, caminito 3D con 9 colores intercalados, mascota Yachi Companion animada con hápticos, Onboarding con Malla Curricular (Yachay Ñan), y modal de Créditos Académicos (Yessica Escobar, Alejandro Padilla, Oscar Segovia — UPDS).
+- [x] **S8-T01 a S8-T08** Safe Area notch fix (`useSafeAreaInsets` + `StyleSheet.create` en `useMemo`), upsert inmediato a `leaderboard_weekly` en `addXp`, Realtime leaderboard con patrón `useRef`, mock `leaderboardService` en Jest (20/20 PASS), Onboarding Cultural v2.0 en 6 pasos (etimología morfológica Yachay, paso lingüístico Runasimi, sistema trivocálico A·I·U, normas Chanka/Cusco-Collao), modal v2.0 con sección lingüística 3 columnas y fix INV-06 (`yachiPrincipal`), y `profile.tsx` con "Créditos e Identidad Cultural".
 
 ---
 
@@ -92,3 +92,4 @@ supabase.from('profiles').update(...)
 | 2026-09-17 | Alejandro | Cierre de Sprint 5: Migración de Supabase Auth a Firebase Auth (SDK v12), persistencia AsyncStorage, traducción de errores al español, rediseño de lecciones con fase de vocabulario previo y colección Insomnia con 35 endpoints REST. |
 | 2026-09-20 | Alejandro | Cierre de Sprint 6: Audio nativo `expo-speech` (`es-PE`), guía fonética Quechua (`phoneticGuide.ts`), ejercicio de pronunciación, resiliencia offline (`offlineCache.ts`), notificaciones locales (`notificationService.ts`), hápticos y suite Jest. |
 | 2026-09-25 | Equipo (Yessica Escobar, Alejandro Padilla, Oscar Segovia) | Cierre de Sprint 7: Implementación del plan pedagógico en 3 fases (Enseñar ➡️ Practicar ➡️ Evaluar), exámenes sumativos con Ronda de Refuerzo y tipos dinámicos mixtos, paleta Wiphala Neón, caminito 3D con 9 colores intercalados, mascota interactiva Yachi Companion con hápticos, Onboarding con Malla Curricular, modal de Créditos Académicos UPDS y unificación de cabecera de Traductor. Suite Jest 17/17 PASS y 0 errores TypeScript. |
+| 2026-09-26 | Equipo (Yessica Escobar, Alejandro Padilla, Oscar Segovia) | Cierre de Sprint 8: `SafeAreaProvider` + `useSafeAreaInsets` en toast del caminito · `leaderboardService.syncUserTotalXp` inmediato en `addXp` · Realtime leaderboard via Supabase `postgres_changes` · Onboarding Cultural 6 pasos (etimología YACHA-/-Y, Runa Simi, Chanka/Cusco-Collao, sistema trivocálico A·I·U) · Modal v2.0 con sección lingüística y fix INV-06 (`yachiPrincipal`) · `profile.tsx` "Créditos e Identidad Cultural" · suite Jest **20/20 PASS** y 0 errores TypeScript. |

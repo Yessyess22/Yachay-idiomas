@@ -260,7 +260,7 @@ export default function ShopScreen() {
           );
         })}
 
-        <View style={{ height: 40 }} />
+        <View style={styles.spacerBottom} />
       </ScrollView>
 
       {/* Modal de Confirmación de Canje */}
@@ -307,7 +307,7 @@ export default function ShopScreen() {
             </View>
 
             <Text style={styles.modalBalanceText}>
-              Gemas disponibles: <Text style={{ fontWeight: '800', color: '#1D4ED8' }}>{gems} 💎</Text>
+              Gemas disponibles: <Text style={styles.modalGemsHighlight}>{gems} 💎</Text>
             </Text>
 
             <View style={styles.modalActionsRow}>
@@ -771,5 +771,12 @@ const styles = StyleSheet.create({
     color: '#E11D48',
     fontWeight: '700',
     marginTop: 4,
+  },
+  spacerBottom: {
+    height: 40,
+  },
+  modalGemsHighlight: {
+    fontWeight: '800',
+    color: '#1D4ED8',
   },
 });

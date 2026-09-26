@@ -163,4 +163,23 @@ export const leaderboardService = {
       console.warn('[leaderboardService] Error syncing user total xp:', err);
     }
   },
+
+  /**
+   * Suscribe a cambios en tiempo real de la tabla leaderboard_weekly via
+   * Supabase Realtime (Postgres Changes). Devuelve una función de limpieza
+   * para cancelar la suscripción al desmontar el componente.
+   */
+  subscribeToLeaderboardChanges(onUpdate: () => void): () => void {
+    const channel = supabase
+      .channel('leaderboard_realtime_ch')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'leaderboard_weekly' },
+        () => onUpdate()
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  },
 };

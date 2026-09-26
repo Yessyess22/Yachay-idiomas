@@ -1,6 +1,6 @@
 # Registro de Deuda Técnica y Hallazgos — Yachay Quechua
 
-**Versión:** 2.0 | **Fecha de actualización:** 2026-09-20 | **Estado:** Vivo (0 GAPs pendientes)
+**Versión:** 2.1 | **Fecha de actualización:** 2026-09-26 | **Estado:** Vivo (0 GAPs pendientes)
 
 Este documento es el registro vivo de todas las deficiencias de arquitectura, deuda técnica y debilidades identificadas en el repositorio. Cada entrada (GAP) tiene un propietario responsable de su resolución y el sprint objetivo en que fue cerrado. Los GAPs no se eliminan; se marcan como resueltos y se documenta la solución aplicada.
 
@@ -105,3 +105,20 @@ Se implementó el componente `ProfileHydrator` en `app/_layout.tsx` que invoca `
 ### Solución Aplicada
 1. `leaderboardService.fetchWeeklyLeaderboard()` se actualizó para realizar un JOIN entre `leaderboard_weekly` y `profiles`, devolviendo la clasificación por `weekly_xp` y `league_tier`.
 2. `shop.tsx` se conectó a `shopService.fetchShopItems()`, obteniendo la lista dinámica de ítems y cosméticos almacenados en la tabla `shop_items`.
+
+
+---
+
+## Nota de auditoría Sprint 8 — Invariantes de Arquitectura (2026-09-26)
+
+Sprint 8 ejecutó la triple auditoría grep completa dentro del contenedor Docker. Resultados:
+
+| Invariante | Verificación | Resultado |
+| :--- | :--- | :---: |
+| **INV-01** — Sin llamadas directas a Supabase en `app/` | `grep -r "from.*services/supabase" app/` | ✅ 0 hallazgos |
+| **INV-02** — Sin estilos inline JSX | `grep -rn "style={{" app/` | ✅ 0 hallazgos no autorizados |
+| **INV-03** — Sin `Alert.alert`/`window.alert` en lecciones | `grep -r "Alert\.alert\|window\.alert" app/` | ✅ 0 hallazgos |
+| **INV-04** — Sin monetización real | Revisión manual (`stripe`/`paypal` ausentes) | ✅ Confirmado |
+| **INV-06** — Mascota Yachi exportada solo desde `src/assets/images/index.ts` | `grep -r "require.*assets/images/yachi" app/` | ✅ 0 hallazgos directos |
+
+No se abrieron nuevos GAPs en Sprint 8.

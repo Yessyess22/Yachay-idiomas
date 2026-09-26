@@ -4,9 +4,8 @@ import { useAuth } from '@/src/context/AuthContext';
 import { useGame } from '@/src/context/GameContext';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
-  Alert,
   Platform,
   ScrollView,
   Share,
@@ -26,6 +25,7 @@ export default function CertificateScreen() {
   const router = useRouter();
   const { user, profile } = useAuth();
   const { xp, streakDays } = useGame();
+  const [shareFeedback, setShareFeedback] = useState<string | null>(null);
 
   const studentName = useMemo(() => {
     if (
@@ -64,7 +64,8 @@ export default function CertificateScreen() {
         if (navigator.share) {
           await navigator.share({ title: 'Certificado Yachay', text: message });
         } else {
-          Alert.alert('¡Certificado Listo!', 'Copia y comparte tu logro:\n\n' + message);
+          setShareFeedback(message);
+          setTimeout(() => setShareFeedback(null), 5000);
         }
       } else {
         await Share.share({ message });
@@ -200,6 +201,14 @@ export default function CertificateScreen() {
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      {/* Banner de compartir (reemplaza Alert.alert en web sin navigator.share) */}
+      {shareFeedback !== null && (
+        <View style={styles.shareFeedbackBanner}>
+          <Text style={styles.shareFeedbackTitle}>¡Certificado Listo! 🎓</Text>
+          <Text style={styles.shareFeedbackText} selectable>{shareFeedback}</Text>
+        </View>
+      )}
     </View>
   );
 }
@@ -527,5 +536,35 @@ const styles = StyleSheet.create({
     color: '#F8FAFC',
     fontSize: 14,
     fontWeight: '700',
+  },
+  shareFeedbackBanner: {
+    position: 'absolute',
+    bottom: 24,
+    left: 16,
+    right: 16,
+    backgroundColor: '#1E3A5F',
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: '#D97706',
+    zIndex: 999,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 10,
+  },
+  shareFeedbackTitle: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#D97706',
+    marginBottom: 6,
+    textAlign: 'center',
+  },
+  shareFeedbackText: {
+    fontSize: 12,
+    color: '#E2E8F0',
+    lineHeight: 18,
+    textAlign: 'center',
   },
 });

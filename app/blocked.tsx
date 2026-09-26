@@ -3,8 +3,8 @@ import { BrandColors } from '@/src/constants/theme';
 import { useGame } from '@/src/context/GameContext';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import React, { useEffect } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -16,6 +16,8 @@ import Animated, {
 export default function BlockedScreen() {
   const { gems, consumeGems, restoreLives, addLives } = useGame();
   const router = useRouter();
+  const [feedbackMsg, setFeedbackMsg] = useState<string | null>(null);
+  const [feedbackIsError, setFeedbackIsError] = useState(true);
 
   const shakeX = useSharedValue(0);
   const shakeStyle = useAnimatedStyle(() => ({
@@ -36,37 +38,27 @@ export default function BlockedScreen() {
 
   function handleBuySingleLife() {
     if (gems < 5) {
-      Alert.alert(
-        'Gemas insuficientes 💎',
-        `Necesitas 5 gemas para recuperar 1 vida y tienes ${gems}. Puedes ganar gemas completando lecciones o repasando en la Biblioteca.`
-      );
+      setFeedbackIsError(true);
+      setFeedbackMsg(`Necesitas 5 gemas para recuperar 1 vida y tienes ${gems}. Gana gemas completando lecciones.`);
       return;
     }
-
     const success = consumeGems(5);
     if (success) {
       addLives(1);
-      Alert.alert('¡Vida Restaurada! ❤️', 'Has recuperado 1 vida por 5 gemas sagradas.', [
-        { text: '¡Continuar!', onPress: () => router.replace('/(tabs)') },
-      ]);
+      router.replace('/(tabs)');
     }
   }
 
   function handleBuyAllLives() {
     if (gems < 25) {
-      Alert.alert(
-        'Gemas insuficientes 💎',
-        `Necesitas 25 gemas para restaurar todas tus vidas y tienes ${gems}. También puedes canjear 1 vida por 5 gemas.`
-      );
+      setFeedbackIsError(true);
+      setFeedbackMsg(`Necesitas 25 gemas para restaurar todas tus vidas y tienes ${gems}. También puedes canjear 1 vida por 5 gemas.`);
       return;
     }
-
     const success = consumeGems(25);
     if (success) {
       restoreLives();
-      Alert.alert('¡Vidas Restauradas! ❤️', 'Has recuperado tus 5 vidas por 25 gemas sagradas.', [
-        { text: '¡Continuar!', onPress: () => router.replace('/(tabs)') },
-      ]);
+      router.replace('/(tabs)');
     }
   }
 
@@ -102,6 +94,16 @@ export default function BlockedScreen() {
         <View style={styles.gemsBadge}>
           <Text style={styles.gemsBadgeText}>💎 Tu saldo: {gems} Gemas</Text>
         </View>
+
+        {/* Banner de feedback visual (reemplaza Alert.alert) */}
+        {feedbackMsg !== null && (
+          <View style={[styles.feedbackBanner, feedbackIsError ? styles.feedbackError : styles.feedbackSuccess]}>
+            <Text style={styles.feedbackText}>{feedbackMsg}</Text>
+            <TouchableOpacity onPress={() => setFeedbackMsg(null)} style={styles.feedbackCloseBtn}>
+              <Text style={styles.feedbackClose}>✕</Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
         {/* Opción 1A: Comprar 1 vida con 5 gemas */}
         <TouchableOpacity
@@ -269,5 +271,39 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
     textDecorationLine: 'underline',
+  },
+  feedbackBanner: {
+    width: '100%',
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    marginBottom: 12,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+  },
+  feedbackError: {
+    backgroundColor: '#FEE2E2',
+    borderWidth: 1,
+    borderColor: '#FCA5A5',
+  },
+  feedbackSuccess: {
+    backgroundColor: '#D1FAE5',
+    borderWidth: 1,
+    borderColor: '#6EE7B7',
+  },
+  feedbackText: {
+    flex: 1,
+    fontSize: 13,
+    color: '#1E293B',
+    lineHeight: 18,
+  },
+  feedbackCloseBtn: {
+    paddingHorizontal: 4,
+  },
+  feedbackClose: {
+    fontSize: 14,
+    color: '#64748B',
+    fontWeight: '700',
   },
 });

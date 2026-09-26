@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -80,6 +80,9 @@ export default function LogrosScreen() {
   const [entries, setEntries] = useState<LeaderboardEntry[]>(DEFAULT_LEADERBOARD);
   const [loading] = useState(false);
 
+  // Ref para el callback de Realtime — siempre tiene uid y xp actuales
+  const fetchRef = useRef<() => void>(() => {});
+
   const userStreak = Math.max(1, streakDays ?? profile?.streak_count ?? 1);
   const userXp = xp ?? profile?.total_xp ?? 0;
   const userGems = gems ?? profile?.gems ?? 100;
@@ -144,6 +147,26 @@ export default function LogrosScreen() {
       isMounted = false;
     };
   }, [user, userXp, activeTab]);
+
+  // Mantener el ref sincronizado con uid y xp actuales
+  useEffect(() => {
+    const uid = user?.uid || (user as any)?.id;
+    fetchRef.current = () => {
+      leaderboardService.fetchWeeklyLeaderboard(uid, userXp)
+        .then(({ data }) => {
+          if (data && data.length > 0) setEntries(data);
+        })
+        .catch(() => {});
+    };
+  }, [user, userXp]);
+
+  // Suscripción Supabase Realtime — se crea una sola vez al montar
+  useEffect(() => {
+    const unsubscribe = leaderboardService.subscribeToLeaderboardChanges(() => {
+      fetchRef.current();
+    });
+    return unsubscribe;
+  }, []);
 
   return (
     <View style={styles.container}>
@@ -234,7 +257,7 @@ export default function LogrosScreen() {
               </View>
             </View>
           ))}
-          <View style={{ height: 40 }} />
+          <View style={styles.spacerBottom} />
         </ScrollView>
       ) : (
         <View style={styles.leaderboardContainer}>
@@ -284,7 +307,7 @@ export default function LogrosScreen() {
                   </View>
                 );
               }}
-              ListFooterComponent={<View style={{ height: 40 }} />}
+              ListFooterComponent={<View style={styles.spacerBottom} />}
             />
           )}
         </View>
@@ -626,5 +649,8 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '700',
     color: '#7A6E65',
+  },
+  spacerBottom: {
+    height: 40,
   },
 });

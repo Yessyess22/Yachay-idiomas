@@ -99,7 +99,7 @@ export default function GuidebookScreen() {
           </Card>
         ))}
 
-        <View style={{ height: 40 }} />
+        <View style={styles.spacerBottom} />
       </ScrollView>
     </View>
   );
@@ -227,5 +227,8 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#55493B',
     lineHeight: 19,
+  },
+  spacerBottom: {
+    height: 40,
   },
 });

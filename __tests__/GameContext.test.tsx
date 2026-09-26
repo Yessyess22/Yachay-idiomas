@@ -12,6 +12,15 @@ jest.mock('@/src/services/authService', () => ({
   },
 }));
 
+jest.mock('@/src/services/leaderboardService', () => ({
+  leaderboardService: {
+    syncUserTotalXp: jest.fn().mockResolvedValue(undefined),
+    recordWeeklyXp: jest.fn().mockResolvedValue(undefined),
+    subscribeToLeaderboardChanges: jest.fn().mockReturnValue(() => {}),
+    fetchWeeklyLeaderboard: jest.fn().mockResolvedValue({ data: [], error: null }),
+  },
+}));
+
 const wrapper = ({ children }: { children: React.ReactNode }) => (
   <GameProvider>{children}</GameProvider>
 );
