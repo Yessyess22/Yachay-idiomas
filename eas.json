@@ -11,6 +11,16 @@
       "distribution": "internal",
       "android": {
         "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_SUPABASE_URL": "https://pcjkblllqokyhomlwloo.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "sb_publishable_20vwwucG_mMDPupmCuuo3g_7rXPwF10",
+        "EXPO_PUBLIC_FIREBASE_API_KEY": "AIzaSyATfEfQIqnmIp65Ss5i81Ij8CX-9jd235U",
+        "EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN": "yachay-idiomas.firebaseapp.com",
+        "EXPO_PUBLIC_FIREBASE_PROJECT_ID": "yachay-idiomas",
+        "EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET": "yachay-idiomas.appspot.com",
+        "EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID": "44041238737",
+        "EXPO_PUBLIC_FIREBASE_APP_ID": "1:44041238737:web:8eae2d333d77c933beedf0"
       }
     },
     "preview-simulator": {

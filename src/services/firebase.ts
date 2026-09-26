@@ -5,12 +5,12 @@ import { getAuth, getReactNativePersistence, initializeAuth } from 'firebase/aut
 import { Platform } from 'react-native';
 
 const firebaseConfig = {
-  apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY || '',
-  authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN || '',
-  projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID || '',
-  storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET || '',
-  messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || '',
-  appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID || '',
+  apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY || 'AIzaSyATfEfQIqnmIp65Ss5i81Ij8CX-9jd235U',
+  authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN || 'yachay-idiomas.firebaseapp.com',
+  projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID || 'yachay-idiomas',
+  storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET || 'yachay-idiomas.appspot.com',
+  messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || '44041238737',
+  appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID || '1:44041238737:web:8eae2d333d77c933beedf0',
 };
 
 const app = initializeApp(firebaseConfig);

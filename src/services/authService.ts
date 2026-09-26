@@ -26,6 +26,8 @@ function translateFirebaseError(code: string): string {
     'auth/network-request-failed':'Sin conexión a internet.',
     'auth/popup-blocked':         'La ventana emergente de Google fue bloqueada. Permite las ventanas emergentes en tu navegador.',
     'auth/operation-not-allowed': 'El inicio con Google no está habilitado en Firebase Console.',
+    'auth/operation-not-supported-in-this-environment': 'El inicio con Google en la app móvil requiere credenciales nativas SHA-1 en Firebase. Usa tu correo y contraseña.',
+    'auth/invalid-api-key':       'Clave de autenticación no configurada en el dispositivo.',
     'auth/account-exists-with-different-credential': 'Ya existe una cuenta con este correo vinculada a otro método.',
   };
   return map[code] ?? 'Ocurrió un error. Inténtalo de nuevo.';
@@ -92,6 +94,13 @@ export const authService = {
 
   async signInWithGoogle(): Promise<{ user: User | null; error: string | null }> {
     try {
+      if (Platform.OS !== 'web') {
+        return {
+          user: null,
+          error: 'El inicio rápido con Google requiere configuración de credenciales SHA-1 en Firebase Console. Por favor ingresa con tu correo y contraseña.',
+        };
+      }
+
       const provider = new GoogleAuthProvider();
       provider.setCustomParameters({ prompt: 'select_account' });
 
