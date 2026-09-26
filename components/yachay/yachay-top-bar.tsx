@@ -8,13 +8,26 @@ import { useRouter } from 'expo-router';
 const TEAL = '#00C853';
 
 export function YachayTopBar() {
-  const { lives, streakDays, xp, restoreLives } = useGame();
+  const {
+    lives,
+    streakDays,
+    xp,
+    gems,
+    restoreLives,
+    addLives,
+    consumeGems,
+    hasDoubleXp,
+    doubleXpMinutesLeft,
+    streakFreezeCount,
+  } = useGame();
   const { profile } = useAuth();
   const router = useRouter();
   const [livesModal, setLivesModal] = useState(false);
   const [streakModal, setStreakModal] = useState(false);
+  const [gemsModal, setGemsModal] = useState(false);
 
   const currentXp = xp ?? profile?.total_xp ?? 0;
+  const currentGems = gems ?? profile?.gems ?? 100;
   const streak = streakDays ?? profile?.streak_count ?? 0;
 
   return (
@@ -23,7 +36,7 @@ export function YachayTopBar() {
         {/* Adorno textil andino esquina izquierda */}
         <Text style={styles.cornerPatternLeft}>◇◆◇</Text>
 
-        {/* LOGO izquierda unificado con icono oficial de Yachay Simi */}
+        {/* LOGO izquierda unificado con icono oficial de Yachay */}
         <TouchableOpacity
           style={styles.logoWrap}
           onPress={() => router.push('/modal' as any)}
@@ -35,9 +48,7 @@ export function YachayTopBar() {
             resizeMode="contain"
           />
           <View style={styles.logoTextWrap}>
-            <Text style={styles.logoText}>
-              Yachay <Text style={styles.logoTextAccent}>Simi</Text>
-            </Text>
+            <Text style={styles.logoText}>Yachay</Text>
           </View>
         </TouchableOpacity>
 
@@ -48,6 +59,24 @@ export function YachayTopBar() {
             <Text style={styles.pillEmojiCoin}>🪙</Text>
             <Text style={[styles.pillText, styles.pillTextXp]}>{currentXp} XP</Text>
           </View>
+
+          {/* Badge Doble XP si está activo */}
+          {hasDoubleXp && (
+            <View style={[styles.pill, styles.pillDoubleXp]}>
+              <Text style={styles.pillEmojiZap}>⚡</Text>
+              <Text style={styles.pillTextDoubleXp}>2X</Text>
+            </View>
+          )}
+
+          {/* Gemas (Azul diamante suave) */}
+          <TouchableOpacity
+            style={[styles.pill, styles.pillGems]}
+            onPress={() => setGemsModal(true)}
+            activeOpacity={0.75}
+          >
+            <Text style={styles.pillEmojiGem}>💎</Text>
+            <Text style={[styles.pillText, styles.pillTextGems]}>{currentGems}</Text>
+          </TouchableOpacity>
 
           {/* Vidas (Rojo suave) */}
           <TouchableOpacity
@@ -70,16 +99,6 @@ export function YachayTopBar() {
               {streak} {streak === 1 ? 'día' : 'días'}
             </Text>
           </TouchableOpacity>
-
-          {/* Traductor de Voz (Verde mar suave) */}
-          <TouchableOpacity
-            style={[styles.pill, styles.pillTranslator]}
-            onPress={() => router.push('/(tabs)/translator' as any)}
-            activeOpacity={0.75}
-          >
-            <Text style={styles.pillEmojiMic}>🎙️</Text>
-            <Text style={[styles.pillText, styles.pillTextTranslator]}>Traductor</Text>
-          </TouchableOpacity>
         </View>
 
         {/* Adorno textil andino esquina derecha */}
@@ -94,18 +113,75 @@ export function YachayTopBar() {
             <Text style={styles.modalTitle}>Vidas ({lives} / 5)</Text>
             <Text style={styles.modalDesc}>
               {lives < 5
-                ? `Te quedan ${lives} de 5 vidas. Pierdes 1 vida cuando fallas una pregunta en las lecciones.`
-                : '¡Tus vidas están al máximo (5/5)! Sigue aprendiendo Quechua con energía.'}
+                ? `Te quedan ${lives} de 5 vidas. Pierdes 1 vida cuando fallas una pregunta en los exámenes sumativos.`
+                : '¡Tus vidas están al máximo (5/5)! Se usan exclusivamente en los exámenes de nivel.'}
             </Text>
             {lives < 5 && (
-              <TouchableOpacity
-                style={styles.refillBtn}
-                onPress={() => { restoreLives(); setLivesModal(false); }}
-              >
-                <Text style={styles.refillText}>Recargar Vidas Gratis ❤️</Text>
-              </TouchableOpacity>
+              <View style={{ width: '100%', gap: 8, marginBottom: 8 }}>
+                {currentGems >= 5 && (
+                  <TouchableOpacity
+                    style={[styles.refillBtn, { backgroundColor: '#00C853', borderBottomColor: '#009624' }]}
+                    onPress={() => {
+                      consumeGems(5);
+                      addLives(1);
+                      setLivesModal(false);
+                    }}
+                  >
+                    <Text style={styles.refillText}>Recargar +1 Vida (5 💎)</Text>
+                  </TouchableOpacity>
+                )}
+                {currentGems >= 25 && (
+                  <TouchableOpacity
+                    style={[styles.refillBtn, { backgroundColor: '#D97706', borderBottomColor: '#B45309' }]}
+                    onPress={() => {
+                      consumeGems(25);
+                      restoreLives();
+                      setLivesModal(false);
+                    }}
+                  >
+                    <Text style={styles.refillText}>Recargar 5 Vidas (25 💎)</Text>
+                  </TouchableOpacity>
+                )}
+                <TouchableOpacity
+                  style={[styles.refillBtn, { backgroundColor: '#0284C7', borderBottomColor: '#0369A1' }]}
+                  onPress={() => {
+                    setLivesModal(false);
+                    router.push('/(tabs)/shop' as any);
+                  }}
+                >
+                  <Text style={styles.refillText}>Ir a la Tienda 🛒</Text>
+                </TouchableOpacity>
+              </View>
             )}
             <TouchableOpacity style={styles.closeBtn} onPress={() => setLivesModal(false)}>
+              <Text style={styles.closeBtnText}>Cerrar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Modal Gemas */}
+      <Modal animationType="slide" transparent visible={gemsModal} onRequestClose={() => setGemsModal(false)}>
+        <View style={styles.overlay}>
+          <View style={styles.modal}>
+            <Text style={styles.modalEmoji}>💎</Text>
+            <Text style={styles.modalTitle}>Gemas ({currentGems})</Text>
+            <Text style={styles.modalDesc}>
+              Tienes {currentGems} {currentGems === 1 ? 'gema sagrada' : 'gemas sagradas'}.{'\n\n'}
+              • Ganas +15 gemas por completar lecciones y +30 en exámenes.{'\n'}
+              • En las lecciones no pierdes gemas; fallar reduce la experiencia ganada.{'\n'}
+              • Úsalas para recargar vidas o comprar potenciadores en la tienda.
+            </Text>
+            <TouchableOpacity
+              style={styles.refillBtn}
+              onPress={() => {
+                setGemsModal(false);
+                router.push('/(tabs)/shop' as any);
+              }}
+            >
+              <Text style={styles.refillText}>Ir a la Tienda Yachay 🛒</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.closeBtn} onPress={() => setGemsModal(false)}>
               <Text style={styles.closeBtnText}>Cerrar</Text>
             </TouchableOpacity>
           </View>
@@ -122,6 +198,9 @@ export function YachayTopBar() {
               {streak === 1
                 ? '¡Comenzaste tu primer día de práctica! Vuelve mañana para que tu llama del saber no se apague.'
                 : `¡Increíble disciplina! Llevas ${streak} días consecutivos aprendiendo Quechua.`}
+              {streakFreezeCount > 0
+                ? `\n\n❄️ Tienes ${streakFreezeCount} Amuleto(s) de Hielo protegiendo tu racha si un día no puedes practicar.`
+                : ''}
             </Text>
             <TouchableOpacity style={styles.refillBtn} onPress={() => setStreakModal(false)}>
               <Text style={styles.refillText}>¡A seguir aprendiendo! 🚀</Text>
@@ -142,45 +221,46 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     backgroundColor: '#F9F6F0',
-    paddingVertical: 12,
-    paddingHorizontal: 14,
+    paddingVertical: 10,
+    paddingHorizontal: 8,
     borderBottomWidth: 1,
     borderBottomColor: '#EAE3D6',
     position: 'relative',
   },
   cornerPatternLeft: {
     position: 'absolute',
-    left: 4,
+    left: 3,
     top: 2,
-    fontSize: 10,
+    fontSize: 8,
     color: '#D2C3AA',
     letterSpacing: 1,
   },
   cornerPatternRight: {
     position: 'absolute',
-    right: 4,
+    right: 3,
     top: 2,
-    fontSize: 10,
+    fontSize: 8,
     color: '#D2C3AA',
     letterSpacing: 1,
   },
   logoWrap: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 4,
+    flexShrink: 0,
   },
   topLogoIcon: {
-    width: 28,
-    height: 28,
+    width: 25,
+    height: 25,
   },
   logoTextWrap: {
     flexDirection: 'column',
   },
   logoText: {
-    fontSize: 18,
+    fontSize: 16.5,
     fontWeight: '900',
     color: '#00701A',
-    letterSpacing: -0.4,
+    letterSpacing: -0.3,
   },
   logoTextAccent: {
     color: '#F59E0B',
@@ -188,20 +268,33 @@ const styles = StyleSheet.create({
   statsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 7,
+    gap: 4,
   },
   pill: {
     flexDirection: 'row',
     alignItems: 'center',
-    borderRadius: 20,
-    paddingVertical: 6,
-    paddingHorizontal: 11,
-    gap: 5,
+    borderRadius: 16,
+    paddingVertical: 4.5,
+    paddingHorizontal: 7,
+    gap: 3.5,
     borderWidth: 1.5,
+    flexShrink: 0,
   },
   pillXp: {
     backgroundColor: '#FFF9E6',
     borderColor: '#EBD89F',
+  },
+  pillDoubleXp: {
+    backgroundColor: '#FEF3C7',
+    borderColor: '#F59E0B',
+    paddingHorizontal: 6,
+  },
+  pillEmojiZap: {
+    fontSize: 12,
+  },
+  pillGems: {
+    backgroundColor: '#EFF6FF',
+    borderColor: '#BFDBFE',
   },
   pillNivel: {
     backgroundColor: '#E0F2F1',
@@ -220,26 +313,36 @@ const styles = StyleSheet.create({
     borderColor: '#80CBC4',
   },
   pillEmojiCoin: {
-    fontSize: 14,
+    fontSize: 12.5,
+  },
+  pillEmojiGem: {
+    fontSize: 12.5,
   },
   pillEmojiHeart: {
-    fontSize: 14,
+    fontSize: 12.5,
   },
   pillEmojiMountain: {
-    fontSize: 14,
+    fontSize: 13,
   },
   pillEmojiFire: {
-    fontSize: 14,
+    fontSize: 12.5,
   },
   pillEmojiMic: {
-    fontSize: 14,
+    fontSize: 12.5,
   },
   pillText: {
-    fontSize: 12,
+    fontSize: 11.5,
     fontWeight: '800',
   },
   pillTextXp: {
     color: '#5C4314',
+  },
+  pillTextDoubleXp: {
+    color: '#B45309',
+    fontWeight: '900',
+  },
+  pillTextGems: {
+    color: '#1D4ED8',
   },
   pillTextNivel: {
     color: '#00701A',

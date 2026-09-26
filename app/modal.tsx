@@ -31,42 +31,33 @@ export default function ModalScreen() {
                 resizeMode="contain"
               />
             </View>
-            <Text style={styles.title}>Yachay Simi</Text>
-            <Text style={styles.tagline}>El Lenguaje de la Sabiduría Andina</Text>
+            <Text style={styles.title}>Yachay</Text>
+            <Text style={styles.tagline}>El Sendero de la Sabiduría Andina</Text>
           </View>
 
           {/* ¿Qué significa el nombre de la app? */}
           <View style={styles.meaningBox}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionEmoji}>🏔️</Text>
-              <Text style={styles.sectionTitle}>¿Qué significa "Yachay Simi"?</Text>
+              <Text style={styles.sectionTitle}>¿Qué significa "Yachay"?</Text>
             </View>
             <Text style={styles.meaningIntro}>
-              El nombre de nuestra aplicación proviene de dos vocablos quechuas ancestrales:
+              El nombre de nuestra aplicación proviene del vocablo quechua ancestral:
             </Text>
             <View style={styles.meaningRow}>
               <View style={styles.meaningPill}>
                 <Text style={styles.meaningQuechua}>YACHAY</Text>
-                <Text style={styles.meaningTranslation}>Sabiduría · Aprender · Conocimiento</Text>
+                <Text style={styles.meaningTranslation}>Aprender · Sabiduría · Conocimiento</Text>
                 <Text style={styles.meaningDetail}>
-                  Uno de los tres pilares de la filosofía andina junto con el Munay (amor/voluntad) y el Llank'ay (trabajo).
-                </Text>
-              </View>
-            </View>
-            <View style={styles.meaningRow}>
-              <View style={styles.meaningPill}>
-                <Text style={styles.meaningQuechua}>SIMI</Text>
-                <Text style={styles.meaningTranslation}>Boca · Palabra · Lenguaje · Idioma</Text>
-                <Text style={styles.meaningDetail}>
-                  La palabra viva transmitida por tradición oral de generación en generación en el Runa Simi.
+                  Representa el intelecto y el aprendizaje constante. Es uno de los tres pilares de la filosofía andina junto con el Munay (amor y voluntad) y el Llank&apos;ay (trabajo y acción comunitaria).
                 </Text>
               </View>
             </View>
             <View style={styles.meaningConclusion}>
               <Text style={styles.meaningConclusionText}>
-                ✨ <Text style={styles.boldText}>Yachay Simi</Text> se traduce como{' '}
-                <Text style={styles.italicHighlight}>"La palabra del saber"</Text> o{' '}
-                <Text style={styles.italicHighlight}>"El lenguaje de la sabiduría"</Text>.
+                ✨ <Text style={styles.boldText}>Yachay</Text> simboliza{' '}
+                <Text style={styles.italicHighlight}>"El camino del saber"</Text> y{' '}
+                <Text style={styles.italicHighlight}>"Aprender con sabiduría"</Text>.
               </Text>
             </View>
           </View>

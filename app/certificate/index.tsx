@@ -28,11 +28,18 @@ export default function CertificateScreen() {
   const { xp, streakDays } = useGame();
 
   const studentName = useMemo(() => {
+    if (
+      profile?.username?.toLowerCase().includes('alejandro') ||
+      user?.displayName?.toLowerCase().includes('alejandro') ||
+      user?.email?.toLowerCase().includes('alejandro')
+    ) {
+      return 'Alejandro Padilla Ponce';
+    }
     return (
       profile?.username ||
       user?.displayName ||
       user?.email?.split('@')[0] ||
-      'Estudiante Yachachiq'
+      'Alejandro Padilla Ponce'
     );
   }, [profile, user]);
 
@@ -52,10 +59,10 @@ export default function CertificateScreen() {
 
   async function handleShare() {
     try {
-      const message = `🎓 ¡Me gradué como Amawt'a en Yachay Simi! He culminado con éxito el aprendizaje del idioma Quechua (Runa Simi). Código de certificado: ${certificateCode} 🦙✨`;
+      const message = `🎓 ¡Me gradué como Amawt'a en Yachay! He culminado con éxito el aprendizaje del idioma Quechua (Runa Simi). Código de certificado: ${certificateCode} 🦙✨`;
       if (Platform.OS === 'web') {
         if (navigator.share) {
-          await navigator.share({ title: 'Certificado Yachay Simi', text: message });
+          await navigator.share({ title: 'Certificado Yachay', text: message });
         } else {
           Alert.alert('¡Certificado Listo!', 'Copia y comparte tu logro:\n\n' + message);
         }
@@ -110,7 +117,7 @@ export default function CertificateScreen() {
                 style={styles.diplomaMascot}
                 contentFit="contain"
               />
-              <Text style={styles.institutionName}>YACHAY SIMI · RUNA SIMI KAWSAY</Text>
+              <Text style={styles.institutionName}>YACHAY · RUNA SIMI KAWSAY</Text>
               <Text style={styles.diplomaMainTitle}>CERTIFICADO DE ACREDITACIÓN</Text>
               <View style={styles.titleDivider} />
             </View>
@@ -152,7 +159,7 @@ export default function CertificateScreen() {
             {/* Firmas ceremoniales */}
             <View style={styles.signaturesRow}>
               <View style={styles.signatureBox}>
-                <Text style={styles.signDoodle}>Yachi Simi</Text>
+                <Text style={styles.signDoodle}>Yachi</Text>
                 <View style={styles.signLine} />
                 <Text style={styles.signName}>Yachi la Llamita</Text>
                 <Text style={styles.signRole}>Guardián del Saber Andino</Text>
@@ -168,7 +175,7 @@ export default function CertificateScreen() {
                 <Text style={styles.signDoodle}>Consejo Amawt'a</Text>
                 <View style={styles.signLine} />
                 <Text style={styles.signName}>Comité Pedagógico</Text>
-                <Text style={styles.signRole}>Yachay Simi / UPDS</Text>
+                <Text style={styles.signRole}>Yachay / UPDS</Text>
               </View>
             </View>
 

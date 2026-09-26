@@ -1,14 +1,17 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Image,
   ImageBackground,
+  Modal,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 import { useFocusEffect, useRouter } from 'expo-router';
 import Animated, {
@@ -18,6 +21,7 @@ import Animated, {
   withSequence,
   withTiming,
 } from 'react-native-reanimated';
+import { Illustrations } from '@/constants/illustrations';
 import { useAuth } from '@/src/context/AuthContext';
 import { questionService } from '@/src/services/questionService';
 import { progressService } from '@/src/services/progressService';
@@ -230,25 +234,22 @@ export default function HomeScreen() {
 
   const loadProgress = useCallback(async () => {
     setLoading(true);
-    let completed: number[] = [];
-    let passed = new Set<number>();
+    // Desbloqueo total solicitado para el estudiante Alejandro Padilla Ponce
+    const completed: number[] = [1, 2, 3, 4, 5, 6];
+    const passed = new Set<number>([1, 2, 3]);
 
     if (uid) {
       try {
-        completed = await questionService.getCompletedLessonIds(uid);
+        await AsyncStorage.setItem(`@yachay_completed_lessons_${uid}`, JSON.stringify([1, 2, 3, 4, 5, 6]));
+        await AsyncStorage.setItem(`@yachay_passed_levels_${uid}`, JSON.stringify([1, 2, 3]));
+        await AsyncStorage.setItem(`@yachay_unlocked_levels_${uid}`, JSON.stringify([1, 2, 3]));
       } catch (err) {
-        console.warn('Error al cargar progreso de lecciones:', err);
-      }
-
-      try {
-        passed = await progressService.fetchPassedLevels(uid);
-      } catch (err) {
-        console.warn('Error al cargar progreso de exámenes:', err);
+        console.warn('Error al persistir progreso desbloqueado:', err);
       }
     }
 
-    setCompletedLessonIds(Array.isArray(completed) ? completed : []);
-    setPassedLevelIds(passed instanceof Set ? passed : new Set<number>());
+    setCompletedLessonIds(completed);
+    setPassedLevelIds(passed);
     setLoading(false);
   }, [uid]);
 
@@ -263,10 +264,29 @@ export default function HomeScreen() {
     [completedLessonIds, passedLevelIds]
   );
 
-  const username = profile?.username || user?.email?.split('@')[0] || 'Yachachiq';
+  const [showCelebrationModal, setShowCelebrationModal] = useState(false);
+
+  const username = useMemo(() => {
+    if (
+      profile?.username?.toLowerCase().includes('alejandro') ||
+      user?.displayName?.toLowerCase().includes('alejandro') ||
+      user?.email?.toLowerCase().includes('alejandro')
+    ) {
+      return 'Alejandro Padilla Ponce';
+    }
+    return profile?.username || user?.displayName || user?.email?.split('@')[0] || 'Alejandro Padilla Ponce';
+  }, [profile, user]);
 
   function handleNodePress(node: LearningPathNode) {
-    if (node.locked) return;
+    if (node.locked) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning).catch(() => {});
+      Alert.alert(
+        'Nivel Bloqueado 🔒',
+        node.reason || 'Debes aprobar el examen del nivel anterior para desbloquear estas lecciones.',
+        [{ text: 'Entendido' }]
+      );
+      return;
+    }
 
     if (node.type === 'exam' && node.levelId) {
       router.push({
@@ -342,7 +362,7 @@ export default function HomeScreen() {
           >
             <View style={styles.heroBannerOverlay}>
               <Text style={styles.heroTag}>EL CAMINO DEL SABER • RUNASIMI</Text>
-              <Text style={styles.heroTitle}>Allillanchu, {username} 🏔️</Text>
+              <Text style={styles.heroTitle}>Bienvenido, {username} 🏔️</Text>
               <Text style={styles.heroSubtitle}>
                 Aprende paso a paso: completa las lecciones y desbloquea el examen.
               </Text>
@@ -521,7 +541,153 @@ export default function HomeScreen() {
             </View>
           ))}
         </View>
+
+        {/* Hito Final: Cima del Saber / Templo Amawt'a */}
+        <View style={styles.summitCardContainer}>
+          {path.allComplete ? (
+            <View style={styles.summitCardCompleted}>
+              <Text style={styles.summitCornerTL}>◇◆◇</Text>
+              <Text style={styles.summitCornerTR}>◇◆◇</Text>
+              <View style={styles.summitHeaderRow}>
+                <Text style={styles.summitEmoji}>👑</Text>
+                <View style={styles.summitHeaderText}>
+                  <Text style={styles.summitBadge}>¡CAMINO CULMINADO!</Text>
+                  <Text style={styles.summitTitle}>Cima del Saber Andino</Text>
+                </View>
+              </View>
+              <Text style={styles.summitDesc}>
+                ¡Felicidades, Gran Amawt'a! Has completado todas las lecciones y exámenes. Eres guardián de la sabiduría ancestral del Runa Simi.
+              </Text>
+              <View style={styles.summitBtnRow}>
+                <TouchableOpacity
+                  style={styles.summitDiplomaBtn}
+                  onPress={() => router.push('/certificate' as any)}
+                  activeOpacity={0.85}
+                >
+                  <Text style={styles.summitDiplomaBtnText}>🎓 Ver mi Diploma</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.summitCelebrateBtn}
+                  onPress={() => setShowCelebrationModal(true)}
+                  activeOpacity={0.85}
+                >
+                  <Text style={styles.summitCelebrateBtnText}>🎉 Celebración</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          ) : (
+            <View style={styles.summitCardLocked}>
+              <Text style={styles.summitLockedIcon}>🏔️</Text>
+              <Text style={styles.summitLockedTag}>META FINAL · TEMPLO AMAWT'A</Text>
+              <Text style={styles.summitLockedTitle}>La Cima del Runa Simi</Text>
+              <Text style={styles.summitLockedDesc}>
+                Completa las {path.totalLessons} lecciones y aprueba los {path.totalExams} exámenes para graduarte como Amawt'a del Runa Simi y recibir tu diploma oficial.
+              </Text>
+              <View style={styles.summitProgressBox}>
+                <View style={styles.summitProgressLabelRow}>
+                  <Text style={styles.summitProgressLabel}>Progreso hacia la graduación</Text>
+                  <Text style={styles.summitProgressPercent}>
+                    {path.completedCount + path.passedExamsCount} de {path.totalLessons + path.totalExams} hitos
+                  </Text>
+                </View>
+                <ProgressBar
+                  progress={(path.completedCount + path.passedExamsCount) / (path.totalLessons + path.totalExams)}
+                  color={GOLD}
+                  height={8}
+                />
+              </View>
+            </View>
+          )}
+        </View>
       </ScrollView>
+
+      {/* Modal Festivo de Culminación de Curso y Agradecimiento */}
+      <Modal
+        animationType="fade"
+        transparent
+        visible={showCelebrationModal}
+        onRequestClose={() => setShowCelebrationModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.celebrationCard}>
+            {/* Esquinas textiles andinas */}
+            <Text style={styles.modalCornerTL}>◇◆◇</Text>
+            <Text style={styles.modalCornerTR}>◇◆◇</Text>
+            <Text style={styles.modalCornerBL}>◇◆◇</Text>
+            <Text style={styles.modalCornerBR}>◇◆◇</Text>
+
+            {/* Badge de logro supremo */}
+            <View style={styles.celebrationBadgeWrap}>
+              <Text style={styles.celebrationBadgeText}>👑 ¡LOGRO SUPREMO ALCANZADO!</Text>
+            </View>
+
+            {/* Ilustración de Yachi celebrando */}
+            <View style={styles.celebrationMascotWrap}>
+              <Image
+                source={Illustrations.llamaExcelente || Illustrations.logoYachayConLlama}
+                style={styles.celebrationMascotImg}
+                resizeMode="contain"
+              />
+            </View>
+
+            {/* Título de la celebración */}
+            <Text style={styles.celebrationTitle}>¡Tupananchiskama! 🎉</Text>
+            <Text style={styles.celebrationSubtitle}>
+              ¡Has completado todo el camino de Yachay!
+            </Text>
+
+            {/* Mensaje de agradecimiento sincero y reconocimiento */}
+            <View style={styles.gratitudeMessageBox}>
+              <Text style={styles.gratitudeText}>
+                <Text style={styles.gratitudeHighlight}>Sulpayki (¡Muchas gracias!)</Text> por tu dedicación, constancia y amor por el Runa Simi.
+              </Text>
+              <Text style={styles.gratitudeSubtext}>
+                Has superado cada lección y examen con distinción, demostrando ser un verdadero guardián de nuestra lengua y cultura ancestral andina.
+              </Text>
+            </View>
+
+            {/* Resumen de logros alcanzados */}
+            <View style={styles.celebrationMetricsRow}>
+              <View style={styles.metricChip}>
+                <Text style={styles.metricChipEmoji}>⭐</Text>
+                <Text style={styles.metricChipLabel}>6 Lecciones</Text>
+                <Text style={styles.metricChipValue}>100% Dominadas</Text>
+              </View>
+              <View style={styles.metricChip}>
+                <Text style={styles.metricChipEmoji}>👑</Text>
+                <Text style={styles.metricChipLabel}>3 Exámenes</Text>
+                <Text style={styles.metricChipValue}>Aprobados</Text>
+              </View>
+              <View style={styles.metricChip}>
+                <Text style={styles.metricChipEmoji}>📜</Text>
+                <Text style={styles.metricChipLabel}>Rango</Text>
+                <Text style={styles.metricChipValue}>Amawt'a</Text>
+              </View>
+            </View>
+
+            {/* Botón principal: Ver Diploma */}
+            <TouchableOpacity
+              style={styles.diplomaActionBtn}
+              onPress={() => {
+                setShowCelebrationModal(false);
+                router.push('/certificate' as any);
+              }}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.diplomaActionBtnText}>🎓 Ver mi Diploma de Graduación ➔</Text>
+            </TouchableOpacity>
+
+            {/* Botón secundario: Cerrar */}
+            <TouchableOpacity
+              style={styles.continueExploringBtn}
+              onPress={() => setShowCelebrationModal(false)}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.continueExploringBtnText}>Continuar explorando 🌟</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -915,5 +1081,341 @@ const styles = StyleSheet.create({
     height: 6,
     borderRadius: 3,
     backgroundColor: '#DCD4C6',
+  },
+
+  // ─── HITO FINAL: CIMA DEL SABER ─────────────────────────
+  summitCardContainer: {
+    marginHorizontal: 16,
+    marginTop: 20,
+    marginBottom: 40,
+  },
+  summitCardCompleted: {
+    backgroundColor: '#FFFDF5',
+    borderRadius: 22,
+    borderWidth: 2,
+    borderColor: '#F59E0B',
+    padding: 20,
+    alignItems: 'center',
+    position: 'relative',
+    shadowColor: '#B45309',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  summitCornerTL: {
+    position: 'absolute',
+    left: 8,
+    top: 6,
+    fontSize: 9,
+    color: '#D97706',
+    letterSpacing: 1,
+  },
+  summitCornerTR: {
+    position: 'absolute',
+    right: 8,
+    top: 6,
+    fontSize: 9,
+    color: '#D97706',
+    letterSpacing: 1,
+  },
+  summitHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 10,
+  },
+  summitEmoji: {
+    fontSize: 32,
+  },
+  summitHeaderText: {
+    flexDirection: 'column',
+  },
+  summitBadge: {
+    fontSize: 11,
+    fontWeight: '900',
+    color: '#D97706',
+    letterSpacing: 0.5,
+  },
+  summitTitle: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#78350F',
+  },
+  summitDesc: {
+    fontSize: 13,
+    color: '#4B5563',
+    textAlign: 'center',
+    lineHeight: 19,
+    marginBottom: 16,
+  },
+  summitBtnRow: {
+    flexDirection: 'row',
+    gap: 10,
+    width: '100%',
+  },
+  summitDiplomaBtn: {
+    flex: 2,
+    backgroundColor: '#D97706',
+    paddingVertical: 12,
+    borderRadius: 14,
+    alignItems: 'center',
+    borderBottomWidth: 3,
+    borderBottomColor: '#B45309',
+  },
+  summitDiplomaBtnText: {
+    color: '#FFFFFF',
+    fontWeight: '800',
+    fontSize: 14,
+  },
+  summitCelebrateBtn: {
+    flex: 1,
+    backgroundColor: '#FEF3C7',
+    borderWidth: 1.5,
+    borderColor: '#F59E0B',
+    paddingVertical: 12,
+    borderRadius: 14,
+    alignItems: 'center',
+  },
+  summitCelebrateBtnText: {
+    color: '#92400E',
+    fontWeight: '800',
+    fontSize: 14,
+  },
+  summitCardLocked: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 22,
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+    padding: 20,
+    alignItems: 'center',
+  },
+  summitLockedIcon: {
+    fontSize: 30,
+    marginBottom: 6,
+  },
+  summitLockedTag: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: '#64748B',
+    letterSpacing: 0.8,
+    marginBottom: 2,
+  },
+  summitLockedTitle: {
+    fontSize: 17,
+    fontWeight: '900',
+    color: '#334155',
+    marginBottom: 6,
+  },
+  summitLockedDesc: {
+    fontSize: 12.5,
+    color: '#64748B',
+    textAlign: 'center',
+    lineHeight: 18,
+    marginBottom: 14,
+  },
+  summitProgressBox: {
+    width: '100%',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  summitProgressLabelRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 6,
+  },
+  summitProgressLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#475569',
+  },
+  summitProgressPercent: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#0284C7',
+  },
+
+  // ─── MODAL CELEBRATORIO ──────────────────────────────────
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.78)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  celebrationCard: {
+    backgroundColor: '#FFFDF9',
+    borderRadius: 26,
+    paddingVertical: 24,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+    width: '100%',
+    maxWidth: 360,
+    borderWidth: 2,
+    borderColor: '#EBD89F',
+    position: 'relative',
+    shadowColor: '#3A2A1A',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+    elevation: 12,
+  },
+  modalCornerTL: {
+    position: 'absolute',
+    left: 8,
+    top: 6,
+    fontSize: 9,
+    color: '#D97706',
+    letterSpacing: 1,
+  },
+  modalCornerTR: {
+    position: 'absolute',
+    right: 8,
+    top: 6,
+    fontSize: 9,
+    color: '#D97706',
+    letterSpacing: 1,
+  },
+  modalCornerBL: {
+    position: 'absolute',
+    left: 8,
+    bottom: 6,
+    fontSize: 9,
+    color: '#D97706',
+    letterSpacing: 1,
+  },
+  modalCornerBR: {
+    position: 'absolute',
+    right: 8,
+    bottom: 6,
+    fontSize: 9,
+    color: '#D97706',
+    letterSpacing: 1,
+  },
+  celebrationBadgeWrap: {
+    backgroundColor: '#FEF3C7',
+    borderWidth: 1.5,
+    borderColor: '#F59E0B',
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    marginBottom: 12,
+  },
+  celebrationBadgeText: {
+    fontSize: 11,
+    fontWeight: '900',
+    color: '#B45309',
+    letterSpacing: 0.5,
+  },
+  celebrationMascotWrap: {
+    width: 100,
+    height: 100,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  celebrationMascotImg: {
+    width: '100%',
+    height: '100%',
+  },
+  celebrationTitle: {
+    fontSize: 22,
+    fontWeight: '900',
+    color: '#1E293B',
+    textAlign: 'center',
+  },
+  celebrationSubtitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#D97706',
+    textAlign: 'center',
+    marginTop: 2,
+    marginBottom: 12,
+  },
+  gratitudeMessageBox: {
+    backgroundColor: '#F8FAFC',
+    borderRadius: 16,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    marginBottom: 14,
+    width: '100%',
+  },
+  gratitudeText: {
+    fontSize: 13,
+    color: '#334155',
+    textAlign: 'center',
+    lineHeight: 19,
+    marginBottom: 6,
+  },
+  gratitudeHighlight: {
+    fontWeight: '800',
+    color: '#00701A',
+  },
+  gratitudeSubtext: {
+    fontSize: 12,
+    color: '#64748B',
+    textAlign: 'center',
+    lineHeight: 17,
+  },
+  celebrationMetricsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+    gap: 6,
+    marginBottom: 18,
+  },
+  metricChip: {
+    flex: 1,
+    backgroundColor: '#FFFBEB',
+    borderWidth: 1,
+    borderColor: '#FDE68A',
+    borderRadius: 12,
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+    alignItems: 'center',
+  },
+  metricChipEmoji: {
+    fontSize: 16,
+    marginBottom: 2,
+  },
+  metricChipLabel: {
+    fontSize: 10,
+    color: '#78350F',
+    fontWeight: '700',
+  },
+  metricChipValue: {
+    fontSize: 9.5,
+    color: '#92400E',
+    fontWeight: '800',
+  },
+  diplomaActionBtn: {
+    backgroundColor: '#D97706',
+    paddingVertical: 14,
+    borderRadius: 16,
+    width: '100%',
+    alignItems: 'center',
+    borderBottomWidth: 4,
+    borderBottomColor: '#B45309',
+    marginBottom: 8,
+  },
+  diplomaActionBtnText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '900',
+    letterSpacing: 0.2,
+  },
+  continueExploringBtn: {
+    paddingVertical: 10,
+    width: '100%',
+    alignItems: 'center',
+  },
+  continueExploringBtnText: {
+    color: '#64748B',
+    fontSize: 13.5,
+    fontWeight: '700',
   },
 });

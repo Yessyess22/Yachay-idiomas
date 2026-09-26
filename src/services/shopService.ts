@@ -33,7 +33,21 @@ export const shopService = {
       if (profileError) return { success: false, error: profileError.message };
 
       if (item.item_type === 'refill_lives') {
-        await supabase.from('profiles').update({ lives: 5 }).eq('firebase_uid', userId);
+        const isSingleLife = item.name.includes('1 Vida') || item.price_gems === 5;
+        if (isSingleLife) {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('lives')
+            .eq('firebase_uid', userId)
+            .single();
+          const currentLives = profile?.lives ?? 4;
+          await supabase
+            .from('profiles')
+            .update({ lives: Math.min(5, currentLives + 1) })
+            .eq('firebase_uid', userId);
+        } else {
+          await supabase.from('profiles').update({ lives: 5 }).eq('firebase_uid', userId);
+        }
       } else if (item.item_type === 'streak_freeze') {
         const { data: profile } = await supabase
           .from('profiles')

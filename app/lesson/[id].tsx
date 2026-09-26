@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Modal,
   ScrollView,
   StyleSheet,
@@ -659,8 +660,40 @@ export default function LessonScreen() {
   const [reviewAnswered, setReviewAnswered] = useState(false);
 
   const { user, refreshProfile } = useAuth();
-  const { lives, streakDays, checkAnswer, addGems, addXp, hasDoubleXp } = useGame();
+  const { gems, streakDays, addGems, addXp, hasDoubleXp } = useGame();
   const router = useRouter();
+
+  const totalLessonXp = hasDoubleXp ? 20 : 10;
+  const xpPenaltyPerError = hasDoubleXp ? 4 : 2;
+  const [lostLessonXp, setLostLessonXp] = useState(0);
+  const [showXpExhaustedModal, setShowXpExhaustedModal] = useState(false);
+
+  function handleRestartLesson() {
+    setShowXpExhaustedModal(false);
+    setCurrentIndex(0);
+    setIsAnswered(false);
+    setSelectedOptionId(null);
+    setTypedAnswer('');
+    setCorrectAnswerText('');
+    setReviewMode(false);
+    setReviewQueue([]);
+    setMissedWords([]);
+    setLostLessonXp(0);
+  }
+
+  function handleLessonError() {
+    bounceYachi();
+    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
+    playIncorrectSound();
+
+    const newLost = lostLessonXp + xpPenaltyPerError;
+    setLostLessonXp(newLost);
+
+    if (newLost > totalLessonXp) {
+      // Ha sobrepasado la exp total que te da la lección por errar tanto
+      setShowXpExhaustedModal(true);
+    }
+  }
 
   // Animación de la mascota Yachi (rebote/celebración)
   const { style: yachiAnimStyle, bounce: bounceYachi, celebrate: celebrateYachi } = useYachiBounce();
@@ -817,11 +850,6 @@ export default function LessonScreen() {
     setCorrectAnswerText(answerText);
     setIsCorrect(correct);
     setIsAnswered(true);
-    checkAnswer(correct);
-
-    if (!correct) {
-      registerMissedWord(currentExercise);
-    }
 
     if (correct) {
       celebrateYachi();
@@ -829,9 +857,8 @@ export default function LessonScreen() {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
       playCorrectSound();
     } else {
-      bounceYachi();
-      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
-      playIncorrectSound();
+      registerMissedWord(currentExercise);
+      handleLessonError();
     }
   }
 
@@ -874,11 +901,6 @@ export default function LessonScreen() {
     setCorrectAnswerText('');
     // Nota: NO cambiar isCorrect a false aquí para evitar que el Modal muestre "Casi lo logras" durante la animación de cierre
 
-    if (lives <= 0) {
-      router.replace('/blocked' as any);
-      return;
-    }
-
     if (currentIndex + 1 < exercises.length) {
       setCurrentIndex((prev) => prev + 1);
       return;
@@ -907,7 +929,7 @@ export default function LessonScreen() {
     celebrateYachi();
     setSparkleKey((k) => k + 1);
     playCompleteSound();
-    const earnedXp = hasDoubleXp ? 20 : 10;
+    const earnedXp = Math.max(1, totalLessonXp - lostLessonXp);
     addXp(earnedXp);
     addGems(15);
     const uid = user?.uid || (user as any)?.id;
@@ -1041,7 +1063,9 @@ export default function LessonScreen() {
           </Animated.View>
         </View>
         <Text style={styles.congratsTitle}>¡Lección Completada! 🎉</Text>
-        <Text style={styles.congratsSub}>¡Sumaste +10 XP y +15 Yachay Coins!</Text>
+        <Text style={styles.congratsSub}>
+          ¡Sumaste +{Math.max(1, totalLessonXp - lostLessonXp)} XP y +15 Gemas!
+        </Text>
         <View style={styles.streakBadge}>
           <Text style={styles.streakBadgeText}>
             🔥 {Math.max(1, streakDays)} {Math.max(1, streakDays) === 1 ? 'día' : 'días'} de racha
@@ -1049,13 +1073,13 @@ export default function LessonScreen() {
         </View>
         <View style={styles.statRow}>
           <View style={styles.statChip}>
-            <Text style={styles.statBadge}>❤️ {lives}</Text>
+            <Text style={styles.statBadge}>💎 +15 Gemas</Text>
           </View>
           <View style={styles.statChip}>
-            <Text style={styles.statBadge}>⚡ +10 XP</Text>
+            <Text style={styles.statBadge}>⚡ +{Math.max(1, totalLessonXp - lostLessonXp)} XP</Text>
           </View>
           <View style={styles.statChip}>
-            <Text style={styles.statBadge}>🪙 +15 Coins</Text>
+            <Text style={styles.statBadge}>🪙 100% Hecho</Text>
           </View>
         </View>
 
@@ -1102,13 +1126,13 @@ export default function LessonScreen() {
           trackColor="#E8E2D9"
           style={styles.progressBarBg}
         />
-        <View style={styles.livesRow}>
-          {Array.from({ length: 5 }).map((_, i) => (
-            <Text key={i} style={[styles.heartIcon, i >= lives && styles.heartLost]}>
-              {i < lives ? '❤️' : '🖤'}
-            </Text>
-          ))}
-          <Text style={styles.livesCountText}>{lives}</Text>
+        <View style={styles.lessonXpPill}>
+          <Text style={styles.lessonXpIcon}>⚡</Text>
+          <Text style={styles.lessonXpText}>{Math.max(0, totalLessonXp - lostLessonXp)} XP</Text>
+        </View>
+        <View style={styles.gemsPill}>
+          <Text style={styles.gemIcon}>💎</Text>
+          <Text style={styles.gemsCountText}>{gems}</Text>
         </View>
         <TouchableOpacity style={styles.soundToggleBtn} onPress={toggleSound}>
           <Text style={styles.soundToggleIcon}>{soundOn ? '🔊' : '🔇'}</Text>
@@ -1338,9 +1362,7 @@ export default function LessonScreen() {
                 handleExerciseResult(isCorrect, currentExercise.pairs.map((pair) => pair.qu).join(' • '))
               }
               onWrongMatch={() => {
-                checkAnswer(false);
-                bounceYachi();
-                playIncorrectSound();
+                handleLessonError();
               }}
               disabled={isAnswered}
             />
@@ -1412,15 +1434,17 @@ export default function LessonScreen() {
             {/* Subtítulo */}
             <Text style={styles.modalSub}>
               {isCorrect
-                ? '+10 XP ganados en este ejercicio'
+                ? '¡Respuesta correcta! Sigue acumulando tu experiencia.'
                 : 'La respuesta correcta en Quechua es:'}
             </Text>
 
-            {/* Notificación de vida perdida */}
+            {/* Notificación de XP descontada de la lección */}
             {!isCorrect && (
-              <View style={styles.livesLostBadge}>
-                <Text style={styles.livesLostText}>
-                  💔 -1 Vida • Te quedan {lives} {lives === 1 ? 'vida' : 'vidas'}
+              <View style={[styles.xpPenaltyBadge, lostLessonXp > totalLessonXp && styles.xpPenaltyBadgeDanger]}>
+                <Text style={[styles.xpPenaltyText, lostLessonXp > totalLessonXp && styles.xpPenaltyTextDanger]}>
+                  {lostLessonXp > totalLessonXp
+                    ? `⚠️ Sobrepasaste la XP total de la lección (-${lostLessonXp} XP / ${totalLessonXp} XP)`
+                    : `⚡ -${xpPenaltyPerError} XP de la lección • Te quedan ${Math.max(0, totalLessonXp - lostLessonXp)} XP`}
                 </Text>
               </View>
             )}
@@ -1435,9 +1459,64 @@ export default function LessonScreen() {
 
             {/* Botón de acción centrado */}
             <Button
-              label={isCorrect ? '¡Continuar! →' : 'Entendido'}
-              onPress={handleNextExercise}
+              label={
+                isCorrect
+                  ? '¡Continuar! →'
+                  : lostLessonXp > totalLessonXp
+                  ? 'Reiniciar Lección ↺'
+                  : 'Entendido'
+              }
+              onPress={
+                isCorrect
+                  ? handleNextExercise
+                  : lostLessonXp > totalLessonXp
+                  ? handleRestartLesson
+                  : handleNextExercise
+              }
               variant={isCorrect ? 'primary' : 'danger'}
+              style={styles.modalButton}
+            />
+          </View>
+        </View>
+      </Modal>
+
+      {/* Modal cuando se sobrepasa la XP total de la lección por errar tanto */}
+      <Modal
+        transparent
+        animationType="fade"
+        visible={showXpExhaustedModal}
+        onRequestClose={() => {}}
+      >
+        <View style={styles.modalBackdrop}>
+          <View style={[styles.modalCard, styles.modalCardDanger]}>
+            <View style={styles.modalLlamaWrap}>
+              <Animated.View style={yachiAnimStyle}>
+                <Image
+                  source={Illustrations.llamaPiensa}
+                  style={styles.modalLlama}
+                  contentFit="contain"
+                />
+              </Animated.View>
+            </View>
+
+            <Text style={[styles.modalTitle, styles.modalTitleDanger]}>
+              ¡Experiencia Agotada! 🔄
+            </Text>
+
+            <Text style={styles.modalSub}>
+              Has sobrepasado los {totalLessonXp} XP de esta lección debido a múltiples errores.
+            </Text>
+
+            <View style={styles.xpPenaltyBadgeDanger}>
+              <Text style={styles.xpPenaltyTextDanger}>
+                Para asegurar tu aprendizaje de este tema, reiniciaremos la lección desde el primer ejercicio.
+              </Text>
+            </View>
+
+            <Button
+              label="Reiniciar Lección ↺"
+              onPress={handleRestartLesson}
+              variant="danger"
               style={styles.modalButton}
             />
           </View>
@@ -1470,13 +1549,35 @@ const styles = StyleSheet.create({
   progressBarBg: {
     flex: 1,
   },
-  livesRow: { flexDirection: 'row', alignItems: 'center', gap: 2 },
-  heartIcon: { fontSize: 16 },
-  heartLost: { opacity: 0.3 },
-  livesCountText: { fontSize: 13, fontWeight: '900', color: '#C0392B', marginLeft: 4 },
-  livesLostBadge: {
-    backgroundColor: '#FDEDEC',
-    borderColor: '#F5B7B1',
+  lessonXpPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: '#FCD34D',
+    gap: 3,
+  },
+  lessonXpIcon: { fontSize: 13 },
+  lessonXpText: { fontSize: 12, fontWeight: '900', color: '#B45309' },
+  gemsPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#EFF6FF',
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: '#BFDBFE',
+    gap: 4,
+  },
+  gemIcon: { fontSize: 14 },
+  gemsCountText: { fontSize: 13, fontWeight: '900', color: '#1D4ED8' },
+  xpPenaltyBadge: {
+    backgroundColor: '#FEF3C7',
+    borderColor: '#FCD34D',
     borderWidth: 1.5,
     borderRadius: 12,
     paddingVertical: 6,
@@ -1484,8 +1585,34 @@ const styles = StyleSheet.create({
     marginVertical: 8,
     alignItems: 'center',
   },
-  livesLostText: {
-    color: '#C0392B',
+  xpPenaltyBadgeDanger: {
+    backgroundColor: '#FEE2E2',
+    borderColor: '#FCA5A5',
+  },
+  xpPenaltyText: {
+    color: '#B45309',
+    fontSize: 13,
+    fontWeight: '800',
+    textAlign: 'center',
+  },
+  xpPenaltyTextDanger: {
+    color: '#B91C1C',
+    fontSize: 13,
+    fontWeight: '800',
+    textAlign: 'center',
+  },
+  gemsLostBadge: {
+    backgroundColor: '#EFF6FF',
+    borderColor: '#BFDBFE',
+    borderWidth: 1.5,
+    borderRadius: 12,
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    marginVertical: 8,
+    alignItems: 'center',
+  },
+  gemsLostText: {
+    color: '#1E40AF',
     fontSize: 13,
     fontWeight: '800',
   },

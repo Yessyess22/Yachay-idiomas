@@ -14,7 +14,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 export default function BlockedScreen() {
-  const { gems, consumeGems, restoreLives } = useGame();
+  const { gems, consumeGems, restoreLives, addLives } = useGame();
   const router = useRouter();
 
   const shakeX = useSharedValue(0);
@@ -34,23 +34,37 @@ export default function BlockedScreen() {
     );
   }, [shakeX]);
 
-  function handleBuyLives() {
-    if (gems < 50) {
+  function handleBuySingleLife() {
+    if (gems < 5) {
       Alert.alert(
         'Gemas insuficientes 💎',
-        `Necesitas 50 gemas para recargar vidas y tienes ${gems}. Puedes ganar gemas repasando en la Biblioteca o practicando.`,
-        [
-          { text: 'Ir a Explorar', onPress: () => router.replace('/(tabs)/explore') },
-          { text: 'Cancelar', style: 'cancel' },
-        ]
+        `Necesitas 5 gemas para recuperar 1 vida y tienes ${gems}. Puedes ganar gemas completando lecciones o repasando en la Biblioteca.`
       );
       return;
     }
 
-    const success = consumeGems(50);
+    const success = consumeGems(5);
+    if (success) {
+      addLives(1);
+      Alert.alert('¡Vida Restaurada! ❤️', 'Has recuperado 1 vida por 5 gemas sagradas.', [
+        { text: '¡Continuar!', onPress: () => router.replace('/(tabs)') },
+      ]);
+    }
+  }
+
+  function handleBuyAllLives() {
+    if (gems < 25) {
+      Alert.alert(
+        'Gemas insuficientes 💎',
+        `Necesitas 25 gemas para restaurar todas tus vidas y tienes ${gems}. También puedes canjear 1 vida por 5 gemas.`
+      );
+      return;
+    }
+
+    const success = consumeGems(25);
     if (success) {
       restoreLives();
-      Alert.alert('¡Vidas Restauradas! ❤️', 'Has recuperado tus 5 vidas por 50 gemas sagradas.', [
+      Alert.alert('¡Vidas Restauradas! ❤️', 'Has recuperado tus 5 vidas por 25 gemas sagradas.', [
         { text: '¡Continuar!', onPress: () => router.replace('/(tabs)') },
       ]);
     }
@@ -89,14 +103,24 @@ export default function BlockedScreen() {
           <Text style={styles.gemsBadgeText}>💎 Tu saldo: {gems} Gemas</Text>
         </View>
 
-        {/* Opción 1: Comprar con gemas */}
+        {/* Opción 1A: Comprar 1 vida con 5 gemas */}
         <TouchableOpacity
-          style={[styles.actionBtn, styles.gemBtn]}
-          onPress={handleBuyLives}
+          style={[styles.actionBtn, styles.gemBtn, { backgroundColor: '#10B981', borderBottomColor: '#059669', marginBottom: 10 }]}
+          onPress={handleBuySingleLife}
           activeOpacity={0.85}
         >
-          <Text style={styles.gemBtnTitle}>⚡ Recargar 5 Vidas (50 💎)</Text>
-          <Text style={styles.btnSubtext}>Usa tus gemas ganadas para continuar de inmediato</Text>
+          <Text style={styles.gemBtnTitle}>❤️ Recuperar +1 Vida (5 💎)</Text>
+          <Text style={styles.btnSubtext}>Canjea 5 gemas para desbloquearte de inmediato</Text>
+        </TouchableOpacity>
+
+        {/* Opción 1B: Recargar las 5 vidas con 25 gemas */}
+        <TouchableOpacity
+          style={[styles.actionBtn, styles.gemBtn]}
+          onPress={handleBuyAllLives}
+          activeOpacity={0.85}
+        >
+          <Text style={styles.gemBtnTitle}>⚡ Recargar 5 Vidas (25 💎)</Text>
+          <Text style={styles.btnSubtext}>Restaura tus 5 corazones completos al instante</Text>
         </TouchableOpacity>
 
         {/* Opción 2: Practicar sin vidas */}

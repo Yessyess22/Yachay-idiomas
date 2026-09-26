@@ -194,7 +194,7 @@ export const authService = {
 
   async updateGameState(
     uid: string,
-    data: { lives: number; gems: number; xp: number; streakDays: number; avatarUrl?: string | null }
+    data: { lives: number; gems: number; xp: number; streakDays: number; avatarUrl?: string | null; streakFreezeCount?: number }
   ): Promise<void> {
     const payload: Record<string, any> = {
       lives: data.lives,
@@ -204,6 +204,9 @@ export const authService = {
     };
     if (data.avatarUrl !== undefined) {
       payload.avatar_url = data.avatarUrl;
+    }
+    if (data.streakFreezeCount !== undefined) {
+      payload.streak_freeze_count = data.streakFreezeCount;
     }
     await supabase
       .from('profiles')

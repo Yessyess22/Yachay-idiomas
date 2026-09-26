@@ -1,7 +1,7 @@
-# 📌 Bitácora de Modificaciones y Nuevas Características — Yachay Simi
+# 📌 Bitácora de Modificaciones y Nuevas Características — Yachay
 
 **Fecha**: 23 de Septiembre, 2026  
-**Proyecto**: Yachay Simi (App Móvil de Aprendizaje de Quechua)  
+**Proyecto**: Yachay (App Móvil de Aprendizaje de Quechua)  
 **Entorno**: Expo (React Native) + Firebase Auth + Supabase PostgreSQL  
 
 ---

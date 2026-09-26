@@ -1,4 +1,4 @@
-# 📋 Plan de Implementación Pedagógica y UX — Yachay Simi
+# 📋 Plan de Implementación Pedagógica y UX — Yachay
 
 **Objetivo:** Transformar Yachay en una experiencia de aprendizaje fluida, didáctica y estructurada donde **primero se enseña, luego se practica y finalmente se evalúa**, garantizando coherencia curricular, una interfaz limpia y preguntas pedagógicamente certificadas.
 

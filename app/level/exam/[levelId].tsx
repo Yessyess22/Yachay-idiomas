@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   ScrollView,
   StyleSheet,
   Text,
@@ -61,8 +62,15 @@ export default function LevelExamScreen() {
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
 
   const { user } = useAuth();
-  const { addXp, addGems } = useGame();
+  const { lives, checkAnswer, addXp, addGems, isBlocked, hasDoubleXp } = useGame();
   const router = useRouter();
+
+  // Si las vidas llegan a 0, bloquear y redirigir
+  useEffect(() => {
+    if (lives <= 0 || isBlocked) {
+      router.replace('/blocked' as any);
+    }
+  }, [lives, isBlocked, router]);
 
   const { style: yachiAnimStyle, bounce: bounceYachi, celebrate: celebrateYachi } = useYachiBounce();
 
@@ -132,6 +140,7 @@ export default function LevelExamScreen() {
       playCorrectSound();
     } else {
       registerMissedQuestion(currentQuestion);
+      checkAnswer(false);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
       playIncorrectSound();
     }
@@ -148,6 +157,7 @@ export default function LevelExamScreen() {
       playCorrectSound();
     } else {
       registerMissedQuestion(currentQuestion);
+      checkAnswer(false);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
       playIncorrectSound();
     }
@@ -165,6 +175,7 @@ export default function LevelExamScreen() {
       playCorrectSound();
     } else {
       registerMissedQuestion(currentQuestion);
+      checkAnswer(false);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
       playIncorrectSound();
     }
@@ -178,10 +189,11 @@ export default function LevelExamScreen() {
     const didPass = score >= exam.pass_threshold;
     setPassed(didPass);
 
+    const examXp = hasDoubleXp ? 100 : 50;
     if (didPass) {
       celebrateYachi();
       playCompleteSound();
-      addXp(50);
+      addXp(examXp);
       addGems(30);
     } else {
       playIncorrectSound();
@@ -191,8 +203,8 @@ export default function LevelExamScreen() {
       await progressService.recordExamResult(user.uid, parsedLevelId, score, exam.pass_threshold);
       if (didPass) {
         await progressService.unlockNextLevel(user.uid, parsedLevelId + 1);
-        leaderboardService.recordWeeklyXp(user.uid, 50).catch(() => {});
-        questService.updateQuestProgress(user.uid, 'xp_gain', 50).catch(() => {});
+        leaderboardService.recordWeeklyXp(user.uid, examXp).catch(() => {});
+        questService.updateQuestProgress(user.uid, 'xp_gain', examXp).catch(() => {});
       }
     }
 
@@ -272,6 +284,10 @@ export default function LevelExamScreen() {
             <Text style={styles.closeBtnText}>✕</Text>
           </TouchableOpacity>
           <Text style={styles.examTag}>EVALUACIÓN SUMATIVA</Text>
+          <View style={styles.livesRow}>
+            <Text style={styles.heartIcon}>❤️</Text>
+            <Text style={styles.livesCountText}>{lives}</Text>
+          </View>
         </View>
 
         <ScrollView contentContainerStyle={styles.briefingScroll} showsVerticalScrollIndicator={false}>
@@ -293,13 +309,19 @@ export default function LevelExamScreen() {
               <View style={styles.ruleItem}>
                 <Text style={styles.ruleBullet}>•</Text>
                 <Text style={styles.ruleText}>
+                  Las vidas aplican aquí: cada error te restará <Text style={styles.ruleDanger}>1 vida ❤️</Text>.
+                </Text>
+              </View>
+              <View style={styles.ruleItem}>
+                <Text style={styles.ruleBullet}>•</Text>
+                <Text style={styles.ruleText}>
                   Nota mínima para aprobar: <Text style={styles.ruleBold}>{exam.pass_threshold}%</Text>.
                 </Text>
               </View>
               <View style={styles.ruleItem}>
                 <Text style={styles.ruleBullet}>•</Text>
                 <Text style={styles.ruleText}>
-                  Ronda de Refuerzo final para repasar cualquier respuesta incorrecta.
+                  Si repruebas el examen, <Text style={styles.ruleDanger}>no podrás pasar al siguiente nivel</Text> hasta aprobarlo.
                 </Text>
               </View>
               <View style={styles.ruleItem}>
@@ -312,7 +334,13 @@ export default function LevelExamScreen() {
 
             <TouchableOpacity
               style={styles.startExamBtn}
-              onPress={() => setPhase('exam')}
+              onPress={() => {
+                if (lives <= 0) {
+                  router.replace('/blocked' as any);
+                  return;
+                }
+                setPhase('exam');
+              }}
               activeOpacity={0.88}
             >
               <Text style={styles.startExamBtnText}>¡Comenzar Examen de Nivel! ➔</Text>
@@ -335,16 +363,33 @@ export default function LevelExamScreen() {
             contentFit="contain"
           />
         </Animated.View>
-        <Text style={styles.resultTitle}>{passed ? '¡Nivel Superado con Éxito!' : 'Sigue practicando'}</Text>
+        <Text style={[styles.resultTitle, !passed && styles.resultTitleFail]}>
+          {passed ? '¡Nivel Superado con Éxito!' : 'Examen Reprobado ❌'}
+        </Text>
         <Text style={styles.resultScore}>
           {correctCount} de {exam.questions.length} respuestas correctas — {score}%
         </Text>
         <Text style={styles.resultThreshold}>
           Nota mínima requerida: {exam.pass_threshold}%
         </Text>
-        {passed && (
+        {passed ? (
           <View style={styles.rewardBadge}>
             <Text style={styles.rewardsText}>🎉 Recompensa: +50 XP • +30 Gemas 💎</Text>
+            <Text style={styles.unlockedNotice}>
+              🔓 ¡Has desbloqueado el Nivel {parsedLevelId + 1}!
+            </Text>
+          </View>
+        ) : (
+          <View style={styles.failNoticeCard}>
+            <Text style={styles.failNoticeEmoji}>🔒</Text>
+            <View style={styles.failNoticeContent}>
+              <Text style={styles.failNoticeTitle}>
+                El Nivel {parsedLevelId + 1} no fue desbloqueado
+              </Text>
+              <Text style={styles.failNoticeDesc}>
+                Al reprobar este examen no puedes pasar al siguiente nivel. Repasa las lecciones y vuelve a intentarlo para continuar tu avance.
+              </Text>
+            </View>
           </View>
         )}
         {passed && parsedLevelId === 3 ? (
@@ -359,8 +404,30 @@ export default function LevelExamScreen() {
           style={[styles.primaryBtn, passed ? styles.btnSuccess : styles.btnDanger]}
           onPress={() => router.replace('/(tabs)')}
         >
-          <Text style={styles.primaryBtnText}>{passed ? 'Continuar en tu Ruta ➔' : 'Volver a Repasar'}</Text>
+          <Text style={styles.primaryBtnText}>{passed ? 'Continuar en tu Ruta ➔' : 'Volver a la Ruta y Repasar'}</Text>
         </TouchableOpacity>
+        {!passed && (
+          <TouchableOpacity
+            style={styles.retryBtn}
+            onPress={() => {
+              if (lives <= 0) {
+                router.replace('/blocked' as any);
+                return;
+              }
+              setCurrentIndex(0);
+              setMissedQuestions([]);
+              setReinforcementIndex(0);
+              setSelectedOption(null);
+              setIsAnswered(false);
+              setIsCorrect(false);
+              setCorrectCount(0);
+              setPassed(false);
+              setPhase('exam');
+            }}
+          >
+            <Text style={styles.retryBtnText}>🔄 Reintentar Examen</Text>
+          </TouchableOpacity>
+        )}
       </View>
     );
   }
@@ -377,7 +444,7 @@ export default function LevelExamScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Header con progreso */}
+      {/* Header con progreso y vidas */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.closeBtn}>
           <Text style={styles.closeBtnText}>✕</Text>
@@ -394,6 +461,10 @@ export default function LevelExamScreen() {
         <Text style={styles.examCounter}>
           {activeIndex + 1}/{totalQuestions}
         </Text>
+        <View style={styles.livesRow}>
+          <Text style={styles.heartIcon}>❤️</Text>
+          <Text style={styles.livesCountText}>{lives}</Text>
+        </View>
       </View>
 
       {/* Banner de Ronda de Refuerzo */}
@@ -476,6 +547,7 @@ export default function LevelExamScreen() {
               pairs={currentQuestion.pairs}
               onComplete={handleInteractiveResult}
               onWrongMatch={() => {
+                checkAnswer(false);
                 bounceYachi();
                 playIncorrectSound();
               }}
@@ -720,6 +792,10 @@ const styles = StyleSheet.create({
   ruleGold: {
     fontWeight: '800',
     color: '#B7791F',
+  },
+  ruleDanger: {
+    fontWeight: '800',
+    color: '#DC2626',
   },
   startExamBtn: {
     backgroundColor: GOLD,
@@ -1027,11 +1103,90 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 14,
     marginBottom: 20,
+    alignItems: 'center',
+    width: '100%',
+    maxWidth: 360,
   },
   rewardsText: {
     fontSize: 14,
     fontWeight: '800',
     color: '#B7791F',
     textAlign: 'center',
+  },
+  unlockedNotice: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#047857',
+    textAlign: 'center',
+    marginTop: 6,
+  },
+  resultTitleFail: {
+    color: '#B91C1C',
+  },
+  failNoticeCard: {
+    flexDirection: 'row',
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1.5,
+    borderColor: '#FCA5A5',
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 20,
+    alignItems: 'center',
+    gap: 12,
+    width: '100%',
+    maxWidth: 360,
+  },
+  failNoticeEmoji: {
+    fontSize: 28,
+  },
+  failNoticeContent: {
+    flex: 1,
+  },
+  failNoticeTitle: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#B91C1C',
+    marginBottom: 2,
+  },
+  failNoticeDesc: {
+    fontSize: 12,
+    color: '#7F1D1D',
+    lineHeight: 16,
+  },
+  livesRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEE2E2',
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: '#FECACA',
+    gap: 4,
+  },
+  heartIcon: {
+    fontSize: 14,
+  },
+  livesCountText: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#DC2626',
+  },
+  retryBtn: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 2,
+    borderColor: '#CBD5E1',
+    borderRadius: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    alignItems: 'center',
+    width: '100%',
+    maxWidth: 360,
+    marginTop: 10,
+  },
+  retryBtnText: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#334155',
   },
 });

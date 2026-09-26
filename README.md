@@ -1,6 +1,6 @@
-# Yachay Idiomas — Aprendizaje de Quechua 🇵🇪
+# Yachay — Aprendizaje de Quechua 🇵🇪
 
-**Yachay Simi** es una aplicación móvil universal (iOS, Android, Web) desarrollada con Expo y React Native para la enseñanza interactiva del idioma Quechua (Runasimi). Integra Firebase Auth (v12) para autenticación de usuarios, Supabase PostgreSQL en 3FN como backend relacional, síntesis fonética nativa y Clean Architecture en el frontend.
+**Yachay** es una aplicación móvil universal (iOS, Android, Web) desarrollada con Expo y React Native para la enseñanza interactiva del idioma Quechua (Runasimi). Integra Firebase Auth (v12) para autenticación de usuarios, Supabase PostgreSQL en 3FN como backend relacional, síntesis fonética nativa y Clean Architecture en el frontend.
 
 ---
 

@@ -1,6 +1,6 @@
 /**
  * Biblioteca Andina - Datos culturales, cuentos, quechua cotidiano y curiosidades.
- * Diseñado para la pestaña 'Explorar' de Yachay Simi: una biblioteca abierta sin bloqueos ni exámenes.
+ * Diseñado para la pestaña 'Explorar' de Yachay: una biblioteca abierta sin bloqueos ni exámenes.
  */
 
 export interface LibraryStory {

@@ -17,30 +17,48 @@ type GameState = {
   isBlocked: boolean;
   equippedOutfit: string | null;
   hasDoubleXp: boolean;
+  doubleXpExpiresAt: number | null;
+  streakFreezeCount: number;
 };
 
 type GameAction =
   | { type: 'CORRECT_ANSWER' }
   | { type: 'WRONG_ANSWER' }
   | { type: 'RESTORE_LIVES' }
+  | { type: 'ADD_LIVES'; amount: number }
   | { type: 'ADD_GEMS'; amount: number }
   | { type: 'CONSUME_GEMS'; amount: number }
   | { type: 'ADD_XP'; amount: number }
   | { type: 'SET_STREAK'; streak: number }
   | { type: 'EQUIP_OUTFIT'; outfitId: string | null }
-  | { type: 'ACTIVATE_DOUBLE_XP' }
-  | { type: 'HYDRATE'; lives: number; xp: number; gems: number; streakDays: number; outfit: string | null };
+  | { type: 'ACTIVATE_DOUBLE_XP'; expiresAt: number }
+  | { type: 'DEACTIVATE_DOUBLE_XP' }
+  | { type: 'ADD_STREAK_FREEZE' }
+  | {
+      type: 'HYDRATE';
+      lives: number;
+      xp: number;
+      gems: number;
+      streakDays: number;
+      outfit: string | null;
+      streakFreezeCount?: number;
+      doubleXpExpiresAt?: number | null;
+    };
 
 type GameContextType = GameState & {
+  doubleXpMinutesLeft: number;
   checkAnswer: (isCorrect: boolean) => void;
   restoreLives: () => void;
+  addLives: (amount?: number) => void;
   addGems: (amount?: number) => void;
   consumeGems: (amount: number) => boolean;
+  deductGems: (amount?: number) => void;
   addXp: (amount: number) => void;
   setStreak: (streak: number) => void;
   hydrateFromProfile: (profile: Profile) => void;
   equipOutfit: (outfitId: string | null) => void;
-  activateDoubleXp: () => void;
+  activateDoubleXp: (durationMinutes?: number) => void;
+  addStreakFreeze: () => void;
 };
 
 function gameReducer(state: GameState, action: GameAction): GameState {
@@ -54,11 +72,18 @@ function gameReducer(state: GameState, action: GameAction): GameState {
         streakDays: action.streakDays,
         isBlocked: action.lives <= 0,
         equippedOutfit: action.outfit,
+        streakFreezeCount: action.streakFreezeCount ?? state.streakFreezeCount,
+        hasDoubleXp: action.doubleXpExpiresAt ? Date.now() < action.doubleXpExpiresAt : state.hasDoubleXp,
+        doubleXpExpiresAt: action.doubleXpExpiresAt !== undefined ? action.doubleXpExpiresAt : state.doubleXpExpiresAt,
       };
     case 'EQUIP_OUTFIT':
       return { ...state, equippedOutfit: action.outfitId };
     case 'ACTIVATE_DOUBLE_XP':
-      return { ...state, hasDoubleXp: true };
+      return { ...state, hasDoubleXp: true, doubleXpExpiresAt: action.expiresAt };
+    case 'DEACTIVATE_DOUBLE_XP':
+      return { ...state, hasDoubleXp: false, doubleXpExpiresAt: null };
+    case 'ADD_STREAK_FREEZE':
+      return { ...state, streakFreezeCount: state.streakFreezeCount + 1 };
     case 'CORRECT_ANSWER':
       return { ...state };
     case 'ADD_XP':
@@ -69,6 +94,10 @@ function gameReducer(state: GameState, action: GameAction): GameState {
     }
     case 'RESTORE_LIVES':
       return { ...state, lives: INITIAL_LIVES, isBlocked: false };
+    case 'ADD_LIVES': {
+      const newLives = Math.min(INITIAL_LIVES, state.lives + action.amount);
+      return { ...state, lives: newLives, isBlocked: newLives <= 0 };
+    }
     case 'ADD_GEMS':
       return { ...state, gems: state.gems + action.amount };
     case 'CONSUME_GEMS':
@@ -91,6 +120,8 @@ export function GameProvider({ children }: { children: ReactNode }) {
     isBlocked: false,
     equippedOutfit: null,
     hasDoubleXp: false,
+    doubleXpExpiresAt: null,
+    streakFreezeCount: 0,
   });
 
   const userIdRef = useRef<string | null>(null);
@@ -103,6 +134,35 @@ export function GameProvider({ children }: { children: ReactNode }) {
     scheduleStreakReminder().catch(() => {});
   }, []);
 
+  // Cargar estado inicial de Doble XP guardado localmente
+  useEffect(() => {
+    AsyncStorage.getItem('@yachay_double_xp_expires')
+      .then((saved) => {
+        if (saved) {
+          const exp = parseInt(saved, 10);
+          if (exp > Date.now()) {
+            dispatch({ type: 'ACTIVATE_DOUBLE_XP', expiresAt: exp });
+          } else {
+            AsyncStorage.removeItem('@yachay_double_xp_expires').catch(() => {});
+          }
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  // Timer para verificar si el Doble XP expiró
+  useEffect(() => {
+    if (!state.doubleXpExpiresAt) return;
+    const checkExp = () => {
+      if (Date.now() >= state.doubleXpExpiresAt!) {
+        dispatch({ type: 'DEACTIVATE_DOUBLE_XP' });
+        AsyncStorage.removeItem('@yachay_double_xp_expires').catch(() => {});
+      }
+    };
+    const interval = setInterval(checkExp, 5000);
+    return () => clearInterval(interval);
+  }, [state.doubleXpExpiresAt]);
+
   // Debounced sync to Supabase profiles table
   useEffect(() => {
     if (!userIdRef.current) return;
@@ -114,12 +174,13 @@ export function GameProvider({ children }: { children: ReactNode }) {
         xp: state.xp,
         streakDays: state.streakDays,
         avatarUrl: state.equippedOutfit,
+        streakFreezeCount: state.streakFreezeCount,
       });
     }, SYNC_DEBOUNCE_MS);
     return () => {
       if (syncTimer.current) clearTimeout(syncTimer.current);
     };
-  }, [state.lives, state.gems, state.xp, state.streakDays, state.equippedOutfit]);
+  }, [state.lives, state.gems, state.xp, state.streakDays, state.equippedOutfit, state.streakFreezeCount]);
 
   const hydrateFromProfile = useCallback((profile: Profile) => {
     userIdRef.current = profile.firebase_uid;
@@ -132,6 +193,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       gems: profile.gems ?? 100,
       streakDays: Math.max(1, profile.streak_count ?? 1),
       outfit: initialOutfit,
+      streakFreezeCount: profile.streak_freeze_count ?? 0,
     });
 
     AsyncStorage.getItem(`@yachay_outfit_${profile.firebase_uid}`)
@@ -153,6 +215,10 @@ export function GameProvider({ children }: { children: ReactNode }) {
 
   const restoreLives = useCallback(() => {
     dispatch({ type: 'RESTORE_LIVES' });
+  }, []);
+
+  const addLives = useCallback((amount: number = 1) => {
+    dispatch({ type: 'ADD_LIVES', amount });
   }, []);
 
   const consumeGems = useCallback(
@@ -177,9 +243,19 @@ export function GameProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const activateDoubleXp = useCallback(() => {
-    dispatch({ type: 'ACTIVATE_DOUBLE_XP' });
+  const activateDoubleXp = useCallback((durationMinutes = 15) => {
+    const expiresAt = Date.now() + durationMinutes * 60 * 1000;
+    dispatch({ type: 'ACTIVATE_DOUBLE_XP', expiresAt });
+    AsyncStorage.setItem('@yachay_double_xp_expires', String(expiresAt)).catch(() => {});
   }, []);
+
+  const addStreakFreeze = useCallback(() => {
+    dispatch({ type: 'ADD_STREAK_FREEZE' });
+    const nextVal = (state.streakFreezeCount || 0) + 1;
+    if (userIdRef.current) {
+      AsyncStorage.setItem(`@yachay_streak_freeze_${userIdRef.current}`, String(nextVal)).catch(() => {});
+    }
+  }, [state.streakFreezeCount]);
 
   // Cuando el usuario gana gemas (completa lección), cancelar recordatorio de racha del día
   const addGems = useCallback((amount = GEMS_PER_LESSON) => {
@@ -187,19 +263,34 @@ export function GameProvider({ children }: { children: ReactNode }) {
     cancelStreakReminder().catch(() => {});
   }, []);
 
+  // Descontar gemas si fuera necesario
+  const deductGems = useCallback((amount = 5) => {
+    dispatch({ type: 'CONSUME_GEMS', amount });
+  }, []);
+
+  const isDoubleXpActive = state.hasDoubleXp && !!state.doubleXpExpiresAt && Date.now() < state.doubleXpExpiresAt;
+  const doubleXpMinutesLeft = isDoubleXpActive && state.doubleXpExpiresAt
+    ? Math.max(1, Math.ceil((state.doubleXpExpiresAt - Date.now()) / 60000))
+    : 0;
+
   return (
     <GameContext.Provider
       value={{
         ...state,
+        hasDoubleXp: isDoubleXpActive,
+        doubleXpMinutesLeft,
         checkAnswer,
         restoreLives,
+        addLives,
         addGems,
         consumeGems,
+        deductGems,
         addXp,
         setStreak,
         hydrateFromProfile,
         equipOutfit,
         activateDoubleXp,
+        addStreakFreeze,
       }}
     >
       {children}

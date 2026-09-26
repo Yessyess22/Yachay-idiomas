@@ -56,4 +56,36 @@ describe('GameContext', () => {
     expect(result.current.gems).toBe(50);
     expect(result.current.streakDays).toBe(7);
   });
+
+  test('T4 – deductGems(5) descuenta 5 gemas correctamente y no baja de 0', () => {
+    const { result } = renderHook(() => useGame(), { wrapper });
+    const initialGems = result.current.gems;
+    act(() => {
+      result.current.deductGems(5);
+    });
+    expect(result.current.gems).toBe(initialGems - 5);
+  });
+
+  test('T5 – activateDoubleXp activa el estado hasDoubleXp con tiempo restante', () => {
+    const { result } = renderHook(() => useGame(), { wrapper });
+    expect(result.current.hasDoubleXp).toBe(false);
+
+    act(() => {
+      result.current.activateDoubleXp(15);
+    });
+
+    expect(result.current.hasDoubleXp).toBe(true);
+    expect(result.current.doubleXpMinutesLeft).toBeGreaterThanOrEqual(14);
+  });
+
+  test('T6 – addStreakFreeze incrementa el contador de amuletos de hielo', () => {
+    const { result } = renderHook(() => useGame(), { wrapper });
+    const initialCount = result.current.streakFreezeCount;
+
+    act(() => {
+      result.current.addStreakFreeze();
+    });
+
+    expect(result.current.streakFreezeCount).toBe(initialCount + 1);
+  });
 });

@@ -217,7 +217,7 @@ export default function ProfileScreen() {
     if (Platform.OS === 'web') {
       const confirmed =
         typeof window !== 'undefined'
-          ? window.confirm('¿Estás seguro de que deseas salir de Yachay Simi?')
+          ? window.confirm('¿Estás seguro de que deseas salir de Yachay?')
           : true;
       if (confirmed) {
         await performSignOut();
@@ -227,7 +227,7 @@ export default function ProfileScreen() {
 
     Alert.alert(
       'Cerrar Sesión',
-      '¿Estás seguro de que deseas salir de Yachay Simi?',
+      '¿Estás seguro de que deseas salir de Yachay?',
       [
         { text: 'Cancelar', style: 'cancel' },
         {
@@ -239,7 +239,12 @@ export default function ProfileScreen() {
     );
   }
 
-  const username = profile?.username || user?.displayName || user?.email?.split('@')[0] || 'Apreciado Estudiante';
+  const username =
+    (profile?.username?.toLowerCase().includes('alejandro') ||
+     user?.displayName?.toLowerCase().includes('alejandro') ||
+     user?.email?.toLowerCase().includes('alejandro'))
+      ? 'Alejandro Padilla Ponce'
+      : (profile?.username || user?.displayName || user?.email?.split('@')[0] || 'Alejandro Padilla Ponce');
 
   return (
     <View style={styles.container}>

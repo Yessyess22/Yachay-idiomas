@@ -96,11 +96,10 @@ function StepWelcome() {
         style={styles.mascotLarge}
         resizeMode="contain"
       />
-      <Text style={styles.stepTag}>YACHAY SIMI · EL LENGUAJE DEL SABER</Text>
+      <Text style={styles.stepTag}>YACHAY · EL CAMINO DEL SABER</Text>
       <Text style={styles.stepTitle}>Descubre el poder{'\n'}del Runasimi</Text>
       <Text style={styles.stepDesc}>
-        <Text style={{ fontWeight: 'bold', color: TEAL_DARK }}>Yachay</Text> (Sabiduría y aprendizaje) +{' '}
-        <Text style={{ fontWeight: 'bold', color: TEAL_DARK }}>Simi</Text> (Lengua y palabra hablada).{'\n\n'}
+        <Text style={{ fontWeight: 'bold', color: TEAL_DARK }}>Yachay</Text> significa sabiduría, conocimiento y el arte de aprender.{'\n\n'}
         El quechua es la lengua viva originaria más hablada de los Andes. Conoce la sabiduría de nuestros ancestros junto a Yachi de forma divertida y a tu propio ritmo.
       </Text>
     </View>
