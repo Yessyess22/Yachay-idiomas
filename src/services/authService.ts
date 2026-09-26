@@ -1,10 +1,13 @@
 import {
   createUserWithEmailAndPassword,
+  GoogleAuthProvider,
   onAuthStateChanged,
   signInWithEmailAndPassword,
+  signInWithPopup,
   signOut as firebaseSignOut,
   User,
 } from 'firebase/auth';
+import { Platform } from 'react-native';
 
 import { supabase } from '@/src/services/supabase';
 import { Profile } from '@/src/types';
@@ -21,6 +24,9 @@ function translateFirebaseError(code: string): string {
     'auth/invalid-credential':    'Correo o contraseña incorrectos.',
     'auth/too-many-requests':     'Demasiados intentos fallidos. Intenta más tarde.',
     'auth/network-request-failed':'Sin conexión a internet.',
+    'auth/popup-blocked':         'La ventana emergente de Google fue bloqueada. Permite las ventanas emergentes en tu navegador.',
+    'auth/operation-not-allowed': 'El inicio con Google no está habilitado en Firebase Console.',
+    'auth/account-exists-with-different-credential': 'Ya existe una cuenta con este correo vinculada a otro método.',
   };
   return map[code] ?? 'Ocurrió un error. Inténtalo de nuevo.';
 }
@@ -84,14 +90,70 @@ export const authService = {
     }
   },
 
+  async signInWithGoogle(): Promise<{ user: User | null; error: string | null }> {
+    try {
+      const provider = new GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: 'select_account' });
+
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+      await syncSupabaseSession(user);
+
+      // Comprobar si ya existe perfil del usuario en Supabase
+      const { data: existingProfile } = await supabase
+        .from('profiles')
+        .select('firebase_uid')
+        .eq('firebase_uid', user.uid)
+        .maybeSingle();
+
+      if (!existingProfile) {
+        const finalUsername = user.displayName || user.email?.split('@')[0] || 'Yachachiq';
+        await supabase.from('profiles').insert({
+          firebase_uid: user.uid,
+          username: finalUsername,
+          avatar_url: user.photoURL || null,
+          total_xp: 0,
+          streak_count: 1,
+          gems: 100,
+          lives: 5,
+        });
+
+        try {
+          await supabase.from('leaderboard_weekly').upsert({
+            firebase_uid: user.uid,
+            weekly_xp: 0,
+            league_tier: 'bronze',
+            updated_at: new Date().toISOString(),
+          });
+        } catch {}
+      }
+
+      return { user, error: null };
+    } catch (e: any) {
+      if (
+        e.code === 'auth/popup-closed-by-user' ||
+        e.code === 'auth/cancelled-popup-request'
+      ) {
+        return { user: null, error: null };
+      }
+      return { user: null, error: translateFirebaseError(e.code) || e.message };
+    }
+  },
+
   async signOut(): Promise<{ error: string | null }> {
     try {
       await firebaseSignOut(auth);
-      await supabase.auth.signOut();
-      return { error: null };
     } catch (e: any) {
-      return { error: e.message };
+      console.warn('[authService] Error al cerrar sesión en Firebase:', e);
     }
+
+    try {
+      await supabase.auth.signOut();
+    } catch (e: any) {
+      console.warn('[authService] Error al cerrar sesión en Supabase:', e);
+    }
+
+    return { error: null };
   },
 
   getCurrentUser(): User | null {

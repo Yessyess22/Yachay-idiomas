@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  Platform,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -62,6 +63,7 @@ export default function ProfileScreen() {
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>(DEFAULT_LEADERBOARD);
   const [loadingLeaderboard, setLoadingLeaderboard] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
 
   const userStreak = Math.max(1, streakDays ?? profile?.streak_count ?? 1);
   const userXp = xp ?? profile?.total_xp ?? 0;
@@ -199,6 +201,30 @@ export default function ProfileScreen() {
   };
 
   async function handleSignOut() {
+    const performSignOut = async () => {
+      try {
+        setSigningOut(true);
+        await signOut();
+        router.replace('/(auth)' as any);
+      } catch (err) {
+        console.error('Error al cerrar sesión:', err);
+        Alert.alert('Error', 'No se pudo cerrar la sesión.');
+      } finally {
+        setSigningOut(false);
+      }
+    };
+
+    if (Platform.OS === 'web') {
+      const confirmed =
+        typeof window !== 'undefined'
+          ? window.confirm('¿Estás seguro de que deseas salir de Yachay Simi?')
+          : true;
+      if (confirmed) {
+        await performSignOut();
+      }
+      return;
+    }
+
     Alert.alert(
       'Cerrar Sesión',
       '¿Estás seguro de que deseas salir de Yachay Simi?',
@@ -207,10 +233,7 @@ export default function ProfileScreen() {
         {
           text: 'Cerrar Sesión',
           style: 'destructive',
-          onPress: async () => {
-            await signOut();
-            router.replace('/(auth)/login');
-          },
+          onPress: performSignOut,
         },
       ]
     );
@@ -637,9 +660,14 @@ export default function ProfileScreen() {
           <TouchableOpacity
             style={styles.signOutBtn}
             onPress={handleSignOut}
+            disabled={signingOut}
             activeOpacity={0.85}
           >
-            <Text style={styles.signOutText}>🚪 Cerrar Sesión</Text>
+            {signingOut ? (
+              <ActivityIndicator color="#FFFFFF" size="small" />
+            ) : (
+              <Text style={styles.signOutText}>🚪 Cerrar Sesión</Text>
+            )}
           </TouchableOpacity>
         </View>
 

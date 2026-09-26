@@ -10,6 +10,7 @@ type AuthContextType = {
   loading: boolean;
   signUp: (email: string, password: string, username?: string) => Promise<{ error: string | null }>;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
+  signInWithGoogle: () => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 };
@@ -53,12 +54,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: res.error };
   }
 
+  async function signInWithGoogle() {
+    const res = await authService.signInWithGoogle();
+    return { error: res.error };
+  }
+
   async function signOut() {
     await authService.signOut();
   }
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading, signUp, signIn, signOut, refreshProfile }}>
+    <AuthContext.Provider value={{ user, profile, loading, signUp, signIn, signInWithGoogle, signOut, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   );

@@ -25,10 +25,6 @@
         "android.permission.RECORD_AUDIO",
         "android.permission.MODIFY_AUDIO_SETTINGS",
         "android.permission.FOREGROUND_SERVICE",
-        "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK",
-        "android.permission.RECORD_AUDIO",
-        "android.permission.MODIFY_AUDIO_SETTINGS",
-        "android.permission.FOREGROUND_SERVICE",
         "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"
       ]
     },
@@ -70,14 +66,9 @@
       "router": {},
       "voiceServiceUrl": "https://yessyess22--yachay-voice-service-voiceservice-web.modal.run",
       "eas": {
-        "projectId": "083df8a4-6662-43ff-9ebf-e11aa252acb5"
+        "projectId": "df56ba60-8a09-4386-aa89-900ffc111dc9"
       }
     },
-    "runtimeVersion": {
-      "policy": "appVersion"
-    },
-    "updates": {
-      "url": "https://u.expo.dev/083df8a4-6662-43ff-9ebf-e11aa252acb5"
-    }
+    "owner": "knives123"
   }
 }

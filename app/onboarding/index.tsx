@@ -34,11 +34,6 @@ export default function OnboardingScreen() {
     router.replace('/(auth)' as any);
   }
 
-  async function handleGuest() {
-    await AsyncStorage.setItem('dailyGoal', dailyGoal);
-    router.replace('/(auth)/login' as any);
-  }
-
   function nextStep() {
     setStep((s) => Math.min(s + 1, 4));
   }
@@ -69,7 +64,7 @@ export default function OnboardingScreen() {
         {step === 1 && <StepCurriculum />}
         {step === 2 && <StepMechanics />}
         {step === 3 && <StepGoal dailyGoal={dailyGoal} onSelect={setDailyGoal} />}
-        {step === 4 && <StepAccess onGuest={handleGuest} onAuth={completeOnboarding} />}
+        {step === 4 && <StepAccess onAuth={completeOnboarding} />}
       </ScrollView>
 
       {/* Footer nav */}
@@ -262,10 +257,8 @@ function StepGoal({
 // ─── Step 3: Acceso ─────────────────────────────────────────────────────────
 
 function StepAccess({
-  onGuest,
   onAuth,
 }: {
-  onGuest: () => void;
   onAuth: () => void;
 }) {
   return (
@@ -282,9 +275,6 @@ function StepAccess({
       </Text>
       <TouchableOpacity style={styles.authBtn} onPress={onAuth} activeOpacity={0.88}>
         <Text style={styles.authBtnText}>Iniciar Sesión / Registrarse</Text>
-      </TouchableOpacity>
-      <TouchableOpacity style={styles.guestBtn} onPress={onGuest} activeOpacity={0.88}>
-        <Text style={styles.guestBtnText}>Explorar como Invitado</Text>
       </TouchableOpacity>
       <Text style={styles.legalNote}>
         Al continuar aceptas que Yachay Quechua es un proyecto educativo sin fines de lucro.
@@ -514,29 +504,13 @@ const styles = StyleSheet.create({
     borderBottomColor: GREEN_DARK,
     width: '100%',
     alignItems: 'center',
-    marginBottom: 14,
+    marginBottom: 20,
     elevation: 4,
   },
   authBtnText: {
     color: '#FFF',
     fontSize: 17,
     fontWeight: '900',
-  },
-  guestBtn: {
-    backgroundColor: '#FFF',
-    paddingVertical: 14,
-    paddingHorizontal: 24,
-    borderRadius: 18,
-    borderWidth: 2,
-    borderColor: '#D5D5D5',
-    width: '100%',
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  guestBtnText: {
-    color: '#555',
-    fontSize: 16,
-    fontWeight: '700',
   },
   legalNote: {
     fontSize: 11,
