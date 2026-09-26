@@ -659,7 +659,7 @@ export default function LessonScreen() {
   const [reviewAnswered, setReviewAnswered] = useState(false);
 
   const { user, refreshProfile } = useAuth();
-  const { lives, streakDays, checkAnswer, addGems } = useGame();
+  const { lives, streakDays, checkAnswer, addGems, addXp, hasDoubleXp } = useGame();
   const router = useRouter();
 
   // Animación de la mascota Yachi (rebote/celebración)
@@ -907,13 +907,15 @@ export default function LessonScreen() {
     celebrateYachi();
     setSparkleKey((k) => k + 1);
     playCompleteSound();
+    const earnedXp = hasDoubleXp ? 20 : 10;
+    addXp(earnedXp);
     addGems(15);
     const uid = user?.uid || (user as any)?.id;
     if (uid) {
-      await questionService.recordLessonProgress(lessonId, uid, 10);
-      leaderboardService.recordWeeklyXp(uid, 10).catch(() => {});
+      await questionService.recordLessonProgress(lessonId, uid, earnedXp);
+      leaderboardService.recordWeeklyXp(uid, earnedXp).catch(() => {});
       questService.updateQuestProgress(uid, 'lesson_count', 1).catch(() => {});
-      questService.updateQuestProgress(uid, 'xp_gain', 10).catch(() => {});
+      questService.updateQuestProgress(uid, 'xp_gain', earnedXp).catch(() => {});
       await refreshProfile();
     }
   }
@@ -1335,6 +1337,11 @@ export default function LessonScreen() {
               onComplete={(isCorrect) =>
                 handleExerciseResult(isCorrect, currentExercise.pairs.map((pair) => pair.qu).join(' • '))
               }
+              onWrongMatch={() => {
+                checkAnswer(false);
+                bounceYachi();
+                playIncorrectSound();
+              }}
               disabled={isAnswered}
             />
           </View>

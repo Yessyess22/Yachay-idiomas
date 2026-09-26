@@ -5,8 +5,8 @@ import { Illustrations } from '@/constants/illustrations';
 
 const TEAL = '#00C853';
 const TEAL_DARK = '#009624';
-const GOLD = '#FFB300';
-const TEXT_DARK = '#1E293B';
+const GOLD = '#F59E0B';
+const TEXT_DARK = '#0F172A';
 const TEXT_MUTED = '#64748B';
 
 export default function ModalScreen() {
@@ -22,26 +22,83 @@ export default function ModalScreen() {
     <View style={styles.container}>
       <View style={styles.card}>
         <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-          {/* Header con Logo Oficial */}
+          {/* Header con la Mascota Yachi (Llamita con Chullo) y Marca */}
           <View style={styles.header}>
-            <Image
-              source={Illustrations.logoYachayOficial}
-              style={styles.logo}
-              resizeMode="contain"
-            />
+            <View style={styles.mascotCircle}>
+              <Image
+                source={Illustrations.logoYachayConLlama}
+                style={styles.llamaLogo}
+                resizeMode="contain"
+              />
+            </View>
             <Text style={styles.title}>Yachay Simi</Text>
-            <Text style={styles.subtitle}>Aprende Quechua con Inteligencia Artificial</Text>
+            <Text style={styles.tagline}>El Lenguaje de la Sabiduría Andina</Text>
+          </View>
+
+          {/* ¿Qué significa el nombre de la app? */}
+          <View style={styles.meaningBox}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionEmoji}>🏔️</Text>
+              <Text style={styles.sectionTitle}>¿Qué significa "Yachay Simi"?</Text>
+            </View>
+            <Text style={styles.meaningIntro}>
+              El nombre de nuestra aplicación proviene de dos vocablos quechuas ancestrales:
+            </Text>
+            <View style={styles.meaningRow}>
+              <View style={styles.meaningPill}>
+                <Text style={styles.meaningQuechua}>YACHAY</Text>
+                <Text style={styles.meaningTranslation}>Sabiduría · Aprender · Conocimiento</Text>
+                <Text style={styles.meaningDetail}>
+                  Uno de los tres pilares de la filosofía andina junto con el Munay (amor/voluntad) y el Llank'ay (trabajo).
+                </Text>
+              </View>
+            </View>
+            <View style={styles.meaningRow}>
+              <View style={styles.meaningPill}>
+                <Text style={styles.meaningQuechua}>SIMI</Text>
+                <Text style={styles.meaningTranslation}>Boca · Palabra · Lenguaje · Idioma</Text>
+                <Text style={styles.meaningDetail}>
+                  La palabra viva transmitida por tradición oral de generación en generación en el Runa Simi.
+                </Text>
+              </View>
+            </View>
+            <View style={styles.meaningConclusion}>
+              <Text style={styles.meaningConclusionText}>
+                ✨ <Text style={styles.boldText}>Yachay Simi</Text> se traduce como{' '}
+                <Text style={styles.italicHighlight}>"La palabra del saber"</Text> o{' '}
+                <Text style={styles.italicHighlight}>"El lenguaje de la sabiduría"</Text>.
+              </Text>
+            </View>
           </View>
 
           {/* Misión y Propósito Cultural */}
           <View style={styles.sectionBox}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionEmoji}>🌾</Text>
-              <Text style={styles.sectionTitle}>Misión & Propósito</Text>
+              <Text style={styles.sectionEmoji}>🦙</Text>
+              <Text style={styles.sectionTitle}>Nuestra Mascota: Yachi</Text>
             </View>
             <Text style={styles.missionText}>
-              Yachay Simi nace de la profunda necesidad de rescatar, revalorizar y no perder nuestros valores, identidad y riqueza cultural andina, transmitiendo el Runasimi (Quechua) a las nuevas generaciones a través de la tecnología e innovación.
+              Yachi es nuestra tierna llamita yachachiq (maestra). Porta el chullo sagrado con iconografía pallay y te acompaña con alegría en cada lección, recordando que la lengua quechua es motivo de orgullo, cultura viva y fraternidad andina.
             </Text>
+          </View>
+
+          {/* Valores Éticos Andinos */}
+          <View style={styles.valuesBox}>
+            <Text style={styles.valuesTitle}>Trilogía Ética del Tawantinsuyu</Text>
+            <View style={styles.valuesGrid}>
+              <View style={styles.valueItem}>
+                <Text style={styles.valueQuechua}>Ama Suwa</Text>
+                <Text style={styles.valueSpanish}>No seas ladrón</Text>
+              </View>
+              <View style={styles.valueItem}>
+                <Text style={styles.valueQuechua}>Ama Llulla</Text>
+                <Text style={styles.valueSpanish}>No seas mentiroso</Text>
+              </View>
+              <View style={styles.valueItem}>
+                <Text style={styles.valueQuechua}>Ama Qilla</Text>
+                <Text style={styles.valueSpanish}>No seas ocioso</Text>
+              </View>
+            </View>
           </View>
 
           {/* Institución Académica */}
@@ -93,19 +150,19 @@ export default function ModalScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: 'rgba(15, 23, 42, 0.65)',
+    backgroundColor: 'rgba(15, 23, 42, 0.7)',
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 18,
+    padding: 16,
   },
   card: {
     backgroundColor: '#FFFFFF',
     borderRadius: 24,
-    paddingHorizontal: 20,
-    paddingVertical: 20,
+    paddingHorizontal: 18,
+    paddingVertical: 18,
     width: '100%',
-    maxWidth: 390,
-    maxHeight: '88%',
+    maxWidth: 400,
+    maxHeight: '90%',
     borderWidth: 2,
     borderColor: '#E2E8F0',
     shadowColor: '#000',
@@ -121,23 +178,100 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 16,
   },
-  logo: {
-    width: 72,
-    height: 72,
-    marginBottom: 8,
+  mascotCircle: {
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    backgroundColor: '#FEF3C7',
+    borderWidth: 3,
+    borderColor: GOLD,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 10,
+    shadowColor: GOLD,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  llamaLogo: {
+    width: 76,
+    height: 76,
   },
   title: {
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: '900',
     color: '#00701A',
     letterSpacing: -0.5,
   },
-  subtitle: {
+  tagline: {
     fontSize: 13,
     fontWeight: '800',
     color: GOLD,
     marginTop: 2,
     textAlign: 'center',
+  },
+
+  /* Significado del nombre */
+  meaningBox: {
+    backgroundColor: '#FFFBEB',
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 12,
+    borderWidth: 1.5,
+    borderColor: '#FDE68A',
+  },
+  meaningIntro: {
+    fontSize: 12,
+    color: '#475569',
+    marginBottom: 8,
+    lineHeight: 18,
+  },
+  meaningRow: {
+    marginBottom: 8,
+  },
+  meaningPill: {
+    backgroundColor: '#FFFFFF',
+    padding: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#FCD34D',
+  },
+  meaningQuechua: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#B45309',
+  },
+  meaningTranslation: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#1E293B',
+    marginTop: 1,
+  },
+  meaningDetail: {
+    fontSize: 11,
+    color: '#64748B',
+    marginTop: 2,
+    lineHeight: 15,
+  },
+  meaningConclusion: {
+    backgroundColor: '#FEF3C7',
+    padding: 10,
+    borderRadius: 10,
+    marginTop: 4,
+  },
+  meaningConclusionText: {
+    fontSize: 12,
+    color: '#78350F',
+    lineHeight: 17,
+  },
+  boldText: {
+    fontWeight: '900',
+  },
+  italicHighlight: {
+    fontStyle: 'italic',
+    fontWeight: '800',
+    color: '#00701A',
   },
 
   /* Sección de Misión */
@@ -156,7 +290,7 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   sectionEmoji: {
-    fontSize: 16,
+    fontSize: 18,
   },
   sectionTitle: {
     fontSize: 14,
@@ -167,6 +301,49 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#475569',
     lineHeight: 18,
+  },
+
+  /* Valores */
+  valuesBox: {
+    backgroundColor: '#F0FDF4',
+    borderRadius: 16,
+    padding: 12,
+    marginBottom: 12,
+    borderWidth: 1.5,
+    borderColor: '#BBF7D0',
+  },
+  valuesTitle: {
+    fontSize: 12,
+    fontWeight: '900',
+    color: '#166534',
+    textAlign: 'center',
+    marginBottom: 8,
+    textTransform: 'uppercase',
+  },
+  valuesGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 6,
+  },
+  valueItem: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    padding: 8,
+    borderRadius: 10,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#86EFAC',
+  },
+  valueQuechua: {
+    fontSize: 12,
+    fontWeight: '900',
+    color: '#15803D',
+  },
+  valueSpanish: {
+    fontSize: 10,
+    color: '#64748B',
+    marginTop: 2,
+    textAlign: 'center',
   },
 
   /* Institución Card */

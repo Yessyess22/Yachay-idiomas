@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Image, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Illustrations } from '@/constants/illustrations';
 import { useGame } from '@/src/context/GameContext';
 import { useAuth } from '@/src/context/AuthContext';
 import { useRouter } from 'expo-router';
@@ -22,13 +23,23 @@ export function YachayTopBar() {
         {/* Adorno textil andino esquina izquierda */}
         <Text style={styles.cornerPatternLeft}>◇◆◇</Text>
 
-        {/* LOGO izquierda con montañas */}
-        <View style={styles.logoWrap}>
-          <View style={styles.mountainIconWrap}>
-            <Text style={styles.mountainIcon}>⛰️</Text>
+        {/* LOGO izquierda unificado con icono oficial de Yachay Simi */}
+        <TouchableOpacity
+          style={styles.logoWrap}
+          onPress={() => router.push('/modal' as any)}
+          activeOpacity={0.8}
+        >
+          <Image
+            source={Illustrations.appIconCircularMontana}
+            style={styles.topLogoIcon}
+            resizeMode="contain"
+          />
+          <View style={styles.logoTextWrap}>
+            <Text style={styles.logoText}>
+              Yachay <Text style={styles.logoTextAccent}>Simi</Text>
+            </Text>
           </View>
-          <Text style={styles.logoText}>Yachay</Text>
-        </View>
+        </TouchableOpacity>
 
         {/* STATS en la derecha con los colores exactos del diseño */}
         <View style={styles.statsRow}>
@@ -154,21 +165,25 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
   },
   logoWrap: {
-    flexDirection: 'column',
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
+    gap: 6,
   },
-  mountainIconWrap: {
-    marginBottom: -4,
+  topLogoIcon: {
+    width: 28,
+    height: 28,
   },
-  mountainIcon: {
-    fontSize: 14,
+  logoTextWrap: {
+    flexDirection: 'column',
   },
   logoText: {
-    fontSize: 22,
+    fontSize: 18,
     fontWeight: '900',
     color: '#00701A',
-    letterSpacing: -0.5,
+    letterSpacing: -0.4,
+  },
+  logoTextAccent: {
+    color: '#F59E0B',
   },
   statsRow: {
     flexDirection: 'row',

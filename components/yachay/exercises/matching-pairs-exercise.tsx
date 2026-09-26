@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import * as Haptics from 'expo-haptics';
 
 interface PairItem {
   id: string;
@@ -11,6 +12,7 @@ interface PairItem {
 interface MatchingPairsProps {
   pairs: { qu: string; es: string }[];
   onComplete: (isCorrect: boolean) => void;
+  onWrongMatch?: () => void;
   disabled?: boolean;
 }
 
@@ -31,7 +33,7 @@ function deterministicShuffle<T>(arr: T[], seed: string): T[] {
   return result;
 }
 
-export function MatchingPairsExercise({ pairs, onComplete, disabled }: MatchingPairsProps) {
+export function MatchingPairsExercise({ pairs, onComplete, onWrongMatch, disabled }: MatchingPairsProps) {
   const [selectedQuechua, setSelectedQuechua] = useState<PairItem | null>(null);
   const [selectedSpanish, setSelectedSpanish] = useState<PairItem | null>(null);
   const [matchedIds, setMatchedIds] = useState<Set<string>>(new Set());
@@ -82,12 +84,17 @@ export function MatchingPairsExercise({ pairs, onComplete, disabled }: MatchingP
       setMatchedIds(newMatched);
       setSelectedQuechua(null);
       setSelectedSpanish(null);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
 
       if (newMatched.size === pairs.length) {
         onComplete(true);
       }
     } else {
       setErrorPair(qItem.matchId);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
+      if (onWrongMatch) {
+        onWrongMatch();
+      }
       setTimeout(() => {
         setSelectedQuechua(null);
         setSelectedSpanish(null);

@@ -59,10 +59,8 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       return { ...state, equippedOutfit: action.outfitId };
     case 'ACTIVATE_DOUBLE_XP':
       return { ...state, hasDoubleXp: true };
-    case 'CORRECT_ANSWER': {
-      const earned = state.hasDoubleXp ? XP_PER_CORRECT * 2 : XP_PER_CORRECT;
-      return { ...state, xp: state.xp + earned };
-    }
+    case 'CORRECT_ANSWER':
+      return { ...state };
     case 'ADD_XP':
       return { ...state, xp: state.xp + action.amount };
     case 'WRONG_ANSWER': {

@@ -96,13 +96,13 @@ function StepWelcome() {
         style={styles.mascotLarge}
         resizeMode="contain"
       />
-      <Text style={styles.stepTag}>YACHAY QUECHUA</Text>
+      <Text style={styles.stepTag}>YACHAY SIMI · EL LENGUAJE DEL SABER</Text>
       <Text style={styles.stepTitle}>Descubre el poder{'\n'}del Runasimi</Text>
       <Text style={styles.stepDesc}>
-        El quechua es el idioma más hablado de los pueblos originarios de América del Sur.
-        Con Yachay aprenderás de forma divertida, gratuita y a tu ritmo.
+        <Text style={{ fontWeight: 'bold', color: TEAL_DARK }}>Yachay</Text> (Sabiduría y aprendizaje) +{' '}
+        <Text style={{ fontWeight: 'bold', color: TEAL_DARK }}>Simi</Text> (Lengua y palabra hablada).{'\n\n'}
+        El quechua es la lengua viva originaria más hablada de los Andes. Conoce la sabiduría de nuestros ancestros junto a Yachi de forma divertida y a tu propio ritmo.
       </Text>
-
     </View>
   );
 }

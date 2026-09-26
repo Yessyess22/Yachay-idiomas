@@ -347,6 +347,14 @@ export default function LevelExamScreen() {
             <Text style={styles.rewardsText}>🎉 Recompensa: +50 XP • +30 Gemas 💎</Text>
           </View>
         )}
+        {passed && parsedLevelId === 3 ? (
+          <TouchableOpacity
+            style={[styles.primaryBtn, { backgroundColor: '#D97706', marginBottom: 10 }]}
+            onPress={() => router.replace('/certificate' as any)}
+          >
+            <Text style={styles.primaryBtnText}>🎓 ¡Ver mi Diploma de Graduación! ➔</Text>
+          </TouchableOpacity>
+        ) : null}
         <TouchableOpacity
           style={[styles.primaryBtn, passed ? styles.btnSuccess : styles.btnDanger]}
           onPress={() => router.replace('/(tabs)')}
@@ -467,6 +475,10 @@ export default function LevelExamScreen() {
               key={`matching-${currentQuestion.id}-${activeIndex}`}
               pairs={currentQuestion.pairs}
               onComplete={handleInteractiveResult}
+              onWrongMatch={() => {
+                bounceYachi();
+                playIncorrectSound();
+              }}
               disabled={isAnswered}
             />
           </View>

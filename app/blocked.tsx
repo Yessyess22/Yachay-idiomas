@@ -3,7 +3,8 @@ import { BrandColors } from '@/src/constants/theme';
 import { useGame } from '@/src/context/GameContext';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useEffect } from 'react';
+import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -11,13 +12,11 @@ import Animated, {
   withSequence,
   withTiming,
 } from 'react-native-reanimated';
-import { useEffect } from 'react';
 
 export default function BlockedScreen() {
-  const { restoreLives } = useGame();
+  const { gems, consumeGems, restoreLives } = useGame();
   const router = useRouter();
 
-  // Animación de sacudida para generar urgencia
   const shakeX = useSharedValue(0);
   const shakeStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: shakeX.value }],
@@ -35,39 +34,100 @@ export default function BlockedScreen() {
     );
   }, [shakeX]);
 
-  function handleRestore() {
-    restoreLives();
-    router.replace('/(tabs)');
+  function handleBuyLives() {
+    if (gems < 50) {
+      Alert.alert(
+        'Gemas insuficientes 💎',
+        `Necesitas 50 gemas para recargar vidas y tienes ${gems}. Puedes ganar gemas repasando en la Biblioteca o practicando.`,
+        [
+          { text: 'Ir a Explorar', onPress: () => router.replace('/(tabs)/explore') },
+          { text: 'Cancelar', style: 'cancel' },
+        ]
+      );
+      return;
+    }
+
+    const success = consumeGems(50);
+    if (success) {
+      restoreLives();
+      Alert.alert('¡Vidas Restauradas! ❤️', 'Has recuperado tus 5 vidas por 50 gemas sagradas.', [
+        { text: '¡Continuar!', onPress: () => router.replace('/(tabs)') },
+      ]);
+    }
+  }
+
+  function handleGoPractice() {
+    router.replace('/practice/saludos' as any);
+  }
+
+  function handleGoExplore() {
+    router.replace('/(tabs)/explore');
   }
 
   return (
     <View style={styles.container}>
-      <Animated.View style={shakeStyle}>
-        <Image
-          source={Illustrations.llamaPiensa}
-          style={styles.yachi}
-          contentFit="contain"
-        />
-      </Animated.View>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <Animated.View style={shakeStyle}>
+          <Image source={Illustrations.llamaPiensa} style={styles.yachi} contentFit="contain" />
+        </Animated.View>
 
-      <Text style={styles.title}>¡Sin vidas!</Text>
-      <Text style={styles.subtitle}>
-        Has agotado tus 5 vidas.{'\n'}Descansa un poco y vuelve más tarde.
-      </Text>
+        <Text style={styles.title}>¡Te quedaste sin vidas! 💔</Text>
+        <Text style={styles.subtitle}>
+          En el camino del saber andino los tropiezos son parte del aprendizaje. Elige cómo deseas continuar:
+        </Text>
 
-      <View style={styles.heartsRow}>
-        {Array.from({ length: 5 }).map((_, i) => (
-          <Text key={i} style={styles.emptyHeart}>🖤</Text>
-        ))}
-      </View>
+        <View style={styles.heartsRow}>
+          {Array.from({ length: 5 }).map((_, i) => (
+            <Text key={i} style={styles.emptyHeart}>
+              🖤
+            </Text>
+          ))}
+        </View>
 
-      <TouchableOpacity style={styles.restoreBtn} onPress={handleRestore}>
-        <Text style={styles.restoreBtnText}>Restaurar vidas (continuar)</Text>
-      </TouchableOpacity>
+        {/* Balance actual de gemas */}
+        <View style={styles.gemsBadge}>
+          <Text style={styles.gemsBadgeText}>💎 Tu saldo: {gems} Gemas</Text>
+        </View>
 
-      <Text style={styles.hint}>
-        En producción, las vidas se restauran con tiempo o con gemas.
-      </Text>
+        {/* Opción 1: Comprar con gemas */}
+        <TouchableOpacity
+          style={[styles.actionBtn, styles.gemBtn]}
+          onPress={handleBuyLives}
+          activeOpacity={0.85}
+        >
+          <Text style={styles.gemBtnTitle}>⚡ Recargar 5 Vidas (50 💎)</Text>
+          <Text style={styles.btnSubtext}>Usa tus gemas ganadas para continuar de inmediato</Text>
+        </TouchableOpacity>
+
+        {/* Opción 2: Practicar sin vidas */}
+        <TouchableOpacity
+          style={[styles.actionBtn, styles.practiceBtn]}
+          onPress={handleGoPractice}
+          activeOpacity={0.85}
+        >
+          <Text style={styles.practiceBtnTitle}>📖 Repaso en Modo Práctica</Text>
+          <Text style={styles.btnSubtext}>Practica saludos y expresiones para reforzar conocimiento</Text>
+        </TouchableOpacity>
+
+        {/* Opción 3: Explorar Biblioteca Andina */}
+        <TouchableOpacity
+          style={[styles.actionBtn, styles.exploreBtn]}
+          onPress={handleGoExplore}
+          activeOpacity={0.85}
+        >
+          <Text style={styles.exploreBtnTitle}>🏔️ Explorar la Biblioteca Andina</Text>
+          <Text style={styles.btnSubtext}>Cuentos, gastronomía y cultura sin vidas ni exámenes</Text>
+        </TouchableOpacity>
+
+        {/* Volver al inicio */}
+        <TouchableOpacity
+          style={styles.backHomeBtn}
+          onPress={() => router.replace('/(tabs)')}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.backHomeText}>Volver a la Pantalla de Inicio</Text>
+        </TouchableOpacity>
+      </ScrollView>
     </View>
   );
 }
@@ -75,50 +135,115 @@ export default function BlockedScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
+    backgroundColor: '#F8FAFC',
+  },
+  scrollContent: {
+    padding: 24,
+    paddingTop: 48,
     alignItems: 'center',
-    padding: 32,
-    backgroundColor: BrandColors.bgLight,
   },
   yachi: {
-    width: 180,
-    height: 180,
-    marginBottom: 24,
+    width: 160,
+    height: 160,
+    marginBottom: 16,
   },
   title: {
-    fontSize: 34,
+    fontSize: 28,
     fontWeight: '900',
-    color: BrandColors.brandNavy,
-    marginBottom: 12,
+    color: '#0F172A',
+    marginBottom: 8,
+    textAlign: 'center',
   },
   subtitle: {
-    fontSize: 16,
-    color: '#555',
+    fontSize: 14,
+    color: '#64748B',
     textAlign: 'center',
-    lineHeight: 24,
-    marginBottom: 24,
+    lineHeight: 20,
+    marginBottom: 20,
+    maxWidth: 320,
   },
   heartsRow: {
     flexDirection: 'row',
     gap: 8,
-    marginBottom: 32,
+    marginBottom: 16,
   },
-  emptyHeart: { fontSize: 28 },
-  restoreBtn: {
-    backgroundColor: BrandColors.streakFire,
-    paddingVertical: 16,
-    paddingHorizontal: 32,
-    borderRadius: 16,
+  emptyHeart: {
+    fontSize: 26,
+  },
+  gemsBadge: {
+    backgroundColor: '#E0F2FE',
+    borderColor: '#BAE6FD',
+    borderWidth: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderRadius: 20,
     marginBottom: 20,
   },
-  restoreBtnText: {
-    color: '#fff',
-    fontSize: 17,
-    fontWeight: 'bold',
+  gemsBadgeText: {
+    color: '#0284C7',
+    fontSize: 14,
+    fontWeight: '800',
   },
-  hint: {
-    fontSize: 12,
-    color: '#aaa',
+  actionBtn: {
+    width: '100%',
+    paddingVertical: 14,
+    paddingHorizontal: 18,
+    borderRadius: 16,
+    marginBottom: 12,
+  },
+  gemBtn: {
+    backgroundColor: '#E11D48',
+    shadowColor: '#E11D48',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  gemBtnTitle: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '900',
     textAlign: 'center',
+    marginBottom: 2,
+  },
+  practiceBtn: {
+    backgroundColor: '#059669',
+    shadowColor: '#059669',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  practiceBtnTitle: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '900',
+    textAlign: 'center',
+    marginBottom: 2,
+  },
+  exploreBtn: {
+    backgroundColor: '#0284C7',
+  },
+  exploreBtnTitle: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '900',
+    textAlign: 'center',
+    marginBottom: 2,
+  },
+  btnSubtext: {
+    color: 'rgba(255, 255, 255, 0.85)',
+    fontSize: 11,
+    textAlign: 'center',
+  },
+  backHomeBtn: {
+    marginTop: 8,
+    paddingVertical: 12,
+  },
+  backHomeText: {
+    color: '#64748B',
+    fontSize: 14,
+    fontWeight: '700',
+    textDecorationLine: 'underline',
   },
 });

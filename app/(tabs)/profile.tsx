@@ -447,6 +447,20 @@ export default function ProfileScreen() {
               </View>
               <Text style={styles.shopBannerArrow}>→</Text>
             </TouchableOpacity>
+
+            {/* Acceso a Certificado de Graduación */}
+            <TouchableOpacity
+              style={styles.certificateBannerBtn}
+              onPress={() => router.push('/certificate' as any)}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.certificateBannerEmoji}>🎓</Text>
+              <View style={styles.certificateBannerInfo}>
+                <Text style={styles.certificateBannerTitle}>Diploma de Acreditación Andina</Text>
+                <Text style={styles.certificateBannerSub}>Consulta tu certificado oficial de Amawt'a del Runa Simi.</Text>
+              </View>
+              <Text style={styles.certificateBannerArrow}>➔</Text>
+            </TouchableOpacity>
           </View>
         )}
 
@@ -1002,6 +1016,43 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '900',
     color: TEAL,
+  },
+  certificateBannerBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFBEB',
+    padding: 14,
+    borderRadius: 18,
+    borderWidth: 1.5,
+    borderColor: '#FDE68A',
+    marginBottom: 16,
+    shadowColor: '#D97706',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  certificateBannerEmoji: {
+    fontSize: 24,
+    marginRight: 12,
+  },
+  certificateBannerInfo: {
+    flex: 1,
+  },
+  certificateBannerTitle: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#92400E',
+  },
+  certificateBannerSub: {
+    fontSize: 11,
+    color: '#B45309',
+    marginTop: 2,
+  },
+  certificateBannerArrow: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#D97706',
   },
 
   /* Botón de Salir (Rojo Destacado) */
