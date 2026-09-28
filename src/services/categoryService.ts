@@ -81,8 +81,9 @@ export const categoryService = {
       (progressData || []).map((p) => [p.lesson_id, p])
     );
 
+    const isOnlineSuccess = progressData !== null;
     let localCompletedSet = new Set<number>();
-    if (userId) {
+    if (userId && !isOnlineSuccess) {
       try {
         const storageKey = `@yachay_completed_lessons_${userId}`;
         const localData = await AsyncStorage.getItem(storageKey);
@@ -95,7 +96,7 @@ export const categoryService = {
 
     const result: LessonWithProgress[] = lessons.map((lesson) => {
       const dbProgress = progressMap.get(lesson.id);
-      const isLocalDone = localCompletedSet.has(lesson.id);
+      const isLocalDone = !isOnlineSuccess && localCompletedSet.has(lesson.id);
       return {
         ...lesson,
         progress: dbProgress || (isLocalDone ? {

@@ -22,6 +22,7 @@
       },
       "predictiveBackGestureEnabled": false,
       "permissions": [
+        "android.permission.CAMERA",
         "android.permission.RECORD_AUDIO",
         "android.permission.MODIFY_AUDIO_SETTINGS",
         "android.permission.FOREGROUND_SERVICE",
@@ -55,6 +56,13 @@
         "expo-audio",
         {
           "microphonePermission": "Yachay necesita el micrófono para escuchar tu pronunciación y traducir tu voz."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Yachay necesita acceso a tus fotos para personalizar tu avatar.",
+          "cameraPermission": "Yachay necesita acceso a tu cámara para tomar tu foto de perfil."
         }
       ]
     ],

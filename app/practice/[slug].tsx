@@ -35,7 +35,7 @@ export default function PracticeScreen() {
   const { slug } = useLocalSearchParams<{ slug: string }>();
   const router = useRouter();
   const { user } = useAuth();
-  const { checkAnswer } = useGame();
+  const { checkAnswer, recordDailyActivity, addLives, lives } = useGame();
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -47,6 +47,7 @@ export default function PracticeScreen() {
   const [correctCount, setCorrectCount] = useState(0);
   const [timeLeft, setTimeLeft] = useState(DURATION_SEC);
   const [finished, setFinished] = useState(false);
+  const [lifeAwarded, setLifeAwarded] = useState(false);
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -68,13 +69,19 @@ export default function PracticeScreen() {
       if (!isMounted) return;
       const completedIds = (lessons ?? []).filter((l) => l.progress?.completed).map((l) => l.id);
 
-      if (completedIds.length === 0) {
-        setError('Completa al menos una lección de esta categoría para poder practicar.');
+      // Si aún no completó ninguna lección, permitimos practicar con las primeras 2 lecciones
+      // de la categoría para que pueda recuperar vidas y no quede atascado.
+      const lessonIdsToFetch = completedIds.length > 0
+        ? completedIds
+        : (lessons ?? []).map((l) => l.id).slice(0, 2);
+
+      if (lessonIdsToFetch.length === 0) {
+        setError('No encontramos lecciones disponibles para practicar en esta categoría.');
         setLoading(false);
         return;
       }
 
-      const results = await Promise.all(completedIds.map((id) => questionService.fetchQuestionsByLesson(id)));
+      const results = await Promise.all(lessonIdsToFetch.map((id) => questionService.fetchQuestionsByLesson(id)));
       if (!isMounted) return;
       // Este modo tiene una interfaz de selección múltiple; no debe recibir
       // ejercicios editoriales que requieren teclado, audio o emparejamiento.
@@ -102,12 +109,18 @@ export default function PracticeScreen() {
     if (timerRef.current) clearInterval(timerRef.current);
     setFinished(true);
     const uid = user?.uid || (user as any)?.id;
+    if (count >= 3) {
+      addLives(1);
+      setLifeAwarded(true);
+    }
     if (uid && count > 0) {
+      recordDailyActivity();
       const earned = count * XP_PER_CORRECT;
       leaderboardService.recordWeeklyXp(uid, earned).catch(() => {});
       questService.updateQuestProgress(uid, 'xp_gain', earned).catch(() => {});
+      questService.updateQuestProgress(uid, 'streak_maintain', 1).catch(() => {});
     }
-  }, [user]);
+  }, [user, addLives]);
 
   useEffect(() => {
     if (loading || finished || error) return;
@@ -189,8 +202,25 @@ export default function PracticeScreen() {
         </Text>
         <Text style={styles.resultSub}>Tiempo usado: {timeUsed}s</Text>
         <Text style={styles.resultXp}>+{correctCount * XP_PER_CORRECT} XP ganados</Text>
+
+        {correctCount >= 3 ? (
+          <View style={styles.lifeRewardBox}>
+            <Text style={styles.lifeRewardEmoji}>❤️✨</Text>
+            <Text style={styles.lifeRewardTitle}>¡Recuperaste +1 Vida por practicar!</Text>
+            <Text style={styles.lifeRewardDesc}>
+              Tu dedicación rinde frutos. Tienes {Math.min(5, lives)}/5 vidas para continuar tus lecciones.
+            </Text>
+          </View>
+        ) : (
+          <View style={styles.lifeTipBox}>
+            <Text style={styles.lifeTipText}>
+              💡 Acierta al menos 3 preguntas en práctica para ganar +1 Vida ❤️
+            </Text>
+          </View>
+        )}
+
         <TouchableOpacity style={styles.btn} onPress={() => router.back()}>
-          <Text style={styles.btnText}>Volver</Text>
+          <Text style={styles.btnText}>Continuar al Camino ➔</Text>
         </TouchableOpacity>
       </View>
     );
@@ -316,7 +346,7 @@ const styles = StyleSheet.create({
     borderColor: '#e5e5e5',
     backgroundColor: '#f7f7f7',
   },
-  optSelected: { borderColor: '#1CB0F6', backgroundColor: '#DDF4FF' },
+  optSelected: { borderColor: '#7C3AED', backgroundColor: '#F5F3FF' },
   optCorrect: { borderColor: BrandColors.brandGreen, backgroundColor: '#E0F2F1' },
   optWrong: { borderColor: BrandColors.danger, backgroundColor: BrandColors.dangerLight },
   optText: { fontSize: 17, fontWeight: '600', color: '#333' },
@@ -341,4 +371,29 @@ const styles = StyleSheet.create({
   resultSub: { fontSize: 14, color: '#888', marginBottom: 4 },
   resultXp: { fontSize: 16, fontWeight: '800', color: BrandColors.brandGreen, marginBottom: 24 },
   errorText: { color: BrandColors.danger, fontSize: 16, marginBottom: 16, textAlign: 'center' },
+  lifeRewardBox: {
+    backgroundColor: '#FEF2F2',
+    borderWidth: 2,
+    borderColor: '#EF4444',
+    borderRadius: 16,
+    padding: 16,
+    alignItems: 'center',
+    marginBottom: 24,
+    width: '100%',
+    maxWidth: 320,
+  },
+  lifeRewardEmoji: { fontSize: 32, marginBottom: 4 },
+  lifeRewardTitle: { fontSize: 16, fontWeight: '900', color: '#B91C1C', textAlign: 'center', marginBottom: 4 },
+  lifeRewardDesc: { fontSize: 13, color: '#7F1D1D', textAlign: 'center', lineHeight: 18 },
+  lifeTipBox: {
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#CBD5E1',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 20,
+    width: '100%',
+    maxWidth: 320,
+  },
+  lifeTipText: { fontSize: 13, color: '#475569', textAlign: 'center', fontWeight: '600' },
 });

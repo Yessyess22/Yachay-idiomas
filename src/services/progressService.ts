@@ -82,25 +82,31 @@ export const progressService = {
   },
 
   async fetchPassedLevels(userId: string): Promise<Set<number>> {
+    const key = `@yachay_passed_levels_${userId}`;
+
+    try {
+      const { data, error } = await supabase
+        .from('level_progress')
+        .select('level_id')
+        .eq('firebase_uid', userId)
+        .not('passed_at', 'is', null);
+
+      if (!error && data !== null) {
+        const serverLevels = data.map((row) => row.level_id);
+        await AsyncStorage.setItem(key, JSON.stringify(serverLevels));
+        return new Set<number>(serverLevels);
+      }
+    } catch (e) {
+      console.warn('[progressService] Supabase fetch error, usando almacenamiento local:', e);
+    }
+
+    // Fallback offline a AsyncStorage si no hubo respuesta del servidor
     const passed = new Set<number>();
     try {
-      const key = `@yachay_passed_levels_${userId}`;
       const raw = await AsyncStorage.getItem(key);
       if (raw) {
         const list: number[] = JSON.parse(raw);
         list.forEach((id) => passed.add(id));
-      }
-    } catch {}
-
-    try {
-      const { data } = await supabase
-        .from('level_progress')
-        .select('level_id, passed_at')
-        .eq('firebase_uid', userId)
-        .not('passed_at', 'is', null);
-
-      if (data) {
-        data.forEach((row) => passed.add(row.level_id));
       }
     } catch {}
 

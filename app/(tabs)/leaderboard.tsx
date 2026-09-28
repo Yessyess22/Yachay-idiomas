@@ -14,6 +14,7 @@ import { useGame } from '@/src/context/GameContext';
 import { leaderboardService } from '@/src/services/leaderboardService';
 import { LeaderboardEntry } from '@/src/types';
 import { YachayTopBar } from '@/components/yachay/yachay-top-bar';
+import { useRouter } from 'expo-router';
 
 const TEAL = '#00C853';
 const TEAL_DARK = '#009624';
@@ -74,6 +75,7 @@ const DEFAULT_LEADERBOARD: LeaderboardEntry[] = [
 ];
 
 export default function LogrosScreen() {
+  const router = useRouter();
   const { streakDays, xp, gems } = useGame();
   const { user, profile } = useAuth();
   const [activeTab, setActiveTab] = useState<Tab>('achievements');
@@ -83,9 +85,9 @@ export default function LogrosScreen() {
   // Ref para el callback de Realtime — siempre tiene uid y xp actuales
   const fetchRef = useRef<() => void>(() => {});
 
-  const userStreak = Math.max(1, streakDays ?? profile?.streak_count ?? 1);
+  const userStreak = streakDays ?? profile?.streak_count ?? 0;
   const userXp = xp ?? profile?.total_xp ?? 0;
-  const userGems = gems ?? profile?.gems ?? 100;
+  const userGems = gems ?? profile?.gems ?? 0;
 
   const achievements: Achievement[] = [
     {
@@ -272,6 +274,22 @@ export default function LogrosScreen() {
               keyExtractor={(item, index) => (item.rank ?? index).toString() + (item.firebase_uid || index)}
               contentContainerStyle={styles.contentContainer}
               showsVerticalScrollIndicator={false}
+              ListHeaderComponent={
+                <TouchableOpacity
+                  style={styles.tinkuyRankBanner}
+                  onPress={() => router.push('/duel' as any)}
+                  activeOpacity={0.88}
+                >
+                  <View style={styles.tinkuyRankBannerLeft}>
+                    <Text style={styles.tinkuyRankTag}>⚔️ TINKUY · DUELO 1 VS 1</Text>
+                    <Text style={styles.tinkuyRankTitle}>¿Quieres ascender más rápido?</Text>
+                    <Text style={styles.tinkuyRankSub}>Desafía a otros en duelos en vivo y suma +50 XP.</Text>
+                  </View>
+                  <View style={styles.tinkuyRankBtn}>
+                    <Text style={styles.tinkuyRankBtnText}>¡Duelo!</Text>
+                  </View>
+                </TouchableOpacity>
+              }
               renderItem={({ item }) => {
                 const isMe = (user?.uid || (user as any)?.id) === item.firebase_uid;
                 const isPodium = (item.rank ?? 99) <= 3;
@@ -288,9 +306,15 @@ export default function LogrosScreen() {
                       <RankBadge rank={item.rank ?? 0} />
                     </View>
                     <View style={styles.rankAvatarCircle}>
-                      <Text style={styles.rankAvatarText}>
-                        {item.username ? item.username.charAt(0).toUpperCase() : '👤'}
-                      </Text>
+                      {item.avatar_url && (item.avatar_url.startsWith('data:') || item.avatar_url.startsWith('http') || item.avatar_url.startsWith('file:')) ? (
+                        <Image source={{ uri: item.avatar_url }} style={styles.rankAvatarImage} />
+                      ) : item.avatar_url ? (
+                        <Text style={styles.rankAvatarText}>{item.avatar_url}</Text>
+                      ) : (
+                        <Text style={styles.rankAvatarText}>
+                          {item.username ? item.username.charAt(0).toUpperCase() : '👤'}
+                        </Text>
+                      )}
                     </View>
                     <View style={styles.rankInfoCol}>
                       <Text style={[styles.rankUsername, isMe && styles.rankUsernameMe]} numberOfLines={1}>
@@ -321,6 +345,51 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: PARCHMENT,
   },
+  /* Banner Tinkuy Duelo */
+  tinkuyRankBanner: {
+    backgroundColor: '#0F172A',
+    borderRadius: 18,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 1.5,
+    borderColor: '#FFB300',
+    marginBottom: 14,
+  },
+  tinkuyRankBannerLeft: {
+    flex: 1,
+    marginRight: 10,
+  },
+  tinkuyRankTag: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: '#FFB300',
+    letterSpacing: 0.8,
+    marginBottom: 2,
+  },
+  tinkuyRankTitle: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#FFFFFF',
+    marginBottom: 2,
+  },
+  tinkuyRankSub: {
+    fontSize: 11,
+    color: '#94A3B8',
+  },
+  tinkuyRankBtn: {
+    backgroundColor: '#FFB300',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+  },
+  tinkuyRankBtnText: {
+    fontSize: 12,
+    fontWeight: '900',
+    color: '#0F172A',
+  },
+
   /* Banner de Racha */
   rachaBanner: {
     backgroundColor: '#009624',
@@ -614,6 +683,12 @@ const styles = StyleSheet.create({
     marginHorizontal: 10,
     borderWidth: 1,
     borderColor: '#BFE4DC',
+    overflow: 'hidden',
+  },
+  rankAvatarImage: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
   },
   rankAvatarText: {
     fontSize: 16,

@@ -241,24 +241,27 @@ export default function HomeScreen() {
   }));
 
   const loadProgress = useCallback(async () => {
-    setLoading(true);
-    // Desbloqueo total solicitado para el estudiante Alejandro Padilla Ponce
-    const completed: number[] = [1, 2, 3, 4, 5, 6];
-    const passed = new Set<number>([1, 2, 3]);
-
-    if (uid) {
-      try {
-        await AsyncStorage.setItem(`@yachay_completed_lessons_${uid}`, JSON.stringify([1, 2, 3, 4, 5, 6]));
-        await AsyncStorage.setItem(`@yachay_passed_levels_${uid}`, JSON.stringify([1, 2, 3]));
-        await AsyncStorage.setItem(`@yachay_unlocked_levels_${uid}`, JSON.stringify([1, 2, 3]));
-      } catch (err) {
-        console.warn('Error al persistir progreso desbloqueado:', err);
-      }
+    if (!uid) {
+      setCompletedLessonIds([]);
+      setPassedLevelIds(new Set());
+      setLoading(false);
+      return;
     }
-
-    setCompletedLessonIds(completed);
-    setPassedLevelIds(passed);
-    setLoading(false);
+    setLoading(true);
+    try {
+      const [completed, passed] = await Promise.all([
+        questionService.getCompletedLessonIds(uid),
+        progressService.fetchPassedLevels(uid),
+      ]);
+      setCompletedLessonIds(completed);
+      setPassedLevelIds(passed);
+    } catch (err) {
+      console.warn('Error al cargar progreso del usuario:', err);
+      setCompletedLessonIds([]);
+      setPassedLevelIds(new Set());
+    } finally {
+      setLoading(false);
+    }
   }, [uid]);
 
   useFocusEffect(
@@ -282,7 +285,7 @@ export default function HomeScreen() {
     ) {
       return 'Alejandro Padilla Ponce';
     }
-    return profile?.username || user?.displayName || user?.email?.split('@')[0] || 'Alejandro Padilla Ponce';
+    return profile?.username || user?.displayName || user?.email?.split('@')[0] || 'Estudiante Yachay';
   }, [profile, user]);
 
   function handleNodePress(node: LearningPathNode) {
@@ -380,7 +383,7 @@ export default function HomeScreen() {
                   </Text>
                 </View>
                 <ProgressBar
-                  progress={path.completedCount / path.totalLessons}
+                  progress={(path.completedCount / path.totalLessons) * 100}
                   color={GOLD}
                   height={8}
                 />
@@ -389,8 +392,40 @@ export default function HomeScreen() {
           </ImageBackground>
         </View>
 
-        {/* Caminito Serpentine por Secciones de Nivel */}
+        {/* Banner Acceso Directo: Duelo Tinkuy 1 vs 1 */}
+        <TouchableOpacity
+          style={styles.tinkuyQuickBanner}
+          onPress={() => router.push('/duel' as any)}
+          activeOpacity={0.88}
+        >
+          <View style={styles.tinkuyQuickLeft}>
+            <View style={styles.tinkuyTagRow}>
+              <Text style={styles.tinkuyQuickTag}>⚔️ TINKUY · 1 VS 1</Text>
+              <Text style={styles.tinkuyLiveDot}>● EN VIVO</Text>
+            </View>
+            <Text style={styles.tinkuyQuickTitle}>Duelo de Saberes Andinos</Text>
+            <Text style={styles.tinkuyQuickSub}>
+              Compite con amigos en carreras de llamitas y gana +50 XP.
+            </Text>
+          </View>
+          <View style={styles.tinkuyQuickBtn}>
+            <Text style={styles.tinkuyQuickBtnText}>¡Duelo!</Text>
+            <Text style={styles.tinkuyQuickBtnArrow}>›</Text>
+          </View>
+        </TouchableOpacity>
+
+        {/* Caminito Serpentino — Fondo Valle Andino Ilustrado */}
         <View style={styles.pathContainer}>
+          {/* Fondo panorámico del sendero andino que cubre el 100% del caminito */}
+          <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+            <Image
+              source={require('@/assets/images/andean_mountain_bg_tall.png')}
+              style={styles.valleyBgImage}
+              resizeMode="cover"
+            />
+            <View style={styles.valleyOverlay} />
+          </View>
+
           {levelGroups.map((group) => (
             <View key={`level-${group.level}`} style={styles.levelSection}>
               {/* Encabezado de Sección estilo Duolingo */}
@@ -596,7 +631,7 @@ export default function HomeScreen() {
                   </Text>
                 </View>
                 <ProgressBar
-                  progress={(path.completedCount + path.passedExamsCount) / (path.totalLessons + path.totalExams)}
+                  progress={((path.completedCount + path.passedExamsCount) / (path.totalLessons + path.totalExams)) * 100}
                   color={GOLD}
                   height={8}
                 />
@@ -663,7 +698,7 @@ export default function HomeScreen() {
             <View style={styles.celebrationMetricsRow}>
               <View style={styles.metricChip}>
                 <Text style={styles.metricChipEmoji}>⭐</Text>
-                <Text style={styles.metricChipLabel}>6 Lecciones</Text>
+                <Text style={styles.metricChipLabel}>7 Lecciones</Text>
                 <Text style={styles.metricChipValue}>100% Dominadas</Text>
               </View>
               <View style={styles.metricChip}>
@@ -789,6 +824,81 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
 
+  tinkuyQuickBanner: {
+    maxWidth: 480,
+    width: '100%',
+    alignSelf: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    marginTop: 10,
+    marginBottom: 4,
+    backgroundColor: '#0F172A',
+    borderRadius: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 2,
+    borderColor: '#FFB300',
+    shadowColor: '#FFB300',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  tinkuyQuickLeft: {
+    flex: 1,
+    marginRight: 12,
+  },
+  tinkuyTagRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 3,
+  },
+  tinkuyQuickTag: {
+    fontSize: 10,
+    fontWeight: '900',
+    color: '#FFB300',
+    letterSpacing: 1,
+  },
+  tinkuyLiveDot: {
+    fontSize: 9,
+    fontWeight: '900',
+    color: '#00C853',
+    letterSpacing: 0.8,
+  },
+  tinkuyQuickTitle: {
+    fontSize: 15,
+    fontWeight: '900',
+    color: '#FFFFFF',
+    marginBottom: 2,
+  },
+  tinkuyQuickSub: {
+    fontSize: 11.5,
+    color: '#94A3B8',
+    lineHeight: 15,
+  },
+  tinkuyQuickBtn: {
+    backgroundColor: '#FFB300',
+    paddingVertical: 9,
+    paddingHorizontal: 13,
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+  },
+  tinkuyQuickBtnText: {
+    fontSize: 13,
+    fontWeight: '900',
+    color: '#0F172A',
+  },
+  tinkuyQuickBtnArrow: {
+    fontSize: 16,
+    fontWeight: '900',
+    color: '#0F172A',
+    marginTop: -2,
+  },
+
   // ── CAMINITO Y SECCIONES ───────────────────────────────────
   pathContainer: {
     maxWidth: 480,
@@ -796,6 +906,19 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     paddingHorizontal: 16,
     marginTop: 10,
+    position: 'relative',
+    // SIN overflow:hidden — permite que el zigzag respire sin recortar
+  },
+  valleyBgImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 24,
+    opacity: 0.38,
+  },
+  valleyOverlay: {
+    ...StyleSheet.absoluteFill,
+    borderRadius: 24,
+    backgroundColor: 'rgba(250, 247, 242, 0.12)',
   },
   levelSection: {
     marginBottom: 20,

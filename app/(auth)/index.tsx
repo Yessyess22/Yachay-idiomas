@@ -1,6 +1,7 @@
 import React from 'react';
 import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useRouter } from 'expo-router';
+import { Illustrations } from '@/constants/illustrations';
 
 export default function WelcomePortadaScreen() {
   const router = useRouter();
@@ -10,7 +11,7 @@ export default function WelcomePortadaScreen() {
       {/* Zona Superior: Mascota Llama Yachi */}
       <View style={styles.heroContainer}>
         <Image
-          source={require('@/assets/images/yachi/yachi_principal.png')}
+          source={Illustrations.logoYachayConLlama}
           style={styles.llamaImage}
           resizeMode="contain"
         />

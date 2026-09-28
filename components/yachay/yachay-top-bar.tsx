@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Image, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Illustrations } from '@/constants/illustrations';
-import { useGame } from '@/src/context/GameContext';
+import { useGame, getLocalDateString } from '@/src/context/GameContext';
 import { useAuth } from '@/src/context/AuthContext';
 import { useRouter } from 'expo-router';
 
@@ -12,6 +12,9 @@ export function YachayTopBar() {
   const {
     lives,
     streakDays,
+    lastActiveDate,
+    streakSavedByFreeze,
+    nextLifeFormattedTime,
     xp,
     gems,
     restoreLives,
@@ -28,7 +31,7 @@ export function YachayTopBar() {
   const [gemsModal, setGemsModal] = useState(false);
 
   const currentXp = xp ?? profile?.total_xp ?? 0;
-  const currentGems = gems ?? profile?.gems ?? 100;
+  const currentGems = gems ?? profile?.gems ?? 0;
   const streak = streakDays ?? profile?.streak_count ?? 0;
 
   return (
@@ -119,6 +122,17 @@ export function YachayTopBar() {
                 ? `Te quedan ${lives} de 5 vidas. Pierdes 1 vida cuando fallas una pregunta en los exámenes sumativos.`
                 : '¡Tus vidas están al máximo (5/5)! Se usan exclusivamente en los exámenes de nivel.'}
             </Text>
+
+            {lives < 5 && (
+              <View style={styles.countdownBox}>
+                <Text style={styles.countdownTitle}>⏳ Próxima vida en:</Text>
+                <Text style={styles.countdownTime}>{nextLifeFormattedTime}</Text>
+                <Text style={styles.countdownSub}>
+                  Recuperas 1 vida cada 4 horas automáticamente (o tus 5 vidas completas al nuevo día).
+                </Text>
+              </View>
+            )}
+
             {lives < 5 && (
               <View style={styles.livesActionGroup}>
                 {currentGems >= 5 && (
@@ -145,6 +159,15 @@ export function YachayTopBar() {
                     <Text style={styles.refillText}>Recargar 5 Vidas (25 💎)</Text>
                   </TouchableOpacity>
                 )}
+                <TouchableOpacity
+                  style={[styles.refillBtn, styles.refillBtnOrange]}
+                  onPress={() => {
+                    setLivesModal(false);
+                    router.push('/practice/saludos' as any);
+                  }}
+                >
+                  <Text style={styles.refillText}>❤️ Practicar (+1 Vida)</Text>
+                </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.refillBtn, styles.refillBtnBlue]}
                   onPress={() => {
@@ -196,14 +219,23 @@ export function YachayTopBar() {
         <View style={styles.overlay}>
           <View style={styles.modal}>
             <Text style={styles.modalEmoji}>🔥</Text>
-            <Text style={styles.modalTitle}>¡Racha de {streak} {streak === 1 ? 'día' : 'días'}!</Text>
+            <Text style={styles.modalTitle}>
+              {streak === 0
+                ? '¡Enciende tu Racha!'
+                : `¡Racha de ${streak} ${streak === 1 ? 'día' : 'días'}!`}
+            </Text>
             <Text style={styles.modalDesc}>
-              {streak === 1
-                ? '¡Comenzaste tu primer día de práctica! Vuelve mañana para que tu llama del saber no se apague.'
-                : `¡Increíble disciplina! Llevas ${streak} días consecutivos aprendiendo Quechua.`}
-              {streakFreezeCount > 0
-                ? `\n\n❄️ Tienes ${streakFreezeCount} Amuleto(s) de Hielo protegiendo tu racha si un día no puedes practicar.`
+              {streak === 0
+                ? 'Tu racha está en 0 días porque no completaste lecciones ayer. ¡Haz tu primera lección hoy para encender tu llama del saber y comenzar una nueva racha!'
+                : lastActiveDate === getLocalDateString()
+                ? `¡Objetivo de hoy completado! Llevas ${streak} ${streak === 1 ? 'día' : 'días'} consecutivos aprendiendo Quechua.`
+                : `Llevas ${streak} ${streak === 1 ? 'día' : 'días'} consecutivos. ¡Completa una lección hoy para aumentarla a ${streak + 1} días!`}
+              {streakSavedByFreeze
+                ? '\n\n❄️ ¡Tu Amuleto de Hielo protegió tu racha por no conectarte ayer!'
                 : ''}
+              {streakFreezeCount > 0
+                ? `\n\n🛡️ Tienes ${streakFreezeCount} Amuleto(s) de Hielo protegiendo tu racha si un día no puedes practicar.`
+                : '\n\n💡 Consejo: Puedes conseguir un Amuleto de Hielo en la tienda para no perder tu racha si un día no te conectas.'}
             </Text>
             <TouchableOpacity style={styles.refillBtn} onPress={() => setStreakModal(false)}>
               <Text style={styles.refillText}>¡A seguir aprendiendo! 🚀</Text>
@@ -249,6 +281,10 @@ const styles = StyleSheet.create({
   refillBtnBlue: {
     backgroundColor: '#0284C7',
     borderBottomColor: '#0369A1',
+  },
+  refillBtnOrange: {
+    backgroundColor: '#EA580C',
+    borderBottomColor: '#C2410C',
   },
   cornerPatternLeft: {
     position: 'absolute',
@@ -418,4 +454,32 @@ const styles = StyleSheet.create({
   refillText: { color: '#FFFFFF', fontSize: 16, fontWeight: '800' },
   closeBtn: { paddingVertical: 12, width: '100%', alignItems: 'center' },
   closeBtnText: { color: '#AFB5C0', fontSize: 16, fontWeight: '700' },
+  countdownBox: {
+    backgroundColor: '#FFF8E1',
+    borderColor: '#FFE082',
+    borderWidth: 1,
+    borderRadius: 14,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    alignItems: 'center',
+    width: '100%',
+    marginBottom: 16,
+  },
+  countdownTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#8D6E63',
+  },
+  countdownTime: {
+    fontSize: 22,
+    fontWeight: '900',
+    color: '#E65100',
+    marginVertical: 2,
+  },
+  countdownSub: {
+    fontSize: 11,
+    color: '#795548',
+    textAlign: 'center',
+    lineHeight: 15,
+  },
 });

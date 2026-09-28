@@ -62,7 +62,7 @@ export default function LevelExamScreen() {
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
 
   const { user } = useAuth();
-  const { lives, checkAnswer, addXp, addGems, isBlocked, hasDoubleXp } = useGame();
+  const { lives, checkAnswer, addXp, addGems, isBlocked, hasDoubleXp, recordDailyActivity } = useGame();
   const router = useRouter();
 
   // Si las vidas llegan a 0, bloquear y redirigir
@@ -189,11 +189,12 @@ export default function LevelExamScreen() {
     const didPass = score >= exam.pass_threshold;
     setPassed(didPass);
 
-    const examXp = hasDoubleXp ? 100 : 50;
+    const baseExamXp = 50;
+    const finalExamXp = hasDoubleXp ? baseExamXp * 2 : baseExamXp;
     if (didPass) {
       celebrateYachi();
       playCompleteSound();
-      addXp(examXp);
+      addXp(baseExamXp);
       addGems(30);
     } else {
       playIncorrectSound();
@@ -202,9 +203,15 @@ export default function LevelExamScreen() {
     if (user?.uid) {
       await progressService.recordExamResult(user.uid, parsedLevelId, score, exam.pass_threshold);
       if (didPass) {
+        recordDailyActivity();
         await progressService.unlockNextLevel(user.uid, parsedLevelId + 1);
-        leaderboardService.recordWeeklyXp(user.uid, examXp).catch(() => {});
-        questService.updateQuestProgress(user.uid, 'xp_gain', examXp).catch(() => {});
+        leaderboardService.recordWeeklyXp(user.uid, finalExamXp).catch(() => {});
+        questService.updateQuestProgress(user.uid, 'xp_gain', finalExamXp).catch(() => {});
+        questService.updateQuestProgress(user.uid, 'lesson_count', 1).catch(() => {});
+        questService.updateQuestProgress(user.uid, 'streak_maintain', 1).catch(() => {});
+        if (score === exam.questions.length) {
+          questService.updateQuestProgress(user.uid, 'perfect_lesson', 1).catch(() => {});
+        }
       }
     }
 

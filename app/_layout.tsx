@@ -47,6 +47,12 @@ function RootLayoutNav() {
 
     const inAuthGroup = segments[0] === '(auth)';
     const inOnboarding = segments[0] === 'onboarding';
+    const inVerifyEmail = inAuthGroup && (segments as any)[1] === 'verify-email';
+
+    // Si el usuario está activamente en la pantalla de verificación tras registrarse, mantenerlo allí
+    if (user && inVerifyEmail) {
+      return;
+    }
 
     if (user && (inAuthGroup || inOnboarding)) {
       router.replace('/(tabs)');
@@ -68,6 +74,7 @@ function RootLayoutNav() {
       <Stack.Screen name="practice/[slug]" options={{ headerShown: false }} />
       <Stack.Screen name="blocked" options={{ headerShown: false, gestureEnabled: false }} />
       <Stack.Screen name="translator/index" options={{ headerShown: false }} />
+      <Stack.Screen name="duel/index" options={{ headerShown: false }} />
     </Stack>
   );
 }

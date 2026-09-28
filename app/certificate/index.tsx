@@ -39,7 +39,7 @@ export default function CertificateScreen() {
       profile?.username ||
       user?.displayName ||
       user?.email?.split('@')[0] ||
-      'Alejandro Padilla Ponce'
+      'Estudiante Yachay'
     );
   }, [profile, user]);
 
@@ -71,6 +71,14 @@ export default function CertificateScreen() {
         await Share.share({ message });
       }
     } catch {}
+  }
+
+  function handlePrintOrPdf() {
+    if (Platform.OS === 'web' && typeof window !== 'undefined' && (window as any).print) {
+      (window as any).print();
+    } else {
+      handleShare();
+    }
   }
 
   return (
@@ -149,7 +157,7 @@ export default function CertificateScreen() {
               </View>
               <View style={styles.statChip}>
                 <Text style={styles.statLabel}>CONSTANCIA</Text>
-                <Text style={styles.statValue}>🔥 {Math.max(1, streakDays)} Días</Text>
+                <Text style={styles.statValue}>🔥 {streakDays} {streakDays === 1 ? 'Día' : 'Días'}</Text>
               </View>
               <View style={styles.statChip}>
                 <Text style={styles.statLabel}>CALIFICACIÓN</Text>
@@ -190,12 +198,16 @@ export default function CertificateScreen() {
 
         {/* Acciones Finales del Endgame */}
         <View style={styles.endgameActions}>
-          <TouchableOpacity style={styles.continuePracticeBtn} onPress={handleShare}>
+          <TouchableOpacity style={styles.printPdfBtn} onPress={handlePrintOrPdf} activeOpacity={0.85}>
+            <Text style={styles.printPdfText}>🖨️ Descargar en PDF / Imprimir Diploma</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.continuePracticeBtn} onPress={handleShare} activeOpacity={0.85}>
             <Text style={styles.continuePracticeText}>📲 Compartir Diploma en Redes</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.returnPathBtn}
             onPress={() => router.replace('/(tabs)')}
+            activeOpacity={0.85}
           >
             <Text style={styles.returnPathText}>Volver al Camino del Saber (Modo Maestría) ➔</Text>
           </TouchableOpacity>
@@ -509,6 +521,22 @@ const styles = StyleSheet.create({
     maxWidth: 420,
     marginTop: 20,
     gap: 10,
+  },
+  printPdfBtn: {
+    backgroundColor: '#059669',
+    paddingVertical: 14,
+    borderRadius: 14,
+    alignItems: 'center',
+    shadowColor: '#059669',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  printPdfText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '900',
   },
   continuePracticeBtn: {
     backgroundColor: GOLD,

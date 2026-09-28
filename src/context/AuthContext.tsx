@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { User as FirebaseUser } from 'firebase/auth';
 import { createContext, ReactNode, useContext, useEffect, useState } from 'react';
 
@@ -8,11 +9,15 @@ type AuthContextType = {
   user: FirebaseUser | null;
   profile: Profile | null;
   loading: boolean;
+  emailVerificationDismissed: boolean;
   signUp: (email: string, password: string, username?: string) => Promise<{ error: string | null }>;
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signInWithGoogle: () => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
+  sendVerificationEmail: () => Promise<{ error: string | null }>;
+  checkEmailVerified: () => Promise<boolean>;
+  dismissEmailVerification: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -21,6 +26,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<FirebaseUser | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [emailVerificationDismissed, setEmailVerificationDismissed] = useState(false);
 
   useEffect(() => {
     const unsubscribe = authService.onAuthStateChange(async (firebaseUser) => {
@@ -28,8 +34,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (firebaseUser) {
         const p = await authService.getProfile(firebaseUser.uid);
         setProfile(p);
+        try {
+          const dismissed = await AsyncStorage.getItem(`@yachay_dismiss_verify_${firebaseUser.uid}`);
+          setEmailVerificationDismissed(dismissed === 'true');
+        } catch {}
       } else {
         setProfile(null);
+        setEmailVerificationDismissed(false);
       }
       setLoading(false);
     });
@@ -60,11 +71,49 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function signOut() {
+    setEmailVerificationDismissed(false);
     await authService.signOut();
   }
 
+  async function sendVerificationEmail(): Promise<{ error: string | null }> {
+    return authService.sendVerificationEmail(user);
+  }
+
+  async function checkEmailVerified(): Promise<boolean> {
+    const updated = await authService.reloadUser();
+    if (updated) {
+      setUser(Object.assign(Object.create(Object.getPrototypeOf(updated)), updated));
+      return updated.emailVerified;
+    }
+    return false;
+  }
+
+  async function dismissEmailVerification(): Promise<void> {
+    setEmailVerificationDismissed(true);
+    if (user) {
+      try {
+        await AsyncStorage.setItem(`@yachay_dismiss_verify_${user.uid}`, 'true');
+      } catch {}
+    }
+  }
+
   return (
-    <AuthContext.Provider value={{ user, profile, loading, signUp, signIn, signInWithGoogle, signOut, refreshProfile }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        profile,
+        loading,
+        emailVerificationDismissed,
+        signUp,
+        signIn,
+        signInWithGoogle,
+        signOut,
+        refreshProfile,
+        sendVerificationEmail,
+        checkEmailVerified,
+        dismissEmailVerification,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

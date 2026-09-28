@@ -63,32 +63,30 @@ type VocabCard = LessonVocabularyEntry;
  */
 const VOCAB_OVERRIDES: Record<number, VocabCard[]> = {
   1: [
-    { quechua: 'a', spanish: 'Vocal abierta — como en "Allin" (bueno/bien)' },
-    { quechua: 'i', spanish: 'Vocal cerrada — como en "Inti" (sol sagrado)' },
-    { quechua: 'u', spanish: 'Vocal posterior — como en "Urpi" (paloma)' },
+    { quechua: 'Urpi', spanish: 'Paloma', illustration: '🕊️' },
+    { quechua: 'Inti', spanish: 'Sol', illustration: '☀️' },
+    { quechua: 'Allqu', spanish: 'Perro', illustration: '🐕' },
+    { quechua: 'Allin', spanish: 'Bueno / Bien', illustration: '✨' },
   ],
-  // Lección 2 (Consonantes): se usan palabras reales como blanco de audio en vez
-  // de la consonante aislada (ej. "q" o "ll" sueltas sonarían mal por TTS), pero
-  // conservando la explicación articulatoria en el texto de significado.
   2: [
-    { quechua: 'Quri', spanish: 'Oro — la "q" se pronuncia desde la garganta (posvelar)' },
-    { quechua: 'Mishki', spanish: 'Dulce / Delicioso — con el sonido "sh"' },
-    { quechua: 'Wasi', spanish: 'Casa / Hogar' },
-    { quechua: 'Allin', spanish: 'Bueno / Bien — con la consonante palatal "ll" [ʎ]' },
+    { quechua: 'Quri', spanish: 'Oro', illustration: '🥇' },
+    { quechua: 'Mishki', spanish: 'Dulce / Delicioso', illustration: '🍬' },
+    { quechua: 'Wasi', spanish: 'Casa / Hogar', illustration: '🏠' },
+    { quechua: 'Allin', spanish: 'Bueno / Bien', illustration: '✨' },
   ],
   3: [
-    { quechua: 'Huk', spanish: 'Uno' },
-    { quechua: 'Iskay', spanish: 'Dos' },
-    { quechua: 'Kimsa', spanish: 'Tres' },
-    { quechua: 'Tawa', spanish: 'Cuatro' },
-    { quechua: 'Pichqa', spanish: 'Cinco' },
+    { quechua: 'Huk', spanish: 'Uno (1)', illustration: '1️⃣' },
+    { quechua: 'Iskay', spanish: 'Dos (2)', illustration: '2️⃣' },
+    { quechua: 'Kimsa', spanish: 'Tres (3)', illustration: '3️⃣' },
+    { quechua: 'Tawa', spanish: 'Cuatro (4)', illustration: '4️⃣' },
+    { quechua: 'Pichqa', spanish: 'Cinco (5)', illustration: '5️⃣' },
   ],
   4: [
-    { quechua: 'Suqta', spanish: 'Seis' },
-    { quechua: 'Qanchis', spanish: 'Siete' },
-    { quechua: 'Pusaq', spanish: 'Ocho' },
-    { quechua: 'Isqon', spanish: 'Nueve' },
-    { quechua: 'Chunka', spanish: 'Diez' },
+    { quechua: 'Suqta', spanish: 'Seis (6)', illustration: '6️⃣' },
+    { quechua: 'Qanchis', spanish: 'Siete (7)', illustration: '7️⃣' },
+    { quechua: 'Pusaq', spanish: 'Ocho (8)', illustration: '8️⃣' },
+    { quechua: 'Isqon', spanish: 'Nueve (9)', illustration: '9️⃣' },
+    { quechua: 'Chunka', spanish: 'Diez (10)', illustration: '🔟' },
   ],
   5: [
     { quechua: 'Allillanchu', spanish: '¿Cómo estás?' },
@@ -99,12 +97,22 @@ const VOCAB_OVERRIDES: Record<number, VocabCard[]> = {
     { quechua: 'Allin tuta', spanish: 'Buenas noches' },
   ],
   6: [
-    { quechua: 'Tayta', spanish: 'Padre' },
-    { quechua: 'Mama', spanish: 'Madre' },
-    { quechua: 'Churi', spanish: 'Hijo o hija para un padre' },
-    { quechua: 'Wawa', spanish: 'Bebé o hijo/a para una madre' },
-    { quechua: 'Awicha', spanish: 'Abuela' },
-    { quechua: 'Tura', spanish: 'Hermano de una mujer' },
+    { quechua: 'Tayta', spanish: 'Padre', illustration: '👨' },
+    { quechua: 'Mama', spanish: 'Madre', illustration: '👩' },
+    { quechua: 'Churi', spanish: 'Hijo (de varón)', illustration: '👦' },
+    { quechua: 'Wawa', spanish: 'Bebé / Hijo (de mujer)', illustration: '👶' },
+    { quechua: 'Awicha', spanish: 'Abuela', illustration: '👵' },
+    { quechua: 'Tura', spanish: 'Hermano (de mujer)', illustration: '🧑' },
+  ],
+  7: [
+    { quechua: 'Urpi', spanish: 'Paloma', illustration: '🕊️' },
+    { quechua: 'Allqu', spanish: 'Perro', illustration: '🐕' },
+    { quechua: 'Inti', spanish: 'Sol', illustration: '☀️' },
+    { quechua: 'Llama', spanish: 'Llama andina', illustration: '🦙' },
+    { quechua: 'Killa', spanish: 'Luna', illustration: '🌙' },
+    { quechua: 'Quri', spanish: 'Oro', illustration: '🥇' },
+    { quechua: 'Wasi', spanish: 'Casa', illustration: '🏠' },
+    { quechua: 'Misi', spanish: 'Gato', illustration: '🐈' },
   ],
 };
 
@@ -195,6 +203,44 @@ const VOCAB_EMOJI: Record<string, string> = {
   suqta: '6️⃣', qanchis: '7️⃣', pusaq: '8️⃣', isqon: '9️⃣', chunka: '🔟',
   mama: '👩', tayta: '👨', tura: '🧑', pana: '👧', awicha: '👵',
   wasi: '🏠', quri: '🥇', mishki: '🍬',
+  // Animales y naturaleza
+  urpi: '🕊️',
+  allqu: '🐕',
+  alqo: '🐕',
+  misi: '🐈',
+  inti: '☀️',
+  killa: '🌙',
+  "ch'aska": '⭐',
+  chaska: '⭐',
+  llama: '🦙',
+  puma: '🐆',
+  kuntur: '🦅',
+  yaku: '💧',
+  nina: '🔥',
+  wayra: '💨',
+  allpa: '🌱',
+  "sach'a": '🌳',
+  sacha: '🌳',
+  "t'ika": '🌸',
+  tika: '🌸',
+  rumi: '🪨',
+  ñan: '🛤️',
+  nan: '🛤️',
+  churi: '👦',
+  ususi: '👧',
+  wawa: '👶',
+  chaki: '🦶',
+  hatun: '🏔️',
+  khuchi: '🐷',
+  "k'uychi": '🌈',
+  kuychi: '🌈',
+  lawa: '🥣',
+  phuyu: '☁️',
+  "p'acha": '👘',
+  pacha: '👘',
+  qhawa: '👁️',
+  "q'omer": '🌿',
+  qomer: '🌿',
 };
 
 /**
@@ -652,7 +698,13 @@ export default function LessonScreen() {
   const [soundOn, setSoundOn] = useState(true);
   const [sparkleKey, setSparkleKey] = useState(0);
   const [lessonVocabulary, setLessonVocabulary] = useState<VocabCard[]>([]);
-  const [missedWords, setMissedWords] = useState<{ quechua: string; spanish: string }[]>([]);
+  const [missedWords, setMissedWords] = useState<{
+    quechua: string;
+    spanish: string;
+    originalPrompt?: string;
+    originalOptions?: string[];
+    originalCorrect?: string;
+  }[]>([]);
   const [reviewMode, setReviewMode] = useState(false);
   const [reviewQueue, setReviewQueue] = useState<{ id: string; prompt: string; options: string[]; correct: string }[]>([]);
   const [reviewIndex, setReviewIndex] = useState(0);
@@ -660,7 +712,7 @@ export default function LessonScreen() {
   const [reviewAnswered, setReviewAnswered] = useState(false);
 
   const { user, refreshProfile } = useAuth();
-  const { gems, streakDays, addGems, addXp, hasDoubleXp } = useGame();
+  const { lives, checkAnswer, gems, streakDays, addGems, addXp, hasDoubleXp, recordDailyActivity } = useGame();
   const router = useRouter();
 
   const totalLessonXp = hasDoubleXp ? 20 : 10;
@@ -685,6 +737,7 @@ export default function LessonScreen() {
     bounceYachi();
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error).catch(() => {});
     playIncorrectSound();
+    checkAnswer(false);
 
     const newLost = lostLessonXp + xpPenaltyPerError;
     setLostLessonXp(newLost);
@@ -788,23 +841,63 @@ export default function LessonScreen() {
     const known = lessonVocabulary.find((v) => v.quechua.toLowerCase() === normalizedTarget.toLowerCase());
     const spanishValue = known?.spanish || 'Repasa esta palabra';
 
+    const originalPrompt = exercise.kind === 'quiz' ? exercise.prompt : undefined;
+    const originalOptions = exercise.kind === 'quiz' ? exercise.options.map((o) => o.option_text) : undefined;
+    const originalCorrect = exercise.kind === 'quiz'
+      ? (exercise.options.find((o) => String(o.id) === String(exercise.correctAnswer))?.option_text || exercise.correctAnswer)
+      : undefined;
+
     setMissedWords((prev) => {
       if (prev.some((item) => item.quechua.toLowerCase() === normalizedTarget.toLowerCase())) {
         return prev;
       }
-      return [...prev, { quechua: normalizedTarget, spanish: spanishValue }];
+      return [
+        ...prev,
+        {
+          quechua: normalizedTarget,
+          spanish: spanishValue,
+          originalPrompt,
+          originalOptions,
+          originalCorrect,
+        },
+      ];
     });
   }
 
   function buildReviewQueueFromMissedWords(): { id: string; prompt: string; options: string[]; correct: string }[] {
     if (missedWords.length === 0) return [];
 
-    return missedWords.slice(0, 3).map((item) => ({
-      id: `review-${item.quechua}`,
-      prompt: `¿Qué significa “${item.quechua}” en español?`,
-      options: buildReviewOptions(item.quechua, item.spanish),
-      correct: item.spanish,
-    }));
+    return missedWords.slice(0, 3).map((item) => {
+      const q = item.quechua.trim();
+
+      // Si tenemos el ejercicio original guardado, usamos sus datos exactos
+      if (item.originalPrompt && item.originalOptions && item.originalCorrect) {
+        return {
+          id: `review-${q}`,
+          prompt: item.originalPrompt,
+          options: item.originalOptions.sort(() => Math.random() - 0.5),
+          correct: item.originalCorrect,
+        };
+      }
+
+      // Fallback: genera pregunta a partir del vocabulario
+      const isAlphabetGroup =
+        q.includes('·') ||
+        q.includes("'") ||
+        q.length <= 3 ||
+        /^[A-Z][A-Z· ']{0,8}$/.test(q);
+
+      const prompt = isAlphabetGroup
+        ? `¿Qué representa el grupo de letras “${q}” en el Quechua?`
+        : `¿Qué significa “${q}” en español?`;
+
+      return {
+        id: `review-${q}`,
+        prompt,
+        options: buildReviewOptions(q, item.spanish),
+        correct: item.spanish,
+      };
+    });
   }
 
   // ─── Quiz & Ejercicios ────────────────────────────────────
@@ -930,14 +1023,20 @@ export default function LessonScreen() {
     setSparkleKey((k) => k + 1);
     playCompleteSound();
     const earnedXp = Math.max(1, totalLessonXp - lostLessonXp);
+    const finalLessonXp = hasDoubleXp ? earnedXp * 2 : earnedXp;
     addXp(earnedXp);
     addGems(15);
     const uid = user?.uid || (user as any)?.id;
     if (uid) {
+      recordDailyActivity();
       await questionService.recordLessonProgress(lessonId, uid, earnedXp);
-      leaderboardService.recordWeeklyXp(uid, earnedXp).catch(() => {});
+      leaderboardService.recordWeeklyXp(uid, finalLessonXp).catch(() => {});
       questService.updateQuestProgress(uid, 'lesson_count', 1).catch(() => {});
-      questService.updateQuestProgress(uid, 'xp_gain', earnedXp).catch(() => {});
+      questService.updateQuestProgress(uid, 'xp_gain', finalLessonXp).catch(() => {});
+      questService.updateQuestProgress(uid, 'streak_maintain', 1).catch(() => {});
+      if (lostLessonXp === 0) {
+        questService.updateQuestProgress(uid, 'perfect_lesson', 1).catch(() => {});
+      }
       await refreshProfile();
     }
   }
@@ -1068,7 +1167,7 @@ export default function LessonScreen() {
         </Text>
         <View style={styles.streakBadge}>
           <Text style={styles.streakBadgeText}>
-            🔥 {Math.max(1, streakDays)} {Math.max(1, streakDays) === 1 ? 'día' : 'días'} de racha
+            🔥 {streakDays} {streakDays === 1 ? 'día' : 'días'} de racha
           </Text>
         </View>
         <View style={styles.statRow}>
@@ -1669,12 +1768,12 @@ const styles = StyleSheet.create({
     borderBottomWidth: 4,
   },
   optionSelected: {
-    borderColor: TEAL,
-    backgroundColor: '#E0F2F1',
-    borderBottomColor: TEAL_DARK,
+    borderColor: '#7C3AED',
+    backgroundColor: '#F5F3FF',
+    borderBottomColor: '#5B21B6',
   },
   optionText: { fontSize: 17, fontWeight: '700', color: '#2A1A0A' },
-  optionTextSelected: { color: TEAL_DARK, fontWeight: '800' },
+  optionTextSelected: { color: '#5B21B6', fontWeight: '800' },
 
   // Listening
   listeningContainer: {
@@ -1760,12 +1859,12 @@ const styles = StyleSheet.create({
     borderBottomWidth: 4,
   },
   wordChipSelected: {
-    borderColor: TEAL,
-    backgroundColor: '#E0F2F1',
-    borderBottomColor: TEAL_DARK,
+    borderColor: '#7C3AED',
+    backgroundColor: '#F5F3FF',
+    borderBottomColor: '#5B21B6',
   },
   wordChipText: { fontSize: 16, fontWeight: '800', color: '#2A1A0A' },
-  wordChipTextSelected: { color: TEAL_DARK },
+  wordChipTextSelected: { color: '#5B21B6' },
 
   // Text input (traducir)
   textInputContainer: {
@@ -1824,9 +1923,9 @@ const styles = StyleSheet.create({
     borderColor: '#E8E2D9',
   },
   tfButtonSelected: {
-    borderColor: TEAL,
-    backgroundColor: '#E0F2F1',
-    borderBottomColor: TEAL_DARK,
+    borderColor: '#7C3AED',
+    backgroundColor: '#F5F3FF',
+    borderBottomColor: '#5B21B6',
   },
   tfButtonText: { fontSize: 16, fontWeight: '900', color: '#2A1A0A' },
 
@@ -1861,9 +1960,9 @@ const styles = StyleSheet.create({
     borderBottomWidth: 4,
   },
   imageTileSelected: {
-    borderColor: TEAL,
-    backgroundColor: '#E0F2F1',
-    borderBottomColor: TEAL_DARK,
+    borderColor: '#7C3AED',
+    backgroundColor: '#F5F3FF',
+    borderBottomColor: '#5B21B6',
   },
   imageTileEmoji: { fontSize: 44 },
 
@@ -2004,8 +2103,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
   },
   reviewOptionSelected: {
-    borderColor: TEAL,
-    backgroundColor: '#E0F2F1',
+    borderColor: '#7C3AED',
+    backgroundColor: '#F5F3FF',
   },
   reviewOptionCorrect: {
     borderColor: '#00C853',

@@ -1,15 +1,20 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   Image,
+  Modal,
   Platform,
   RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
+import * as ImagePicker from 'expo-image-picker';
+import { authService } from '@/src/services/authService';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/src/context/AuthContext';
 import { useGame } from '@/src/context/GameContext';
@@ -59,6 +64,7 @@ export default function ProfileScreen() {
 
   const [activeTab, setActiveTab] = useState<ProfileTab>('expediente');
   const [quests, setQuests] = useState<DailyQuest[]>([]);
+  const [claimingQuestId, setClaimingQuestId] = useState<number | null>(null);
   const [leaderboard, setLeaderboard] = useState<LeaderboardEntry[]>(DEFAULT_LEADERBOARD);
   const [loadingLeaderboard, setLoadingLeaderboard] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -67,9 +73,34 @@ export default function ProfileScreen() {
   const [feedbackIsError, setFeedbackIsError] = useState(false);
   const [showSignOutConfirm, setShowSignOutConfirm] = useState(false);
 
-  const userStreak = Math.max(1, streakDays ?? profile?.streak_count ?? 1);
+  // ── Edición de Perfil ─────────────────────────────────────────
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editUsername, setEditUsername] = useState('');
+  const [editAvatar, setEditAvatar] = useState('');
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [showWebCamera, setShowWebCamera] = useState(false);
+  const [webCameraLoading, setWebCameraLoading] = useState(false);
+  const webVideoRef = useRef<any>(null);
+  const webStreamRef = useRef<any>(null);
+
+  useEffect(() => {
+    return () => {
+      if (webStreamRef.current) {
+        try {
+          webStreamRef.current.getTracks().forEach((track: any) => track.stop());
+        } catch (_) {}
+      }
+    };
+  }, []);
+
+  const AVATAR_OPTIONS = [
+    '🦙', '🌄', '☀️', '🌿', '🦅', '🐍',
+    '🌺', '⭐', '🏔️', '🌙', '💎', '🪶',
+  ];
+
+  const userStreak = streakDays ?? profile?.streak_count ?? 0;
   const userXp = xp ?? profile?.total_xp ?? 0;
-  const userGems = gems ?? profile?.gems ?? 100;
+  const userGems = gems ?? profile?.gems ?? 0;
   const userLevel = Math.max(1, Math.floor(userXp / 100) + 1);
 
   // Lista integral de Logros y Reliquias
@@ -88,7 +119,7 @@ export default function ProfileScreen() {
       title: 'Hablante Activo',
       desc: 'Mantén una racha de 7 días activa',
       icon: require('@/assets/images/logros/logro_hablante_corona.png'),
-      status: userStreak >= 7 ? 'unlocked' : userStreak > 1 ? 'progress' : 'locked',
+      status: userStreak >= 7 ? 'unlocked' : userStreak > 0 ? 'progress' : 'locked',
       progress: Math.min(100, Math.round((userStreak / 7) * 100)),
       currentText: `${Math.min(7, userStreak)} / 7 días`,
     },
@@ -186,21 +217,44 @@ export default function ProfileScreen() {
     setRefreshing(false);
   };
 
+  const getQuestMeta = (type: string) => {
+    switch (type) {
+      case 'lesson_count':
+        return { emoji: '📖', bg: '#EBF3FE', border: '#D0E1FD', color: '#1D4ED8' };
+      case 'xp_gain':
+        return { emoji: '⚡', bg: '#FFF8E1', border: '#FFE082', color: '#B45309' };
+      case 'perfect_lesson':
+        return { emoji: '🌟', bg: '#FEF3C7', border: '#FDE68A', color: '#D97706' };
+      case 'streak_maintain':
+        return { emoji: '🔥', bg: '#FEE2E2', border: '#FECACA', color: '#DC2626' };
+      default:
+        return { emoji: '🎯', bg: '#F1F5F9', border: '#E2E8F0', color: '#475569' };
+    }
+  };
+
   const handleClaimQuest = async (q: DailyQuest) => {
     const uid = user?.uid || (user as any)?.id;
-    if (!uid) return;
-    const res = await questService.claimQuestReward(uid, q.id);
-    if (res.success) {
-      if (res.gemReward > 0) addGems(res.gemReward);
-      if (res.xpReward > 0) {
-        addXp(res.xpReward);
-        leaderboardService.recordWeeklyXp(uid, res.xpReward).catch(() => {});
+    if (!uid || claimingQuestId !== null) return;
+    setClaimingQuestId(q.id);
+    try {
+      const res = await questService.claimQuestReward(uid, q.id);
+      if (res.success) {
+        if (res.gemReward > 0) addGems(res.gemReward);
+        if (res.xpReward > 0) {
+          addXp(res.xpReward);
+          leaderboardService.recordWeeklyXp(uid, res.xpReward).catch(() => {});
+        }
+        setFeedbackIsError(false);
+        setFeedbackMsg(`¡Misión Cumplida! 🎁 +${res.xpReward} XP y +${res.gemReward} Gemas 💎`);
+        setTimeout(() => setFeedbackMsg(null), 3500);
+        await refreshProfile();
+        await loadQuestsData();
+        loadLeaderboardData();
       }
-      setFeedbackIsError(false);
-      setFeedbackMsg(`¡Recompensa Reclamada! 🎉 +${res.xpReward} XP y +${res.gemReward} Gemas 💎`);
-      setTimeout(() => setFeedbackMsg(null), 3000);
-      loadQuestsData();
-      loadLeaderboardData();
+    } catch (err) {
+      console.warn('Error claiming quest reward:', err);
+    } finally {
+      setClaimingQuestId(null);
     }
   };
 
@@ -239,7 +293,182 @@ export default function ProfileScreen() {
      user?.displayName?.toLowerCase().includes('alejandro') ||
      user?.email?.toLowerCase().includes('alejandro'))
       ? 'Alejandro Padilla Ponce'
-      : (profile?.username || user?.displayName || user?.email?.split('@')[0] || 'Alejandro Padilla Ponce');
+      : (profile?.username || user?.displayName || user?.email?.split('@')[0] || 'Estudiante Yachay');
+
+  function openEditModal() {
+    setEditUsername(username);
+    setEditAvatar(profile?.avatar_url || '');
+    setShowEditModal(true);
+  }
+
+  const pickImageFromGallery = async () => {
+    try {
+      const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permission.granted) {
+        Alert.alert(
+          'Permiso necesario',
+          'Concede permiso para acceder a tus fotos y cambiar tu foto de perfil.'
+        );
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.5,
+        base64: true,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const asset = result.assets[0];
+        const imageUri = asset.base64
+          ? `data:image/jpeg;base64,${asset.base64}`
+          : asset.uri;
+        setEditAvatar(imageUri);
+      }
+    } catch (err) {
+      console.error('Error al seleccionar imagen:', err);
+      Alert.alert('Error', 'No se pudo cargar la imagen seleccionada.');
+    }
+  };
+
+  const startWebCamera = async () => {
+    if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
+      Alert.alert(
+        'Cámara no compatible',
+        'Tu navegador no soporta captura de cámara en vivo. Por favor usa la opción de Galería/Archivos.'
+      );
+      return;
+    }
+    setShowWebCamera(true);
+    setWebCameraLoading(true);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 640 } },
+        audio: false,
+      });
+      webStreamRef.current = stream;
+      setWebCameraLoading(false);
+      setTimeout(() => {
+        if (webVideoRef.current) {
+          webVideoRef.current.srcObject = stream;
+          webVideoRef.current.play().catch(() => {});
+        }
+      }, 150);
+    } catch (err) {
+      console.error('Error al acceder a la cámara web:', err);
+      setWebCameraLoading(false);
+      setShowWebCamera(false);
+      Alert.alert(
+        'Permiso de cámara necesario',
+        'No pudimos acceder a tu cámara. Concede permiso de cámara en tu navegador para continuar.'
+      );
+    }
+  };
+
+  const stopWebCamera = () => {
+    if (webStreamRef.current) {
+      try {
+        webStreamRef.current.getTracks().forEach((track: any) => track.stop());
+      } catch (_) {}
+      webStreamRef.current = null;
+    }
+    setShowWebCamera(false);
+    setWebCameraLoading(false);
+  };
+
+  const captureWebPhoto = () => {
+    if (!webVideoRef.current) return;
+    try {
+      const video = webVideoRef.current;
+      const canvas = document.createElement('canvas');
+      const width = video.videoWidth || 480;
+      const height = video.videoHeight || 480;
+      const size = Math.min(width, height);
+      canvas.width = 400;
+      canvas.height = 400;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        // Espejo horizontal para selfie natural
+        ctx.translate(400, 0);
+        ctx.scale(-1, 1);
+        const sx = (width - size) / 2;
+        const sy = (height - size) / 2;
+        ctx.drawImage(video, sx, sy, size, size, 0, 0, 400, 400);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+        stopWebCamera();
+        setEditAvatar(dataUrl);
+      }
+    } catch (err) {
+      console.error('Error al capturar foto web:', err);
+      stopWebCamera();
+    }
+  };
+
+  const takePhotoWithCamera = async () => {
+    if (Platform.OS === 'web') {
+      startWebCamera();
+      return;
+    }
+
+    try {
+      let permission = await ImagePicker.getCameraPermissionsAsync();
+      if (!permission.granted) {
+        permission = await ImagePicker.requestCameraPermissionsAsync();
+      }
+      if (!permission.granted) {
+        Alert.alert(
+          'Permiso necesario',
+          'Concede permiso para usar la cámara y tomar una foto de perfil.'
+        );
+        return;
+      }
+
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ['images'],
+        allowsEditing: Platform.OS === 'ios',
+        aspect: [1, 1],
+        quality: 0.6,
+        base64: true,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const asset = result.assets[0];
+        const imageUri = asset.base64
+          ? `data:image/jpeg;base64,${asset.base64}`
+          : asset.uri;
+        setEditAvatar(imageUri);
+      }
+    } catch (err) {
+      console.error('Error al tomar foto:', err);
+      Alert.alert('Error', 'No se pudo abrir la cámara.');
+    }
+  };
+
+  async function saveProfile() {
+    const uid = user?.uid || (user as any)?.id;
+    if (!uid) return;
+    if (!editUsername.trim()) {
+      Alert.alert('Nombre requerido', 'Por favor escribe un nombre de usuario.');
+      return;
+    }
+    setSavingProfile(true);
+    const { error } = await authService.updateProfile(uid, {
+      username: editUsername.trim(),
+      avatar_url: editAvatar || '',
+    });
+    setSavingProfile(false);
+    if (error) {
+      Alert.alert('Error', 'No se pudo guardar. Intenta de nuevo.');
+    } else {
+      await refreshProfile();
+      setShowEditModal(false);
+      setFeedbackIsError(false);
+      setFeedbackMsg('✅ Perfil actualizado correctamente');
+      setTimeout(() => setFeedbackMsg(null), 3000);
+    }
+  }
 
   return (
     <View style={styles.container}>
@@ -261,32 +490,290 @@ export default function ProfileScreen() {
         {/* Tarjeta Superior de Identidad del Alumno */}
         <Card radius={22} style={styles.profileCard}>
           <View style={styles.avatarSection}>
-            <View style={styles.avatarContainer}>
-              <Image
-                source={require('@/assets/images/yachi/yachi_principal.png')}
-                style={styles.avatarImage}
-                resizeMode="contain"
-              />
-              {/* Chullo Sagrado equipado desde la tienda */}
-              {equippedOutfit === 'chullo_item' && (
-                <Image
-                  source={require('@/assets/images/logros/item_chullo_coleccionable.png')}
-                  style={styles.chulloOverlay}
-                  resizeMode="contain"
-                />
-              )}
-              <View style={styles.levelBadge}>
-                <Text style={styles.levelBadgeText}>Nv. {userLevel}</Text>
+            <TouchableOpacity onPress={openEditModal} activeOpacity={0.85}>
+              <View style={styles.avatarContainer}>
+                {profile?.avatar_url && (profile.avatar_url.startsWith('data:image') || profile.avatar_url.startsWith('http') || profile.avatar_url.startsWith('file:')) ? (
+                  <Image
+                    source={{ uri: profile.avatar_url }}
+                    style={styles.avatarPhoto}
+                    resizeMode="cover"
+                  />
+                ) : profile?.avatar_url && AVATAR_OPTIONS.includes(profile.avatar_url) ? (
+                  <View style={styles.avatarEmojiCircle}>
+                    <Text style={styles.avatarEmoji}>{profile.avatar_url}</Text>
+                  </View>
+                ) : (
+                  <Image
+                    source={require('@/assets/images/yachi/yachi_principal.png')}
+                    style={styles.avatarImage}
+                    resizeMode="contain"
+                  />
+                )}
+                {/* Chullo Sagrado equipado desde la tienda */}
+                {equippedOutfit === 'chullo_item' && (
+                  <Image
+                    source={require('@/assets/images/logros/item_chullo_coleccionable.png')}
+                    style={styles.chulloOverlay}
+                    resizeMode="contain"
+                  />
+                )}
+                <View style={styles.levelBadge}>
+                  <Text style={styles.levelBadgeText}>Nv. {userLevel}</Text>
+                </View>
+                {/* Botón lápiz de edición */}
+                <View style={styles.editAvatarBadge}>
+                  <Text style={styles.editAvatarBadgeText}>✏️</Text>
+                </View>
               </View>
-            </View>
+            </TouchableOpacity>
             <View style={styles.userInfo}>
-              <Text style={styles.userName}>{username}</Text>
+              <View style={styles.usernameRow}>
+                <Text style={styles.userName}>{username}</Text>
+              </View>
               <Text style={styles.userEmail}>{user?.email || 'estudiante@yachay.pe'}</Text>
               <View style={styles.rolePill}>
                 <Text style={styles.roleText}>🌟 Yachachiq • Estudiante Activo</Text>
               </View>
             </View>
           </View>
+
+          {/* ── Modal Editar Perfil ── */}
+          <Modal
+            visible={showEditModal}
+            transparent
+            animationType="slide"
+            onRequestClose={() => setShowEditModal(false)}
+          >
+            <View style={styles.modalOverlay}>
+              <View style={styles.modalSheet}>
+                <Text style={styles.modalTitle}>✏️ Editar Perfil</Text>
+
+                <ScrollView
+                  showsVerticalScrollIndicator={false}
+                  style={styles.modalScroll}
+                  contentContainerStyle={styles.modalScrollContent}
+                >
+                  {/* Nombre de usuario */}
+                  <Text style={styles.modalLabel}>Nombre de usuario</Text>
+                  <TextInput
+                    style={styles.modalInput}
+                    value={editUsername}
+                    onChangeText={setEditUsername}
+                    placeholder="Tu nombre en Yachay"
+                    placeholderTextColor="#94A3B8"
+                    maxLength={30}
+                    autoCapitalize="words"
+                  />
+
+                  {/* Foto o Avatar */}
+                  <Text style={styles.modalLabel}>Foto o Avatar</Text>
+
+                  {/* Vista previa actual en el modal */}
+                  {(() => {
+                    const isCustomPhoto = Boolean(
+                      editAvatar &&
+                        (editAvatar.startsWith('data:image') ||
+                          editAvatar.startsWith('http') ||
+                          editAvatar.startsWith('file:'))
+                    );
+                    const isPresetEmoji = Boolean(editAvatar && AVATAR_OPTIONS.includes(editAvatar));
+
+                    return (
+                      <View style={styles.modalAvatarPreviewRow}>
+                        <View style={styles.modalAvatarPreviewCircle}>
+                          {isCustomPhoto ? (
+                            <Image
+                              source={{ uri: editAvatar }}
+                              style={styles.modalAvatarPreviewImage}
+                              resizeMode="cover"
+                            />
+                          ) : isPresetEmoji ? (
+                            <Text style={styles.modalAvatarPreviewEmoji}>{editAvatar}</Text>
+                          ) : (
+                            <Image
+                              source={require('@/assets/images/yachi/yachi_principal.png')}
+                              style={styles.modalAvatarPreviewYachi}
+                              resizeMode="contain"
+                            />
+                          )}
+                        </View>
+                        <View style={styles.modalAvatarPreviewInfo}>
+                          <Text style={styles.modalAvatarPreviewTitle}>
+                            {isCustomPhoto
+                              ? 'Foto personal seleccionada 📸'
+                              : isPresetEmoji
+                              ? `Avatar andino (${editAvatar})`
+                              : 'Yachi la llama'}
+                          </Text>
+                          <Text style={styles.modalAvatarPreviewSub}>
+                            {isCustomPhoto
+                              ? 'Puedes cambiarla o volver a un avatar tradicional'
+                              : 'Sube una foto de tu galería o toma una foto'}
+                          </Text>
+                        </View>
+                        {isCustomPhoto ? (
+                          <TouchableOpacity
+                            style={styles.removePhotoBtn}
+                            onPress={() => setEditAvatar('')}
+                            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                          >
+                            <Text style={styles.removePhotoBtnText}>✕</Text>
+                          </TouchableOpacity>
+                        ) : null}
+                      </View>
+                    );
+                  })()}
+
+                  {/* Botones de acción para foto */}
+                  <View style={styles.photoActionsRow}>
+                    <TouchableOpacity
+                      style={styles.photoActionBtn}
+                      onPress={pickImageFromGallery}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={styles.photoActionBtnIcon}>🖼️</Text>
+                      <Text style={styles.photoActionBtnText}>Galería</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={styles.photoActionBtn}
+                      onPress={takePhotoWithCamera}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={styles.photoActionBtnIcon}>📸</Text>
+                      <Text style={styles.photoActionBtnText}>Cámara</Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  {/* Selector de avatar emoji */}
+                  <Text style={styles.modalSubLabel}>O elige un avatar andino:</Text>
+                  <View style={styles.avatarGrid}>
+                    {AVATAR_OPTIONS.map((emoji) => (
+                      <TouchableOpacity
+                        key={emoji}
+                        style={[
+                          styles.avatarGridItem,
+                          editAvatar === emoji && styles.avatarGridItemSelected,
+                        ]}
+                        onPress={() => setEditAvatar(emoji)}
+                        activeOpacity={0.8}
+                      >
+                        <Text style={styles.avatarGridEmoji}>{emoji}</Text>
+                      </TouchableOpacity>
+                    ))}
+                    {/* Opción: volver a Yachi */}
+                    <TouchableOpacity
+                      style={[
+                        styles.avatarGridItem,
+                        editAvatar === '' && styles.avatarGridItemSelected,
+                      ]}
+                      onPress={() => setEditAvatar('')}
+                      activeOpacity={0.8}
+                    >
+                      <Image
+                        source={require('@/assets/images/yachi/yachi_principal.png')}
+                        style={{ width: 36, height: 36 }}
+                        resizeMode="contain"
+                      />
+                    </TouchableOpacity>
+                  </View>
+                </ScrollView>
+
+                {/* Acciones */}
+                <View style={styles.modalActions}>
+                  <TouchableOpacity
+                    style={styles.modalCancelBtn}
+                    onPress={() => setShowEditModal(false)}
+                    disabled={savingProfile}
+                  >
+                    <Text style={styles.modalCancelText}>Cancelar</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.modalSaveBtn, savingProfile && { opacity: 0.6 }]}
+                    onPress={saveProfile}
+                    disabled={savingProfile}
+                  >
+                    {savingProfile ? (
+                      <ActivityIndicator color="#fff" size="small" />
+                    ) : (
+                      <Text style={styles.modalSaveText}>Guardar</Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          </Modal>
+
+          {/* ── Modal Cámara Web ── */}
+          {Platform.OS === 'web' && (
+            <Modal
+              visible={showWebCamera}
+              transparent
+              animationType="fade"
+              onRequestClose={stopWebCamera}
+            >
+              <View style={styles.webCamOverlay}>
+                <View style={styles.webCamCard}>
+                  <View style={styles.webCamHeader}>
+                    <Text style={styles.webCamTitle}>📸 Tomar Foto con Cámara</Text>
+                    <TouchableOpacity
+                      onPress={stopWebCamera}
+                      style={styles.webCamCloseBtn}
+                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                    >
+                      <Text style={styles.webCamCloseText}>✕</Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  <Text style={styles.webCamSub}>
+                    Encuádrate en el círculo y presiona "Capturar Foto"
+                  </Text>
+
+                  {/* Visor de video circular */}
+                  <View style={styles.webCamCircleWrapper}>
+                    {webCameraLoading && (
+                      <View style={styles.webCamLoadingBox}>
+                        <ActivityIndicator size="large" color="#7C3AED" />
+                        <Text style={styles.webCamLoadingText}>Iniciando cámara...</Text>
+                      </View>
+                    )}
+                    {React.createElement('video', {
+                      ref: webVideoRef,
+                      autoPlay: true,
+                      playsInline: true,
+                      muted: true,
+                      style: {
+                        width: 260,
+                        height: 260,
+                        borderRadius: 130,
+                        objectFit: 'cover',
+                        transform: 'scaleX(-1)',
+                        display: webCameraLoading ? 'none' : 'block',
+                      },
+                    })}
+                  </View>
+
+                  {/* Acciones de la cámara */}
+                  <View style={styles.webCamActions}>
+                    <TouchableOpacity
+                      style={styles.webCamCancelBtn}
+                      onPress={stopWebCamera}
+                    >
+                      <Text style={styles.webCamCancelText}>Cancelar</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={[styles.webCamCaptureBtn, webCameraLoading && { opacity: 0.5 }]}
+                      onPress={captureWebPhoto}
+                      disabled={webCameraLoading}
+                    >
+                      <Text style={styles.webCamCaptureText}>📸 Capturar Foto</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </View>
+            </Modal>
+          )}
 
           {/* Estadísticas en 4 Cajas Andinas */}
           <View style={styles.statsGrid}>
@@ -317,6 +804,28 @@ export default function ProfileScreen() {
             <Text style={styles.cardRibbonText}>❖ ◆ ❖ ◆ ❖ ◆ ❖ ◆ ❖ ◆ ❖ ◆ ❖</Text>
           </View>
         </Card>
+
+        {/* Banner de verificación de correo si está pendiente */}
+        {user && !user.emailVerified && user?.providerData?.some((p) => p.providerId === 'password') ? (
+          <TouchableOpacity
+            style={styles.unverifiedEmailBanner}
+            onPress={() => router.push('/(auth)/verify-email' as any)}
+            activeOpacity={0.85}
+          >
+            <View style={styles.unverifiedBannerLeft}>
+              <Text style={styles.unverifiedBannerIcon}>✉️</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.unverifiedBannerTitle}>Correo aún no confirmado</Text>
+                <Text style={styles.unverifiedBannerSub}>
+                  Haz clic aquí para confirmar tu cuenta y proteger tus avances.
+                </Text>
+              </View>
+            </View>
+            <View style={styles.unverifiedBannerAction}>
+              <Text style={styles.unverifiedBannerActionText}>Confirmar</Text>
+            </View>
+          </TouchableOpacity>
+        ) : null}
 
         {/* Selector de Pestañas Internas del Perfil */}
         <View style={styles.tabSelectorRow}>
@@ -381,43 +890,96 @@ export default function ProfileScreen() {
             </TouchableOpacity>
 
             {/* Misiones Diarias de Hoy */}
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>🎯 Misiones de Hoy</Text>
+            <View style={styles.sectionHeaderRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.sectionTitle}>🎯 Misiones de Hoy</Text>
+                <Text style={styles.sectionSubtitle}>
+                  Cumple retos diarios y reclama tus regalos de XP y Gemas
+                </Text>
+              </View>
+              {quests.length > 0 && (
+                <View style={styles.questsCountBadge}>
+                  <Text style={styles.questsCountBadgeText}>
+                    {quests.filter((q) => q.claimed || (q.current_progress || 0) >= q.target_amount).length}/{quests.length}
+                  </Text>
+                </View>
+              )}
             </View>
 
             <Card padding={14} style={styles.cardWrapper}>
               {quests.length > 0 ? (
-                quests.map((q) => {
-                  const current = q.current_progress || 0;
+                quests.map((q, idx) => {
+                  const meta = getQuestMeta(q.quest_type);
+                  const current = Math.min(q.target_amount, q.current_progress || 0);
                   const target = q.target_amount || 1;
+                  const isCompleted = current >= target;
                   const progressPct = Math.min(100, Math.round((current / target) * 100));
+                  const isClaimed = !!q.claimed;
+                  const isClaiming = claimingQuestId === q.id;
+                  const isLast = idx === quests.length - 1;
+
                   return (
-                    <View key={q.id} style={styles.questRow}>
-                      <Text style={styles.questEmoji}>⚔️</Text>
+                    <View
+                      key={q.id}
+                      style={[styles.questRow, isLast && { borderBottomWidth: 0, paddingBottom: 4 }]}
+                    >
+                      <View
+                        style={[
+                          styles.questEmojiCircle,
+                          { backgroundColor: meta.bg, borderColor: meta.border },
+                        ]}
+                      >
+                        <Text style={styles.questEmojiText}>{meta.emoji}</Text>
+                      </View>
+
                       <View style={styles.questInfo}>
-                        <Text style={styles.questTitle}>{q.title}</Text>
+                        <View style={styles.questTitleRow}>
+                          <Text style={styles.questTitle}>{q.title}</Text>
+                        </View>
+                        <Text style={styles.questDesc}>{q.description}</Text>
+
                         <ProgressBar
                           progress={progressPct}
-                          height={6}
-                          color={TEAL}
+                          height={7}
+                          color={isClaimed ? '#94A3B8' : isCompleted ? '#10B981' : TEAL}
                           trackColor="#EAE3D6"
                           style={styles.progressBarBg}
                         />
-                        <Text style={styles.questProgressText}>
-                          {current} / {target} {progressPct >= 100 ? '• ¡Listo!' : ''}
-                        </Text>
+
+                        <View style={styles.questProgressRow}>
+                          <Text style={styles.questProgressText}>
+                            {current} / {target} {isClaimed ? '• Cumplida' : isCompleted ? '• ¡Lista!' : ''}
+                          </Text>
+                          <View style={styles.questRewardPreview}>
+                            <Text style={styles.questRewardPreviewText}>
+                              +{q.xp_reward} XP • +{q.gem_reward} 💎
+                            </Text>
+                          </View>
+                        </View>
                       </View>
-                      {progressPct >= 100 ? (
+
+                      {isClaimed ? (
+                        <View style={styles.questClaimedBadge}>
+                          <Text style={styles.questClaimedBadgeText}>✓ Listo</Text>
+                        </View>
+                      ) : isCompleted ? (
                         <TouchableOpacity
-                          style={[styles.questRewardBadge, { backgroundColor: GREEN }]}
+                          style={styles.questClaimBtn}
                           onPress={() => handleClaimQuest(q)}
+                          disabled={isClaiming}
                           activeOpacity={0.8}
                         >
-                          <Text style={styles.questRewardClaimText}>Reclamar</Text>
+                          {isClaiming ? (
+                            <ActivityIndicator size="small" color="#FFFFFF" />
+                          ) : (
+                            <Text style={styles.questClaimBtnText}>🎁 Reclamar</Text>
+                          )}
                         </TouchableOpacity>
                       ) : (
-                        <View style={styles.questRewardBadge}>
-                          <Text style={styles.questRewardText}>+{q.xp_reward} XP</Text>
+                        <View style={styles.questPendingBadge}>
+                          <Text style={styles.questPendingBadgeText}>
+                            {progressPct}%
+                          </Text>
                         </View>
                       )}
                     </View>
@@ -761,6 +1323,11 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
   },
+  avatarPhoto: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+  },
   chulloOverlay: {
     position: 'absolute',
     top: -18,
@@ -782,6 +1349,242 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 10,
     fontWeight: '900',
+  },
+  // \u2500\u2500 Edit avatar badge \u2500\u2500
+  editAvatarBadge: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    backgroundColor: '#7C3AED',
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#fff',
+  },
+  editAvatarBadgeText: {
+    fontSize: 11,
+  },
+  // ── Avatar emoji circle ──
+  avatarEmojiCircle: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    backgroundColor: '#F5F3FF',
+    borderWidth: 2,
+    borderColor: '#7C3AED',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  avatarEmoji: {
+    fontSize: 34,
+  },
+  // ── Username row ──
+  usernameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  // ── Edit Modal ──
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    justifyContent: 'flex-end',
+  },
+  modalSheet: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    padding: 24,
+    paddingBottom: Platform.OS === 'ios' ? 36 : 24,
+    maxHeight: '88%',
+  },
+  modalScroll: {
+    maxHeight: 420,
+  },
+  modalScrollContent: {
+    paddingBottom: 10,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: TEXT_DARK,
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  modalLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: TEXT_MUTED,
+    marginBottom: 8,
+    marginTop: 10,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+  },
+  modalSubLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: TEXT_MUTED,
+    marginBottom: 8,
+    marginTop: 14,
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+  },
+  modalInput: {
+    borderWidth: 2,
+    borderColor: '#E2E8F0',
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 16,
+    fontWeight: '600',
+    color: TEXT_DARK,
+    backgroundColor: '#F8FAFC',
+    marginBottom: 6,
+  },
+  modalAvatarPreviewRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8FAFC',
+    borderRadius: 16,
+    padding: 12,
+    marginBottom: 12,
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+  },
+  modalAvatarPreviewCircle: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#EDE9FE',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+    overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: '#7C3AED',
+  },
+  modalAvatarPreviewImage: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+  },
+  modalAvatarPreviewEmoji: {
+    fontSize: 30,
+  },
+  modalAvatarPreviewYachi: {
+    width: 44,
+    height: 44,
+  },
+  modalAvatarPreviewInfo: {
+    flex: 1,
+  },
+  modalAvatarPreviewTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: TEXT_DARK,
+  },
+  modalAvatarPreviewSub: {
+    fontSize: 11,
+    color: TEXT_MUTED,
+    marginTop: 2,
+    lineHeight: 15,
+  },
+  removePhotoBtn: {
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: '#FEE2E2',
+    borderWidth: 1,
+    borderColor: '#FCA5A5',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 6,
+  },
+  removePhotoBtnText: {
+    fontSize: 12,
+    fontWeight: '900',
+    color: '#EF4444',
+  },
+  photoActionsRow: {
+    flexDirection: 'row',
+    gap: 10,
+    marginBottom: 6,
+  },
+  photoActionBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F5F3FF',
+    borderWidth: 1.5,
+    borderColor: '#DDD6FE',
+    paddingVertical: 11,
+    paddingHorizontal: 12,
+    borderRadius: 14,
+    gap: 8,
+  },
+  photoActionBtnIcon: {
+    fontSize: 16,
+  },
+  photoActionBtnText: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: '#7C3AED',
+  },
+  avatarGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    marginTop: 4,
+  },
+  avatarGridItem: {
+    width: 54,
+    height: 54,
+    borderRadius: 16,
+    backgroundColor: '#F1F5F9',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  avatarGridItemSelected: {
+    borderColor: '#7C3AED',
+    backgroundColor: '#F5F3FF',
+  },
+  avatarGridEmoji: {
+    fontSize: 28,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 16,
+  },
+  modalCancelBtn: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 14,
+    borderWidth: 2,
+    borderColor: '#E2E8F0',
+    alignItems: 'center',
+  },
+  modalCancelText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: TEXT_MUTED,
+  },
+  modalSaveBtn: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 14,
+    backgroundColor: '#7C3AED',
+    alignItems: 'center',
+  },
+  modalSaveText: {
+    fontSize: 15,
+    fontWeight: '900',
+    color: '#FFFFFF',
   },
   userInfo: {
     flex: 1,
@@ -935,11 +1738,37 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     marginTop: 4,
   },
+  sectionHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+    marginTop: 6,
+  },
   sectionTitle: {
     fontSize: 16,
     fontWeight: '800',
     color: TEXT_DARK,
     letterSpacing: -0.2,
+  },
+  sectionSubtitle: {
+    fontSize: 11.5,
+    color: TEXT_MUTED,
+    marginTop: 2,
+    fontWeight: '500',
+  },
+  questsCountBadge: {
+    backgroundColor: '#EEF2FF',
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#C7D2FE',
+  },
+  questsCountBadgeText: {
+    fontSize: 11.5,
+    fontWeight: '800',
+    color: '#4338CA',
   },
   cardWrapper: {
     marginBottom: 16,
@@ -947,47 +1776,116 @@ const styles = StyleSheet.create({
   questRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 8,
+    paddingVertical: 10,
     borderBottomWidth: 1,
     borderBottomColor: '#F2ECE1',
   },
-  questEmoji: {
-    fontSize: 24,
+  questEmojiCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
     marginRight: 12,
+  },
+  questEmojiText: {
+    fontSize: 22,
   },
   questInfo: {
     flex: 1,
     marginRight: 10,
   },
+  questTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   questTitle: {
-    fontSize: 13,
-    fontWeight: '700',
+    fontSize: 13.5,
+    fontWeight: '800',
     color: TEXT_DARK,
+    letterSpacing: -0.1,
+  },
+  questDesc: {
+    fontSize: 11.5,
+    color: TEXT_MUTED,
+    marginTop: 1,
     marginBottom: 4,
+    lineHeight: 15,
   },
   progressBarBg: {
     marginVertical: 2,
   },
+  questProgressRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 4,
+  },
   questProgressText: {
-    fontSize: 10,
+    fontSize: 10.5,
     color: TEXT_MUTED,
-    fontWeight: '600',
+    fontWeight: '700',
   },
-  questRewardBadge: {
-    backgroundColor: TEAL_LIGHT,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
+  questRewardPreview: {
+    backgroundColor: '#FFFBEB',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#FEF3C7',
   },
-  questRewardText: {
-    fontSize: 11,
+  questRewardPreviewText: {
+    fontSize: 10,
     fontWeight: '800',
-    color: TEAL_DARK,
+    color: '#B45309',
   },
-  questRewardClaimText: {
-    fontSize: 11,
+  questClaimBtn: {
+    backgroundColor: '#10B981',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#10B981',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  questClaimBtnText: {
+    fontSize: 12,
     fontWeight: '900',
     color: '#FFFFFF',
+    letterSpacing: -0.2,
+  },
+  questClaimedBadge: {
+    backgroundColor: '#F1F5F9',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+  },
+  questClaimedBadgeText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#64748B',
+  },
+  questPendingBadge: {
+    backgroundColor: '#F8FAFC',
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    minWidth: 42,
+    alignItems: 'center',
+  },
+  questPendingBadgeText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#64748B',
   },
   emptyQuestBox: {
     alignItems: 'center',
@@ -1541,5 +2439,161 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '800',
     color: '#FFFFFF',
+  },
+
+  /* Modal Cámara Web */
+  webCamOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15, 23, 42, 0.75)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+    zIndex: 1100,
+  },
+  webCamCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 24,
+    width: '100%',
+    maxWidth: 380,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.25,
+    shadowRadius: 20,
+    elevation: 15,
+  },
+  webCamHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    marginBottom: 8,
+  },
+  webCamTitle: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: TEXT_DARK,
+  },
+  webCamCloseBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#F1F5F9',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  webCamCloseText: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: TEXT_MUTED,
+  },
+  webCamSub: {
+    fontSize: 13,
+    color: TEXT_MUTED,
+    textAlign: 'center',
+    marginBottom: 18,
+  },
+  webCamCircleWrapper: {
+    width: 260,
+    height: 260,
+    borderRadius: 130,
+    borderWidth: 4,
+    borderColor: '#7C3AED',
+    backgroundColor: '#0F172A',
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
+  },
+  webCamLoadingBox: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  webCamLoadingText: {
+    color: '#CBD5E1',
+    fontSize: 12,
+    fontWeight: '600',
+    marginTop: 8,
+  },
+  webCamActions: {
+    flexDirection: 'row',
+    gap: 12,
+    width: '100%',
+  },
+  webCamCancelBtn: {
+    flex: 1,
+    paddingVertical: 13,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: '#E2E8F0',
+    alignItems: 'center',
+  },
+  webCamCancelText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: TEXT_MUTED,
+  },
+  webCamCaptureBtn: {
+    flex: 1.4,
+    paddingVertical: 13,
+    borderRadius: 14,
+    backgroundColor: '#7C3AED',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  webCamCaptureText: {
+    fontSize: 14,
+    fontWeight: '900',
+    color: '#FFFFFF',
+  },
+  unverifiedEmailBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#FFFBEB',
+    borderWidth: 1.5,
+    borderColor: '#FDE68A',
+    borderRadius: 16,
+    padding: 14,
+    marginVertical: 14,
+    shadowColor: '#D97706',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  unverifiedBannerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    marginRight: 10,
+    gap: 10,
+  },
+  unverifiedBannerIcon: {
+    fontSize: 24,
+  },
+  unverifiedBannerTitle: {
+    fontSize: 13.5,
+    fontWeight: '800',
+    color: '#92400E',
+    marginBottom: 2,
+  },
+  unverifiedBannerSub: {
+    fontSize: 11.5,
+    color: '#B45309',
+    lineHeight: 16,
+  },
+  unverifiedBannerAction: {
+    backgroundColor: '#F59E0B',
+    paddingVertical: 7,
+    paddingHorizontal: 12,
+    borderRadius: 10,
+  },
+  unverifiedBannerActionText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '800',
   },
 });

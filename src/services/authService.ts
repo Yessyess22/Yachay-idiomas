@@ -2,6 +2,7 @@ import {
   createUserWithEmailAndPassword,
   GoogleAuthProvider,
   onAuthStateChanged,
+  sendEmailVerification,
   signInWithEmailAndPassword,
   signInWithPopup,
   signOut as firebaseSignOut,
@@ -52,6 +53,14 @@ export const authService = {
   async signUp(email: string, password: string, username?: string): Promise<{ user: User | null; error: string | null }> {
     try {
       const { user } = await createUserWithEmailAndPassword(auth, email, password);
+
+      // Enviar correo de verificación automáticamente
+      try {
+        await sendEmailVerification(user);
+      } catch (emailErr: any) {
+        console.warn('[authService] Error al enviar correo de verificación:', emailErr);
+      }
+
       await syncSupabaseSession(user);
       const finalUsername = username || email.split('@')[0];
       const { error: profileError } = await supabase.from('profiles').insert({
@@ -59,8 +68,8 @@ export const authService = {
         username: finalUsername,
         avatar_url: null,
         total_xp: 0,
-        streak_count: 1,
-        gems: 100,
+        streak_count: 0,
+        gems: 0,
         lives: 5,
       });
       if (profileError) {
@@ -79,6 +88,33 @@ export const authService = {
       return { user, error: null };
     } catch (e: any) {
       return { user: null, error: translateFirebaseError(e.code) };
+    }
+  },
+
+  async sendVerificationEmail(targetUser?: User | null): Promise<{ error: string | null }> {
+    try {
+      const currentUser = targetUser || auth.currentUser;
+      if (!currentUser) return { error: 'No hay ningún usuario autenticado.' };
+      await sendEmailVerification(currentUser);
+      return { error: null };
+    } catch (e: any) {
+      console.warn('[authService] Error al reenviar verificación:', e);
+      if (e.code === 'auth/too-many-requests') {
+        return { error: 'Firebase ha limitado los reenvíos por seguridad (demasiadas peticiones). Por favor espera 1 minuto antes de volver a presionar reenviar.' };
+      }
+      return { error: translateFirebaseError(e.code) };
+    }
+  },
+
+  async reloadUser(): Promise<User | null> {
+    try {
+      if (auth.currentUser) {
+        await auth.currentUser.reload();
+      }
+      return auth.currentUser;
+    } catch (e) {
+      console.warn('[authService] Error al recargar usuario:', e);
+      return auth.currentUser;
     }
   },
 
@@ -123,7 +159,7 @@ export const authService = {
           avatar_url: user.photoURL || null,
           total_xp: 0,
           streak_count: 1,
-          gems: 100,
+          gems: 0,
           lives: 5,
         });
 
@@ -185,7 +221,7 @@ export const authService = {
         created_at: new Date().toISOString(),
         streak_count: 1,
         streak_freeze_count: 0,
-        gems: 100,
+        gems: 0,
         lives: 5,
       };
     }
@@ -194,7 +230,16 @@ export const authService = {
 
   async updateGameState(
     uid: string,
-    data: { lives: number; gems: number; xp: number; streakDays: number; avatarUrl?: string | null; streakFreezeCount?: number }
+    data: {
+      lives: number;
+      gems: number;
+      xp: number;
+      streakDays: number;
+      avatarUrl?: string | null;
+      streakFreezeCount?: number;
+      lastActiveDate?: string | null;
+      lastLifeLostAt?: string | null;
+    }
   ): Promise<void> {
     const payload: Record<string, any> = {
       lives: data.lives,
@@ -208,6 +253,12 @@ export const authService = {
     if (data.streakFreezeCount !== undefined) {
       payload.streak_freeze_count = data.streakFreezeCount;
     }
+    if (data.lastActiveDate !== undefined) {
+      payload.last_active_date = data.lastActiveDate;
+    }
+    if (data.lastLifeLostAt !== undefined) {
+      payload.last_life_lost_at = data.lastLifeLostAt;
+    }
     await supabase
       .from('profiles')
       .update(payload)
@@ -215,6 +266,22 @@ export const authService = {
 
     // Sincronizar automáticamente en la tabla de clasificación semanal
     await leaderboardService.syncUserTotalXp(uid, data.xp).catch(() => {});
+  },
+
+  async updateProfile(
+    uid: string,
+    data: { username?: string; avatar_url?: string | null }
+  ): Promise<{ error: string | null }> {
+    const payload: Record<string, any> = {};
+    if (data.username !== undefined) payload.username = data.username.trim();
+    if (data.avatar_url !== undefined) payload.avatar_url = data.avatar_url ? data.avatar_url : null;
+
+    const { error } = await supabase
+      .from('profiles')
+      .update(payload)
+      .eq('firebase_uid', uid);
+
+    return { error: error ? error.message : null };
   },
 
   onAuthStateChange(callback: (user: User | null) => void): () => void {

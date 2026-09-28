@@ -12,7 +12,66 @@ import {
 } from '@/src/services/offlineCache';
 
 const DEFAULT_QUESTIONS: Record<number, QuestionWithOptions[]> = {
+  // ── LECCIÓN 7: ABECEDARIO QUECHUA ────────────────────────────────
+  7: [
+    {
+      id: 701,
+      lesson_id: 7,
+      prompt: '¿Cuántas letras tiene el alfabeto oficial del Quechua Estándar?',
+      question_type: 'multiple_choice',
+      options: [
+        { id: 7001, question_id: 701, option_text: '25 letras', is_correct: true },
+        { id: 7002, question_id: 701, option_text: '27 letras', is_correct: false },
+        { id: 7003, question_id: 701, option_text: '21 letras', is_correct: false },
+      ],
+    },
+    {
+      id: 702,
+      lesson_id: 7,
+      prompt: '¿Cuáles son las tres únicas vocales del alfabeto Quechua oficial?',
+      question_type: 'multiple_choice',
+      options: [
+        { id: 7004, question_id: 702, option_text: 'A, I, U', is_correct: true },
+        { id: 7005, question_id: 702, option_text: 'A, E, I, O, U', is_correct: false },
+        { id: 7006, question_id: 702, option_text: 'A, E, U', is_correct: false },
+      ],
+    },
+    {
+      id: 703,
+      lesson_id: 7,
+      prompt: '¿Cuál de estas letras pertenece al abecedario Quechua pero NO al español?',
+      question_type: 'multiple_choice',
+      options: [
+        { id: 7007, question_id: 703, option_text: 'Ñ (eñe quechua)', is_correct: false },
+        { id: 7008, question_id: 703, option_text: 'QH (q aspirada)', is_correct: true },
+        { id: 7009, question_id: 703, option_text: 'RR (doble erre)', is_correct: false },
+      ],
+    },
+    {
+      id: 704,
+      lesson_id: 7,
+      prompt: '¿Cómo se escribe correctamente "oro" en Quechua usando el abecedario oficial?',
+      question_type: 'multiple_choice',
+      options: [
+        { id: 7010, question_id: 704, option_text: 'Quri', is_correct: true },
+        { id: 7011, question_id: 704, option_text: 'Kori', is_correct: false },
+        { id: 7012, question_id: 704, option_text: 'Guri', is_correct: false },
+      ],
+    },
+    {
+      id: 705,
+      lesson_id: 7,
+      prompt: 'En el abecedario Quechua, la letra "LL" representa:',
+      question_type: 'multiple_choice',
+      options: [
+        { id: 7013, question_id: 705, option_text: 'Un sonido lateral palatal (como "ll" en "llama")', is_correct: true },
+        { id: 7014, question_id: 705, option_text: 'Un sonido igual a la "Y" española', is_correct: false },
+        { id: 7015, question_id: 705, option_text: 'Un sonido mudo sin pronunciación', is_correct: false },
+      ],
+    },
+  ],
   1: [
+
     {
       id: 1,
       lesson_id: 1,
@@ -52,7 +111,7 @@ const DEFAULT_QUESTIONS: Record<number, QuestionWithOptions[]> = {
       prompt: '"Inti" comienza con vocal "i" y significa en español:',
       question_type: 'multiple_choice',
       options: [
-        { id: 10, question_id: 4, option_text: 'Sol sagrado', is_correct: true },
+        { id: 10, question_id: 4, option_text: 'Sol', is_correct: true },
         { id: 11, question_id: 4, option_text: 'Luna andina', is_correct: false },
         { id: 12, question_id: 4, option_text: 'Estrella del alba', is_correct: false },
       ],
@@ -354,30 +413,6 @@ const DEFAULT_QUESTIONS: Record<number, QuestionWithOptions[]> = {
       ],
     },
   ],
-  7: [
-    {
-      id: 31,
-      lesson_id: 7,
-      prompt: '¿Cuál es el orden numérico correcto del 1 al 3 en Quechua?',
-      question_type: 'multiple_choice',
-      options: [
-        { id: 91, question_id: 31, option_text: 'Huk, Iskay, Kinsa', is_correct: true },
-        { id: 92, question_id: 31, option_text: 'Iskay, Huk, Kinsa', is_correct: false },
-        { id: 93, question_id: 31, option_text: 'Kinsa, Tawa, Huk', is_correct: false },
-      ],
-    },
-    {
-      id: 32,
-      lesson_id: 7,
-      prompt: '¿Qué sufijo regular indica plural en la gramática Quechua?',
-      question_type: 'multiple_choice',
-      options: [
-        { id: 94, question_id: 32, option_text: '-kuna (e.g. wasi -> wasikuna)', is_correct: true },
-        { id: 95, question_id: 32, option_text: '-mi (validador testimonial)', is_correct: false },
-        { id: 96, question_id: 32, option_text: '-chu (marcador interrogativo)', is_correct: false },
-      ],
-    },
-  ],
   8: [
     {
       id: 33,
@@ -479,7 +514,7 @@ const EXPANDED_LESSON_BANK: Record<number, { prompt: string; options: string[]; 
     { prompt: '¿Qué opción representa correctamente la vocal abierta “a”?', options: ['A', 'E', 'O'], correct: 'A' },
     { prompt: '¿Qué palabra es la mejor muestra de la vocal “i” en quechua?', options: ['Inti', 'Qhapaq', 'Puna'], correct: 'Inti' },
     { prompt: '¿Cuál de estas palabras contiene la vocal “u” con sentido de “río” o “lugar alto”?', options: ['Urqu', 'Misk’i', 'Rumi'], correct: 'Urqu' },
-    { prompt: '¿Qué palabra quechua expresa “sol sagrado” y usa la vocal “i”?', options: ['Inti', 'Qhapaq', 'Maya'], correct: 'Inti' },
+    { prompt: '¿Qué palabra quechua expresa “sol” y usa la vocal “i”?', options: ['Inti', 'Qhapaq', 'Maya'], correct: 'Inti' },
   ],
   2: [
     { prompt: '¿Cómo se dice “oro” en quechua?', options: ['Quri', 'Kuri', 'Rumi'], correct: 'Quri' },
@@ -730,27 +765,42 @@ export const questionService = {
     // Intentar sincronizar progreso pendiente primero
     this.syncPendingProgress(userId).catch(() => {});
 
-    const set = new Set<number>();
-    try {
-      const storageKey = `@yachay_completed_lessons_${userId}`;
-      const localData = await AsyncStorage.getItem(storageKey);
-      if (localData) {
-        const list: number[] = JSON.parse(localData);
-        list.forEach((id) => set.add(id));
-      }
-    } catch {}
+    const storageKey = `@yachay_completed_lessons_${userId}`;
 
     try {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from('lesson_progress')
         .select('lesson_id')
         .eq('firebase_uid', userId)
         .eq('completed', true);
-      if (data) {
-        data.forEach((row) => set.add(row.lesson_id));
+
+      if (!error && data !== null) {
+        const serverIds = data.map((row) => row.lesson_id);
+        // Incluir items que aún estén en la cola local de sincronización pendiente
+        try {
+          const pending = await getPendingLessonProgress(userId);
+          const pendingIds = pending.map((p) => p.lessonId);
+          pendingIds.forEach((id) => {
+            if (!serverIds.includes(id)) serverIds.push(id);
+          });
+        } catch {}
+
+        // Sincronizar el caché local con la verdad del servidor
+        await AsyncStorage.setItem(storageKey, JSON.stringify(serverIds));
+        return serverIds;
+      }
+    } catch (e) {
+      console.warn('[questionService] Supabase fetch error, usando almacenamiento local:', e);
+    }
+
+    // Fallback offline a AsyncStorage si no hubo respuesta del servidor
+    try {
+      const localData = await AsyncStorage.getItem(storageKey);
+      if (localData) {
+        return JSON.parse(localData);
       }
     } catch {}
 
-    return Array.from(set);
+    return [];
   },
 };

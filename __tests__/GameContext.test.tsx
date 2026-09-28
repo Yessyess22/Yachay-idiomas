@@ -1,6 +1,6 @@
 import React from 'react';
 import { renderHook, act } from '@testing-library/react-native';
-import { GameProvider, useGame } from '@/src/context/GameContext';
+import { GameProvider, useGame, getLocalDateString } from '@/src/context/GameContext';
 
 jest.mock('@react-native-async-storage/async-storage', () =>
   require('@react-native-async-storage/async-storage/jest/async-storage-mock')
@@ -26,10 +26,11 @@ const wrapper = ({ children }: { children: React.ReactNode }) => (
 );
 
 describe('GameContext', () => {
-  test('T1 – estado inicial: 5 vidas y 0 XP', () => {
+  test('T1 – estado inicial: 5 vidas, 0 XP y 0 gemas', () => {
     const { result } = renderHook(() => useGame(), { wrapper });
     expect(result.current.lives).toBe(5);
     expect(result.current.xp).toBe(0);
+    expect(result.current.gems).toBe(0);
   });
 
   test('T2 – checkAnswer(false) descuenta 1 vida y activa isBlocked cuando vidas llegan a 0', () => {
@@ -58,6 +59,7 @@ describe('GameContext', () => {
         lives: 3,
         gems: 50,
         streak_count: 7,
+        last_active_date: getLocalDateString(),
       });
     });
     expect(result.current.lives).toBe(3);
@@ -68,11 +70,18 @@ describe('GameContext', () => {
 
   test('T4 – deductGems(5) descuenta 5 gemas correctamente y no baja de 0', () => {
     const { result } = renderHook(() => useGame(), { wrapper });
-    const initialGems = result.current.gems;
+    act(() => {
+      result.current.addGems(20);
+    });
+    expect(result.current.gems).toBe(20);
     act(() => {
       result.current.deductGems(5);
     });
-    expect(result.current.gems).toBe(initialGems - 5);
+    expect(result.current.gems).toBe(15);
+    act(() => {
+      result.current.deductGems(30);
+    });
+    expect(result.current.gems).toBe(0);
   });
 
   test('T5 – activateDoubleXp activa el estado hasDoubleXp con tiempo restante', () => {
@@ -96,5 +105,76 @@ describe('GameContext', () => {
     });
 
     expect(result.current.streakFreezeCount).toBe(initialCount + 1);
+  });
+
+  test('T7 – Racha se reinicia a 0 si el usuario no estudió ayer ni tiene amuleto de hielo', () => {
+    const { result } = renderHook(() => useGame(), { wrapper });
+    act(() => {
+      result.current.hydrateFromProfile({
+        firebase_uid: 'uid-inactive',
+        username: 'inactive_user',
+        avatar_url: null,
+        total_xp: 50,
+        created_at: '2026-09-14T00:00:00Z',
+        lives: 5,
+        gems: 10,
+        streak_count: 5,
+        last_active_date: '2026-09-20', // Hace varios días
+        streak_freeze_count: 0,
+      });
+    });
+    expect(result.current.streakDays).toBe(0);
+  });
+
+  test('T8 – Racha se preserva consumiendo 1 amuleto de hielo si faltó ayer', () => {
+    const { result } = renderHook(() => useGame(), { wrapper });
+    const twoDaysAgo = new Date();
+    twoDaysAgo.setDate(twoDaysAgo.getDate() - 2);
+    const twoDaysAgoStr = getLocalDateString(twoDaysAgo);
+
+    act(() => {
+      result.current.hydrateFromProfile({
+        firebase_uid: 'uid-freeze',
+        username: 'protected_user',
+        avatar_url: null,
+        total_xp: 80,
+        created_at: '2026-09-14T00:00:00Z',
+        lives: 5,
+        gems: 20,
+        streak_count: 5,
+        last_active_date: twoDaysAgoStr,
+        streak_freeze_count: 1,
+      });
+    });
+    expect(result.current.streakDays).toBe(5);
+    expect(result.current.streakFreezeCount).toBe(0);
+    expect(result.current.streakSavedByFreeze).toBe(true);
+  });
+
+  test('T9 – recordDailyActivity() avanza la racha en día consecutivo', () => {
+    const { result } = renderHook(() => useGame(), { wrapper });
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    act(() => {
+      result.current.hydrateFromProfile({
+        firebase_uid: 'uid-active',
+        username: 'active_user',
+        avatar_url: null,
+        total_xp: 100,
+        created_at: '2026-09-14T00:00:00Z',
+        lives: 5,
+        gems: 50,
+        streak_count: 2,
+        last_active_date: getLocalDateString(yesterday),
+      });
+    });
+    expect(result.current.streakDays).toBe(2);
+
+    act(() => {
+      result.current.recordDailyActivity();
+    });
+    expect(result.current.streakDays).toBe(3);
+    expect(result.current.lastActiveDate).toBe(getLocalDateString());
   });
 });

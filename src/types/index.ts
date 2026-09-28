@@ -99,6 +99,7 @@ export interface DailyQuest {
   quest_type: 'xp_gain' | 'lesson_count' | 'perfect_lesson' | 'streak_maintain';
   current_progress?: number;
   completed?: boolean;
+  claimed?: boolean;
 }
 
 export interface Badge {

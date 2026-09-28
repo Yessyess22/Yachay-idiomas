@@ -35,7 +35,7 @@ const EXAM_FALLBACK: Record<number, { title: string; pass_threshold: number; que
         audioWord: 'Inti',
         prompt: 'Escucha el audio y selecciona la palabra quechua y su significado en español:',
         options: [
-          { id: 1005, question_id: 102, option_text: 'Inti (Sol sagrado)', is_correct: true },
+          { id: 1005, question_id: 102, option_text: 'Inti (Sol)', is_correct: true },
           { id: 1006, question_id: 102, option_text: 'Urpi (Paloma)', is_correct: false },
           { id: 1007, question_id: 102, option_text: 'Wasi (Casa)', is_correct: false },
           { id: 1008, question_id: 102, option_text: 'Quri (Oro)', is_correct: false },
@@ -120,9 +120,9 @@ const EXAM_FALLBACK: Record<number, { title: string; pass_threshold: number; que
         id: 109,
         lesson_id: 1,
         question_type: 'speaking',
-        prompt: 'Usa el micrófono para pronunciar la palabra quechua sagrada:',
+        prompt: 'Usa el micrófono para pronunciar la palabra quechua para "Sol":',
         targetWord: 'Inti',
-        translation: 'Sol sagrado',
+        translation: 'Sol',
         options: [
           { id: 1027, question_id: 109, option_text: 'Inti', is_correct: true },
         ],

@@ -30,7 +30,13 @@ export default function SignupScreen() {
     const { error } = await signUp(email, password, username.trim());
     setLoading(false);
 
-    if (error) setError(error);
+    if (error) {
+      setError(error);
+      return;
+    }
+
+    // Nueva cuenta creada con correo: mostrar pantalla de verificación de correo
+    router.replace('/(auth)/verify-email' as any);
   }
 
   async function handleGoogleLogin() {

@@ -43,6 +43,7 @@ export function deriveLearningPath({
       ? passedLevelIds
       : new Set<number>();
 
+  const isL0Done = completedSet.has(7); // Abecedario Quechua (lessonId=7)
   const isL1Done = completedSet.has(1);
   const isL2Done = completedSet.has(2);
   const isExam1Done = passedSet.has(1);
@@ -58,18 +59,32 @@ export function deriveLearningPath({
   const rawNodes: Omit<LearningPathNode, 'active'>[] = [
     // ── NIVEL 1 ──────────────────────────────────────────────
     {
+      key: 'lesson-0',
+      id: 7,
+      type: 'lesson',
+      lessonId: 7,
+      title: 'Abecedario Quechua',
+      subtitle: 'Nivel 1 · Lección 1',
+      objective: 'Conoce las letras y sonidos del alfabeto oficial del Runa Simi.',
+      categorySlug: 'abecedario',
+      levelNumber: 1,
+      completed: isL0Done,
+      locked: false,
+      reason: 'Disponible para comenzar.',
+    },
+    {
       key: 'lesson-1',
       id: 1,
       type: 'lesson',
       lessonId: 1,
       title: 'Vocales del Runasimi',
-      subtitle: 'Nivel 1 · Lección 1',
+      subtitle: 'Nivel 1 · Lección 2',
       objective: 'Aprende las 3 vocales básicas (A, I, U) y su pronunciación.',
       categorySlug: 'abecedario',
       levelNumber: 1,
       completed: isL1Done,
-      locked: false,
-      reason: 'Disponible para comenzar.',
+      locked: !isL0Done,
+      reason: isL0Done ? 'Disponible.' : 'Completa la lección de Abecedario primero.',
     },
     {
       key: 'lesson-2',
@@ -77,29 +92,29 @@ export function deriveLearningPath({
       type: 'lesson',
       lessonId: 2,
       title: 'Consonantes y Fonética',
-      subtitle: 'Nivel 1 · Lección 2',
+      subtitle: 'Nivel 1 · Lección 3',
       objective: 'Reconoce y pronuncia sonidos clave como Q, K y LL.',
       categorySlug: 'abecedario',
       levelNumber: 1,
       completed: isL2Done,
-      locked: !isL1Done,
-      reason: isL1Done ? 'Disponible.' : 'Completa la lección de Vocales primero.',
+      locked: !(isL0Done && isL1Done),
+      reason: isL0Done && isL1Done ? 'Disponible.' : 'Completa las lecciones anteriores primero.',
     },
     {
       key: 'exam-1',
       id: 101,
       type: 'exam',
       levelId: 1,
-      title: 'Examen de Abecedario',
+      title: 'Examen de Vocales y Consonantes',
       subtitle: 'Evaluación Sumativa · Nivel 1',
       objective: 'Demuestra tu dominio de vocales y consonantes para avanzar.',
       categorySlug: 'abecedario',
       levelNumber: 1,
       completed: isExam1Done,
-      locked: !(isL1Done && isL2Done),
-      reason: isL1Done && isL2Done
+      locked: !(isL0Done && isL1Done && isL2Done),
+      reason: isL0Done && isL1Done && isL2Done
         ? 'Listo para certificar el Nivel 1.'
-        : 'Completa las 2 lecciones de fonética para desbloquear.',
+        : 'Completa las 3 lecciones de fonética para desbloquear.',
     },
 
     // ── NIVEL 2 ──────────────────────────────────────────────
@@ -214,8 +229,8 @@ export function deriveLearningPath({
     nodes.find((node) => !node.locked && !node.completed) ||
     nodes[0];
 
-  const totalLessons = 6;
-  const completedLessons = [1, 2, 3, 4, 5, 6].filter((id) => completedSet.has(id)).length;
+  const totalLessons = 7;
+  const completedLessons = [7, 1, 2, 3, 4, 5, 6].filter((id) => completedSet.has(id)).length;
   const totalExams = 3;
   const passedExams = [1, 2, 3].filter((id) => passedSet.has(id)).length;
   const allComplete = completedLessons === totalLessons && passedExams === totalExams;

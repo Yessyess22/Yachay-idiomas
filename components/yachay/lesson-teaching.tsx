@@ -16,6 +16,115 @@ const TEAL_DARK = '#009624';
 const GOLD = '#FFB300';
 const MUTED = '#6B665E';
 
+const VOCAB_ILLUSTRATIONS: Record<string, string> = {
+  // Aves y animales
+  urpi: '🕊️',
+  paloma: '🕊️',
+  allqu: '🐕',
+  alqo: '🐕',
+  perro: '🐕',
+  misi: '🐈',
+  gato: '🐈',
+  llama: '🦙',
+  puma: '🐆',
+  kuntur: '🦅',
+  condor: '🦅',
+  quwi: '🐹',
+  cuy: '🐹',
+  chalwa: '🐟',
+  atoq: '🦊',
+  khuchi: '🐷',
+  cerdo: '🐷',
+  chancho: '🐷',
+  // Cosmos y naturaleza
+  inti: '☀️',
+  sol: '☀️',
+  killa: '🌙',
+  luna: '🌙',
+  "ch'aska": '⭐',
+  chaska: '⭐',
+  estrella: '⭐',
+  "k'uychi": '🌈',
+  kuychi: '🌈',
+  arcoiris: '🌈',
+  phuyu: '☁️',
+  nube: '☁️',
+  yaku: '💧',
+  agua: '💧',
+  nina: '🔥',
+  fuego: '🔥',
+  wayra: '💨',
+  viento: '💨',
+  allpa: '🌱',
+  tierra: '🌱',
+  "sach'a": '🌳',
+  sacha: '🌳',
+  arbol: '🌳',
+  "t'ika": '🌸',
+  tika: '🌸',
+  flor: '🌸',
+  rumi: '🪨',
+  piedra: '🪨',
+  ñan: '🛤️',
+  nan: '🛤️',
+  camino: '🛤️',
+  wasi: '🏠',
+  casa: '🏠',
+  quri: '🥇',
+  oro: '🥇',
+  "q'omer": '🌿',
+  qomer: '🌿',
+  verde: '🌿',
+  mishki: '🍬',
+  dulce: '🍬',
+  hatun: '🏔️',
+  grande: '🏔️',
+  lawa: '🥣',
+  sopa: '🥣',
+  "p'acha": '👘',
+  pacha: '👘',
+  ropa: '👘',
+  chaki: '🦶',
+  pie: '🦶',
+  qhawa: '👁️',
+  mirar: '👁️',
+  // Personas
+  mama: '👩',
+  tayta: '👨',
+  churi: '👦',
+  ususi: '👧',
+  wawa: '👶',
+  awicha: '👵',
+  tura: '🧑',
+  pana: '👧',
+  ayllu: '👥',
+  allin: '✨',
+  // Números
+  huk: '1️⃣',
+  iskay: '2️⃣',
+  kimsa: '3️⃣',
+  tawa: '4️⃣',
+  pichqa: '5️⃣',
+  suqta: '6️⃣',
+  qanchis: '7️⃣',
+  pusaq: '8️⃣',
+  isqon: '9️⃣',
+  chunka: '🔟',
+};
+
+function getIllustration(entry: LessonVocabularyEntry): string | null {
+  if (entry.illustration) return entry.illustration;
+  const qClean = entry.quechua.toLowerCase().replace(/[^a-zñáéíóú']/g, ' ').trim();
+  const sClean = entry.spanish.toLowerCase().replace(/[^a-zñáéíóú']/g, ' ').trim();
+  for (const w of qClean.split(/\s+/)) {
+    if (VOCAB_ILLUSTRATIONS[w]) return VOCAB_ILLUSTRATIONS[w];
+  }
+  for (const w of sClean.split(/\s+/)) {
+    if (VOCAB_ILLUSTRATIONS[w]) return VOCAB_ILLUSTRATIONS[w];
+  }
+  return null;
+}
+
 interface LessonTeachingProps {
   title: string;
   focus: string;
@@ -35,6 +144,7 @@ export function LessonTeaching({
   const [isPlaying, setIsPlaying] = useState(false);
 
   const currentEntry = vocabulary[stepIndex];
+  const illustration = currentEntry ? getIllustration(currentEntry) : null;
   const isLast = stepIndex >= vocabulary.length - 1;
 
   // Reproducir automáticamente el audio al cambiar de vocablo
@@ -123,6 +233,15 @@ export function LessonTeaching({
           entering={FadeInRight.duration(350)}
           style={styles.card}
         >
+          {/* Ilustración / Dibujo de la palabra */}
+          {illustration && (
+            <View style={styles.illustrationHero}>
+              <View style={styles.illustrationCircle}>
+                <Text style={styles.illustrationEmoji}>{illustration}</Text>
+              </View>
+            </View>
+          )}
+
           {/* Palabra en Grande */}
           <View style={styles.wordHero}>
             <Text style={styles.quechuaText}>{currentEntry.quechua}</Text>
@@ -405,5 +524,27 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '800',
+  },
+  illustrationHero: {
+    alignItems: 'center',
+    marginBottom: 14,
+  },
+  illustrationCircle: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    backgroundColor: '#FEF3C7',
+    borderWidth: 3,
+    borderColor: '#F59E0B',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#D97706',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  illustrationEmoji: {
+    fontSize: 46,
   },
 });
