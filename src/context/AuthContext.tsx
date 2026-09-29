@@ -1,9 +1,14 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Google from 'expo-auth-session/providers/google';
+import { GoogleAuthProvider } from 'firebase/auth';
 import { User as FirebaseUser } from 'firebase/auth';
-import { createContext, ReactNode, useContext, useEffect, useState } from 'react';
+import { createContext, ReactNode, useContext, useEffect, useRef, useState } from 'react';
+
 
 import { authService } from '@/src/services/authService';
 import { Profile } from '@/src/types';
+
+const ANDROID_CLIENT_ID = '44041238737-ppq4ns8gdnamckv1pisgfj1b90lgg9rq.apps.googleusercontent.com';
 
 type AuthContextType = {
   user: FirebaseUser | null;
@@ -27,6 +32,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [emailVerificationDismissed, setEmailVerificationDismissed] = useState(false);
+
+  const [, googleResponse, promptGoogleAsync] = Google.useAuthRequest({
+    androidClientId: ANDROID_CLIENT_ID,
+    webClientId: ANDROID_CLIENT_ID, // web usa signInWithPopup; este campo solo evita el error de validación del hook
+    scopes: ['profile', 'email'],
+  });
+  const googleResolveRef = useRef<((v: { error: string | null }) => void) | null>(null);
+
+  useEffect(() => {
+    if (!googleResponse) return;
+    if (googleResponse.type === 'success') {
+      const { accessToken, idToken } = googleResponse.authentication ?? {};
+      if (!accessToken && !idToken) {
+        googleResolveRef.current?.({ error: 'No se pudo obtener token de Google.' });
+        googleResolveRef.current = null;
+        return;
+      }
+      const credential = GoogleAuthProvider.credential(idToken ?? null, accessToken);
+      authService.signInWithGoogleCredential(credential)
+        .then((res) => googleResolveRef.current?.({ error: res.error }))
+        .catch(() => googleResolveRef.current?.({ error: 'Error al autenticar con Google.' }))
+        .finally(() => { googleResolveRef.current = null; });
+    } else if (googleResponse.type === 'dismiss' || googleResponse.type === 'cancel') {
+      googleResolveRef.current?.({ error: null });
+      googleResolveRef.current = null;
+    } else if (googleResponse.type === 'error') {
+      googleResolveRef.current?.({ error: 'Error al iniciar sesión con Google.' });
+      googleResolveRef.current = null;
+    }
+  }, [googleResponse]);
 
   useEffect(() => {
     const unsubscribe = authService.onAuthStateChange(async (firebaseUser) => {
@@ -65,9 +100,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return { error: res.error };
   }
 
-  async function signInWithGoogle() {
-    const res = await authService.signInWithGoogle();
-    return { error: res.error };
+  async function signInWithGoogle(): Promise<{ error: string | null }> {
+    if (typeof document !== 'undefined') {
+      const res = await authService.signInWithGoogle();
+      return { error: res.error };
+    }
+    return new Promise((resolve) => {
+      googleResolveRef.current = resolve;
+      promptGoogleAsync();
+    });
   }
 
   async function signOut() {

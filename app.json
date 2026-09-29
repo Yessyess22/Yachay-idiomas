@@ -16,6 +16,13 @@
     },
     "android": {
       "package": "com.yachay.app",
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "data": [{ "scheme": "com.googleusercontent.apps.44041238737-ppq4ns8gdnamckv1pisgfj1b90lgg9rq" }],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ],
       "adaptiveIcon": {
         "backgroundColor": "#FDF8F2",
         "foregroundImage": "./assets/images/android-icon-foreground.png"

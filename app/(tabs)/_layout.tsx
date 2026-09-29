@@ -16,6 +16,17 @@ function NavIcon({ source, focused }: { source: any; focused: boolean }) {
   );
 }
 
+function NavIconEmoji({ emoji, focused }: { emoji: string; focused: boolean }) {
+  return (
+    <View style={styles.tabItemContainer}>
+      <View style={[styles.iconWrap, focused && styles.iconWrapActive]}>
+        <Text style={{ fontSize: 22, opacity: focused ? 1 : 0.45 }}>{emoji}</Text>
+      </View>
+      {focused && <View style={styles.activeIndicator} />}
+    </View>
+  );
+}
+
 function AndeanBottomRibbon() {
   return (
     <View style={styles.bottomRibbonWrap}>
@@ -79,6 +90,17 @@ export default function TabLayout() {
             title: 'Perfil',
             tabBarIcon: ({ focused }) => (
               <NavIcon source={require('@/assets/images/nav_perfil.png')} focused={focused} />
+            ),
+          }}
+        />
+
+        {/* Tab 5: Duelos */}
+        <Tabs.Screen
+          name="duel"
+          options={{
+            title: 'Duelos',
+            tabBarIcon: ({ focused }) => (
+              <NavIconEmoji emoji="⚔️" focused={focused} />
             ),
           }}
         />
