@@ -16,6 +16,7 @@
     },
     "android": {
       "package": "com.yachay.app",
+      "googleServicesFile": "./google-services.json",
       "intentFilters": [
         {
           "action": "VIEW",
