@@ -9,7 +9,8 @@ import { createContext, ReactNode, useContext, useEffect, useRef, useState } fro
 import { authService } from '@/src/services/authService';
 import { Profile } from '@/src/types';
 
-const ANDROID_CLIENT_ID = '44041238737-ppq4ns8gdnamckv1pisgfj1b90lgg9rq.apps.googleusercontent.com';
+const ANDROID_CLIENT_ID = '44041238737-90mk82k676tdoo2a6u8pjeqoda81s4kk.apps.googleusercontent.com';
+const WEB_CLIENT_ID = '44041238737-ppq4ns8gdnamckv1pisgfj1b90lgg9rq.apps.googleusercontent.com';
 
 type AuthContextType = {
   user: FirebaseUser | null;
@@ -35,10 +36,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [emailVerificationDismissed, setEmailVerificationDismissed] = useState(false);
 
   const [, googleResponse, promptGoogleAsync] = Google.useIdTokenAuthRequest({
-    clientId: ANDROID_CLIENT_ID,
     androidClientId: ANDROID_CLIENT_ID,
-    iosClientId: ANDROID_CLIENT_ID,
-    webClientId: ANDROID_CLIENT_ID,
+    webClientId: WEB_CLIENT_ID,
     scopes: ['profile', 'email'],
   });
   const googleResolveRef = useRef<((v: { error: string | null }) => void) | null>(null);
