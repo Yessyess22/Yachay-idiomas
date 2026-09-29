@@ -93,6 +93,7 @@ ACHAHALA_PHONEMES = {
     "a": "a a",
     "i": "i i",
     "u": "u u",
+    "inti": "intí",
     "ch": "cha",
     "sh": "sha",
     "h": "ja",

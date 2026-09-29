@@ -201,7 +201,7 @@ export function deriveLearningPath({
       id: 103,
       type: 'exam',
       levelId: 3,
-      title: 'Examen de Vocabulario y Familia',
+      title: 'Examen de Saludos y Familia',
       subtitle: 'Evaluación Sumativa · Nivel 3',
       objective: 'Certifica tu capacidad para saludar y reconocer a la familia.',
       categorySlug: 'palabras',

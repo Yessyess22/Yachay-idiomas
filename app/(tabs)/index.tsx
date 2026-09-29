@@ -581,15 +581,28 @@ export default function HomeScreen() {
                   style={styles.summitDiplomaBtn}
                   onPress={() => router.push('/certificate' as any)}
                   activeOpacity={0.85}
+                  accessibilityRole="button"
+                  accessibilityLabel="Ver mi Diploma de Graduación"
                 >
-                  <Text style={styles.summitDiplomaBtnText}>🎓 Ver mi Diploma</Text>
+                  <View style={styles.summitBtnIconWrapDiploma}>
+                    <Text style={styles.summitBtnEmoji}>🎓</Text>
+                  </View>
+                  <Text style={styles.summitDiplomaBtnText}>Ver Diploma</Text>
+                  <Text style={styles.summitDiplomaBtnSub}>Certificado Oficial</Text>
                 </TouchableOpacity>
+
                 <TouchableOpacity
                   style={styles.summitCelebrateBtn}
                   onPress={() => setShowCelebrationModal(true)}
                   activeOpacity={0.85}
+                  accessibilityRole="button"
+                  accessibilityLabel="Ver Celebración y Honores"
                 >
-                  <Text style={styles.summitCelebrateBtnText}>🎉 Celebración</Text>
+                  <View style={styles.summitBtnIconWrapCelebrate}>
+                    <Text style={styles.summitBtnEmoji}>🎉</Text>
+                  </View>
+                  <Text style={styles.summitCelebrateBtnText}>Celebración</Text>
+                  <Text style={styles.summitCelebrateBtnSub}>Ver Honores</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -1190,36 +1203,98 @@ const styles = StyleSheet.create({
   },
   summitBtnRow: {
     flexDirection: 'row',
-    gap: 10,
+    gap: 12,
     width: '100%',
+    alignItems: 'stretch',
   },
   summitDiplomaBtn: {
-    flex: 2,
+    flex: 1,
     backgroundColor: '#D97706',
-    paddingVertical: 12,
-    borderRadius: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 8,
+    borderRadius: 18,
     alignItems: 'center',
-    borderBottomWidth: 3,
-    borderBottomColor: '#B45309',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: '#F59E0B',
+    borderBottomWidth: 4,
+    borderBottomColor: '#92400E',
+    shadowColor: '#B45309',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.22,
+    shadowRadius: 5,
+    elevation: 4,
+  },
+  summitBtnIconWrapDiploma: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255, 255, 255, 0.22)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.45)',
+  },
+  summitBtnIconWrapCelebrate: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#FDE68A',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+    borderWidth: 1.5,
+    borderColor: '#F59E0B',
+  },
+  summitBtnEmoji: {
+    fontSize: 26,
   },
   summitDiplomaBtnText: {
     color: '#FFFFFF',
-    fontWeight: '800',
+    fontWeight: '900',
     fontSize: 14,
+    textAlign: 'center',
+    letterSpacing: 0.2,
+  },
+  summitDiplomaBtnSub: {
+    color: '#FEF3C7',
+    fontWeight: '700',
+    fontSize: 11,
+    textAlign: 'center',
+    marginTop: 2,
   },
   summitCelebrateBtn: {
     flex: 1,
-    backgroundColor: '#FEF3C7',
+    backgroundColor: '#FFFBEB',
+    paddingVertical: 14,
+    paddingHorizontal: 8,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
     borderWidth: 1.5,
     borderColor: '#F59E0B',
-    paddingVertical: 12,
-    borderRadius: 14,
-    alignItems: 'center',
+    borderBottomWidth: 4,
+    borderBottomColor: '#D97706',
+    shadowColor: '#D97706',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.15,
+    shadowRadius: 5,
+    elevation: 3,
   },
   summitCelebrateBtnText: {
-    color: '#92400E',
-    fontWeight: '800',
+    color: '#78350F',
+    fontWeight: '900',
     fontSize: 14,
+    textAlign: 'center',
+    letterSpacing: 0.2,
+  },
+  summitCelebrateBtnSub: {
+    color: '#B45309',
+    fontWeight: '700',
+    fontSize: 11,
+    textAlign: 'center',
+    marginTop: 2,
   },
   summitCardLocked: {
     backgroundColor: '#F8FAFC',

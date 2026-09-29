@@ -1,12 +1,15 @@
 import { Platform } from 'react-native';
 import * as Speech from 'expo-speech';
 import Constants from 'expo-constants';
-import { File as ExpoFile } from 'expo-file-system';
-import { AudioModule, RecordingPresets, requestRecordingPermissionsAsync, setAudioModeAsync } from 'expo-audio';
+import { File as ExpoFile, Paths } from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
+import { AudioModule, AudioPlayer, createAudioPlayer, RecordingPresets, requestRecordingPermissionsAsync, setAudioModeAsync } from 'expo-audio';
 import { Language, TranslationRequest } from '@/src/types';
 import { supabase } from '@/src/services/supabase';
 import { extractCorePhoneme } from '@/src/utils/phoneticGuide';
 import { LESSON_CONTENT_PACKS } from '@/src/content/lessonContent';
+import { LIBRARY_ITEMS } from '@/src/content/libraryData';
+import { STORIES } from '@/src/content/stories';
 
 export type RecognitionResult = {
   transcript: string;
@@ -35,19 +38,56 @@ const configuredVoiceServiceUrl =
 const VOICE_SERVICE_URL = configuredVoiceServiceUrl.replace(/\/+$/, '');
 
 const audioCache = new Map<string, string>();
-let currentAudio: HTMLAudioElement | null = null;
+let currentWebAudio: HTMLAudioElement | null = null;
+let currentNativePlayer: AudioPlayer | null = null;
+let currentNativeSub: { remove: () => void } | null = null;
+let currentNativeTimeout: ReturnType<typeof setTimeout> | null = null;
 
 /**
  * Mapa de fonemas a su pronunciación silábica auténtica en Quechua (Achahala).
- * En Quechua las consonantes siempre se nombran y articulan con 'a' (ka, cha, qa, pa...).
+ * En Quechua las consonantes se nombran y articulan siempre acompañadas de la vocal 'a' (ka, cha, qa, pa...).
  */
 const PHONEME_AUDIO_TEXT: Record<string, string> = {
-  a: 'a', i: 'i', u: 'u',
-  k: 'ka', q: 'ka', p: 'pa', t: 'ta',
-  m: 'ma', n: 'na', 'ñ': 'ña', s: 'sa',
-  w: 'u', y: 'ya', r: 'ra', l: 'la',
-  ll: 'elle', ch: 'cha', sh: 'sha', h: 'ja', j: 'ja',
-  kh: 'kha', ph: 'pha', qh: 'qha', th: 'tha',
+  // Vocales del quechua
+  a: 'a',
+  i: 'i',
+  u: 'u',
+
+  // Consonantes del alfabeto Quechua (Achahala)
+  ch: 'cha',
+  h: 'ha',
+  j: 'ha',
+  k: 'ka',
+  l: 'la',
+  ll: 'lla',
+  m: 'ma',
+  n: 'na',
+  'ñ': 'ña',
+  p: 'pa',
+  q: 'qa',
+  r: 'ra',
+  s: 'sa',
+  sh: 'sha',
+  t: 'ta',
+  w: 'wa',
+  y: 'ya',
+
+  // Fonemas aspirados
+  kh: 'kha',
+  ph: 'pha',
+  qh: 'qha',
+  th: 'tha',
+  chh: 'chha',
+
+  // Fonemas glotalizados (eyectivos)
+  "ch'": "ch'a",
+  "k'": "k'a",
+  "p'": "p'a",
+  "q'": "q'a",
+  "t'": "t'a",
+
+  // Correcciones fonéticas para palabras aisladas donde el modelo VITS produce artefactos
+  inti: 'intí',
 };
 
 /**
@@ -77,7 +117,7 @@ const PHONEME_VARIANTS: Record<string, string[]> = {
 };
 
 export type PlayQuechuaAudioOptions = {
-  /** Reproduce a velocidad reducida, útil para practicar pronunciación difícil. */
+  /** Reproduce a velocidad reducida (0.75x), útil para practicar pronunciación difícil. */
   slow?: boolean;
   /** Salta extractCorePhoneme y envía el texto tal cual al servidor MMS-TTS. */
   raw?: boolean;
@@ -85,31 +125,41 @@ export type PlayQuechuaAudioOptions = {
 
 /**
  * Construye el texto de audio para pantallas de enseñanza.
- * "CH (Chaki)" → "cha Chaki" (fonema pronunciable + palabra ejemplo).
- * Así el MMS-TTS quechua lee ambas partes con la misma voz.
+ * Si el texto incluye fonema y palabra ejemplo entre paréntesis como "CH (Chaki)",
+ * extrae y reproduce únicamente el fonema/letra ("cha"), permitiendo que la letra
+ * se escuche de forma aislada y pura sin mezclar el ejemplo.
  */
 export function buildTeachingAudioText(quechua: string): string {
+  if (!quechua) return '';
+  // Si es la tarjeta de título del Achahala
+  if (/achahala/i.test(quechua)) {
+    return 'Achahala';
+  }
   const parenMatch = quechua.match(/^(.{1,5})\s*\((.+?)\)/);
   if (parenMatch) {
     const phoneme = parenMatch[1].trim().toLowerCase();
-    const word = parenMatch[2].trim();
-    const phonemeAudio = PHONEME_AUDIO_TEXT[phoneme] ?? phoneme;
-    return `${phonemeAudio} ${word}`;
+    return PHONEME_AUDIO_TEXT[phoneme] ?? phoneme;
   }
-  return quechua;
+  const clean = quechua.trim().toLowerCase();
+  return PHONEME_AUDIO_TEXT[clean] ?? quechua;
 }
 
 /**
- * Reproduce audio del fonema o palabra quechua.
- * - En plataformas nativas (Android/iOS): usa expo-speech.
- * - En web: usa el servidor MMS-TTS Quechua para voz consistente.
- * - Fonemas (≤4 chars) sin raw: usa speechSynthesis solo como fallback de fonema aislado.
- * - Con raw=true: envía el texto tal cual al MMS-TTS (sin extractCorePhoneme).
+ * Reproduce audio del fonema, palabra o frase en Quechua usando preferentemente
+ * la voz masculina nativa (Meta MMS-TTS modelo facebook/mms-tts-quz).
+ *
+ * - Multiplataforma: En móvil nativo (Android/iOS) descarga y cachea el archivo `.wav`
+ *   en `FileSystem.cacheDirectory` y lo reproduce con `expo-audio` (`createAudioPlayer`).
+ * - Velocidad natural: 1.0x por defecto; 0.75x en modo lento (`slow: true`).
+ * - Resiliencia: Si no hay conexión o falla el servidor de voz, utiliza inmediatamente
+ *   la síntesis local con tono grave (pitch 0.88) para que el estudiante nunca quede en silencio.
  */
 export async function playQuechuaAudio(text: string, options?: PlayQuechuaAudioOptions): Promise<void> {
-  if (!text.trim()) return;
-  const rate = options?.slow ? 0.25 : 0.42;
+  if (!text || !text.trim()) return;
 
+  const rate = options?.slow ? 0.75 : 1.0;
+
+  // Limpieza y extracción del texto a pronunciar
   let cleanText: string;
   if (options?.raw) {
     cleanText = text.trim().toLowerCase();
@@ -118,73 +168,202 @@ export async function playQuechuaAudio(text: string, options?: PlayQuechuaAudioO
     cleanText = core || text.trim().toLowerCase();
   }
 
-  // ── Plataforma nativa: expo-speech ──────────────────────────────────────────
-  if (Platform.OS !== 'web') {
-    const audioWord = !options?.raw && cleanText.length <= 4
-      ? (PHONEME_AUDIO_TEXT[cleanText] ?? cleanText)
-      : cleanText;
-    return new Promise<void>((resolve) => {
-      Speech.speak(audioWord, {
-        language: cleanText === 'sh' ? 'en-US' : 'es-PE',
-        rate,
-        pitch: 1.0,
-        onDone: resolve,
-        onError: () => resolve(),
-        onStopped: () => resolve(),
-      });
-    });
-  }
+  // Quitar emojis o caracteres no alfanuméricos iniciales (ej. "📖 el alfabeto...")
+  cleanText = cleanText.replace(/^[^\p{L}\p{N}]+/u, '').trim();
 
-  // ── Web: speechSynthesis solo para fonemas aislados sin raw ─────────────────
-  if (typeof window === 'undefined') return;
+  // Si es un fonema o consonante aislada, mapear a su articulación Achahala (ej. "ch" -> "cha", "ll" -> "lla")
+  const ttsQuery = PHONEME_AUDIO_TEXT[cleanText] ?? cleanText;
+  const audioUrl = `${VOICE_SERVICE_URL}/tts?text=${encodeURIComponent(ttsQuery)}`;
 
-  if (!options?.raw && cleanText.length <= 4) {
-    const lang = cleanText === 'sh' ? 'en-US' : 'es-PE';
-    const audioWord = PHONEME_AUDIO_TEXT[cleanText] ?? cleanText;
-    return new Promise<void>((resolve) => {
-      const synth = (window as any).speechSynthesis;
-      const Utterance = (window as any).SpeechSynthesisUtterance;
-      if (!synth || !Utterance) { resolve(); return; }
-      synth.cancel();
-      const utter = new Utterance(cleanText === 'sh' ? 'sha' : audioWord);
-      utter.lang = lang;
-      utter.rate = rate;
-      utter.pitch = 1.0;
-      utter.volume = 1.0;
-      utter.onend = () => resolve();
-      utter.onerror = () => resolve();
-      synth.speak(utter);
-    });
-  }
+  // ── Plataforma Web ──────────────────────────────────────────────────────────
+  if (Platform.OS === 'web') {
+    if (typeof window === 'undefined') return;
 
-  // Palabras largas en web: servidor MMS-TTS Quechua → fallback
-  if (currentAudio) {
-    try { currentAudio.pause(); currentAudio.currentTime = 0; } catch { /* ignore */ }
-  }
-
-  try {
-    let audioUrl = audioCache.get(cleanText);
-    if (!audioUrl) {
-      const response = await fetch(
-        `${VOICE_SERVICE_URL}/tts?text=${encodeURIComponent(cleanText)}`
-      );
-      if (!response.ok) throw new Error(`TTS server error ${response.status}`);
-      const blob = await response.blob();
-      audioUrl = URL.createObjectURL(blob);
-      audioCache.set(cleanText, audioUrl);
+    if (currentWebAudio) {
+      try {
+        currentWebAudio.pause();
+        currentWebAudio.currentTime = 0;
+      } catch {}
+      currentWebAudio = null;
     }
-    return new Promise((resolve) => {
-      const audio = new Audio(audioUrl);
-      audio.playbackRate = options?.slow ? 0.49 : 0.7;
-      currentAudio = audio;
-      audio.onended = () => resolve();
-      audio.onerror = () => { speakSpanishFallback(cleanText); resolve(); };
-      audio.play().catch(() => { speakSpanishFallback(cleanText); resolve(); });
-    });
-  } catch (err) {
-    console.warn('Fallo TTS local MMS, usando fallback nativo:', err);
-    speakSpanishFallback(cleanText);
+
+    try {
+      let cachedUrl = audioCache.get(ttsQuery);
+      if (!cachedUrl) {
+        const response = await fetch(audioUrl);
+        if (!response.ok) throw new Error(`TTS server error ${response.status}`);
+        const blob = await response.blob();
+        cachedUrl = URL.createObjectURL(blob);
+        audioCache.set(ttsQuery, cachedUrl);
+      }
+
+      return new Promise<void>((resolve) => {
+        const audio = new Audio(cachedUrl);
+        audio.playbackRate = rate;
+        currentWebAudio = audio;
+        audio.onended = () => {
+          if (currentWebAudio === audio) currentWebAudio = null;
+          resolve();
+        };
+        audio.onerror = () => {
+          if (currentWebAudio === audio) currentWebAudio = null;
+          speakSpanishFallback(ttsQuery);
+          resolve();
+        };
+        audio.play().catch(() => {
+          if (currentWebAudio === audio) currentWebAudio = null;
+          speakSpanishFallback(ttsQuery);
+          resolve();
+        });
+      });
+    } catch (err) {
+      console.warn('[playQuechuaAudio web] Error descargando voz quechua:', err);
+      speakSpanishFallback(ttsQuery);
+      return;
+    }
   }
+
+  // ── Plataforma Nativa (Android / iOS) ───────────────────────────────────────
+  if (currentNativeTimeout) {
+    clearTimeout(currentNativeTimeout);
+    currentNativeTimeout = null;
+  }
+  if (currentNativeSub) {
+    try { currentNativeSub.remove(); } catch {}
+    currentNativeSub = null;
+  }
+  if (currentNativePlayer) {
+    try {
+      currentNativePlayer.pause();
+      currentNativePlayer.remove();
+    } catch {}
+    currentNativePlayer = null;
+  }
+
+  return new Promise<void>((resolve) => {
+    let resolved = false;
+    const done = () => {
+      if (!resolved) {
+        resolved = true;
+        if (currentNativeTimeout) {
+          clearTimeout(currentNativeTimeout);
+          currentNativeTimeout = null;
+        }
+        if (currentNativeSub) {
+          try { currentNativeSub.remove(); } catch {}
+          currentNativeSub = null;
+        }
+        resolve();
+      }
+    };
+
+    // Timeout de seguridad de 6 segundos para que la UI nunca quede colgada
+    currentNativeTimeout = setTimeout(done, 6000);
+
+    const playFallback = () => {
+      try {
+        Speech.speak(ttsQuery, {
+          language: 'es-PE',
+          pitch: 0.88,
+          rate: options?.slow ? 0.35 : 0.45,
+          onDone: done,
+          onError: () => done(),
+          onStopped: () => done(),
+        });
+      } catch {
+        done();
+      }
+    };
+
+    (async () => {
+      try {
+        await setAudioModeAsync({
+          playsInSilentMode: true,
+          interruptionMode: 'mixWithOthers',
+          allowsRecording: false,
+          shouldPlayInBackground: false,
+        }).catch(() => {});
+
+        const safeKey = encodeURIComponent(ttsQuery).replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 40);
+        const fileName = `yachay_${safeKey}.wav`;
+        let readyUri: string | null = null;
+
+        // Estrategia 1 (Expo 57 moderno): File y Paths.cache
+        try {
+          if (Paths && Paths.cache) {
+            const targetFile = new ExpoFile(Paths.cache, fileName);
+            if (targetFile.exists && (targetFile.size ?? 0) > 0) {
+              readyUri = targetFile.uri;
+            } else {
+              const dlPromise = ExpoFile.downloadFileAsync(audioUrl, targetFile, { idempotent: true });
+              const toPromise = new Promise<never>((_, reject) =>
+                setTimeout(() => reject(new Error('Download timeout')), 5000)
+              );
+              const dlResult = await Promise.race([dlPromise, toPromise]);
+              if (dlResult && dlResult.uri) {
+                readyUri = dlResult.uri;
+              }
+            }
+          }
+        } catch (e1) {
+          console.warn('[playQuechuaAudio native] Falló Paths.cache:', e1);
+        }
+
+        // Estrategia 2 (Fallback legacy): FileSystem.cacheDirectory
+        if (!readyUri) {
+          try {
+            const cacheDir = FileSystem.cacheDirectory;
+            if (cacheDir) {
+              const localUri = `${cacheDir}${fileName}`;
+              const info = await FileSystem.getInfoAsync(localUri).catch(() => ({ exists: false, size: 0 }));
+              if (info.exists && 'size' in info && info.size && info.size > 0) {
+                readyUri = localUri;
+              } else {
+                const dlPromise = FileSystem.downloadAsync(audioUrl, localUri);
+                const toPromise = new Promise<never>((_, reject) =>
+                  setTimeout(() => reject(new Error('Legacy download timeout')), 5000)
+                );
+                const dlResult = await Promise.race([dlPromise, toPromise]);
+                if (dlResult && dlResult.status === 200 && dlResult.uri) {
+                  readyUri = dlResult.uri;
+                }
+              }
+            }
+          } catch (e2) {
+            console.warn('[playQuechuaAudio native] Falló legacy download:', e2);
+          }
+        }
+
+        // Si no se pudo guardar en disco, intentar con la URL remota
+        if (!readyUri) {
+          readyUri = audioUrl;
+        }
+
+        const player = createAudioPlayer(readyUri, { updateInterval: 100 });
+        currentNativePlayer = player;
+
+        if (typeof (player as any).setPlaybackRate === 'function') {
+          try {
+            (player as any).setPlaybackRate(rate);
+          } catch {}
+        }
+
+        currentNativeSub = player.addListener('playbackStatusUpdate', (status) => {
+          if (status.didJustFinish || status.playbackState === 'ended') {
+            done();
+          } else if (status.error) {
+            console.warn('[playQuechuaAudio native] status.error en reproductor:', status.error);
+            playFallback();
+          }
+        });
+
+        player.play();
+      } catch (err) {
+        console.warn('[playQuechuaAudio native] Falló reproducción nativa, usando voz de respaldo:', err);
+        playFallback();
+      }
+    })();
+  });
 }
 
 export function clearAudioCache(): void {
@@ -610,9 +789,17 @@ export async function startVoiceRecognition(
 
 /**
  * Síntesis de voz multiplataforma.
- * En nativo usa expo-speech; en web usa window.speechSynthesis.
+ * - Quechua ('qu'): usa siempre la voz masculina nativa Meta MMS-TTS.
+ * - Español ('es'): usa la síntesis estándar del dispositivo (expo-speech o Web Speech).
  */
-export function speakText(text: string, _lang: Language): void {
+export function speakText(text: string, lang: Language): void {
+  if (lang === 'qu') {
+    playQuechuaAudio(text, { raw: true }).catch((err) => {
+      console.warn('[speakText] Error reproduciendo voz quechua:', err);
+    });
+    return;
+  }
+
   if (Platform.OS !== 'web') {
     Speech.speak(text, { language: 'es-ES', rate: 0.49 });
     return;
@@ -653,63 +840,233 @@ export function speakSpanishFallback(text: string): void {
 
 // ─── Diccionario local offline Español ↔ Quechua ──────────────────────────────
 const LOCAL_DICTIONARY_ES_QU: Record<string, string> = {
+  // Saludos, despedidas y fórmulas de cortesía
   'hola': 'Allinllachu',
   'hola como estas': 'Allinllachu',
-  'como estas': 'Allinllachu',
-  'cómo estás': 'Allinllachu',
-  'estoy bien': 'Allinmi',
-  'bien': 'Allinmi',
+  'como estas': 'Allillanchu',
+  'cómo estás': 'Allillanchu',
+  'como esta': 'Allillanchu',
+  'cómo está': 'Allillanchu',
+  'estoy bien': 'Allillanmi',
+  'bien': 'Allin',
+  'muy bien': 'Allinmi',
   'gracias': 'Añay',
   'muchas gracias': 'Ancha añay',
+  'te agradezco': 'Yupaychani',
   'de nada': 'Pachi',
+  'buen dia': "Allin p'unchaw",
+  'buen día': "Allin p'unchaw",
   'buenos dias': "Allin p'unchaw",
   'buenos días': "Allin p'unchaw",
-  'buenas tardes': 'Allin sukha',
+  'buenas tardes': 'Allin suka',
   'buenas noches': 'Allin tuta',
   'hasta luego': 'Tupananchiskama',
   'hasta pronto': 'Tupananchiskama',
+  'hasta volver a encontrarnos': 'Tupananchiskama',
+  'hasta volver a vernos': 'Tupananchiskama',
+  'hasta manana': 'Paqarinkama',
+  'hasta mañana': 'Paqarinkama',
   'adios': 'Tupananchiskama',
   'adiós': 'Tupananchiskama',
   'chao': 'Tupananchiskama',
+  'por favor': 'Allichu',
+  'disculpa': 'Pampachaway',
+  'perdon': 'Pampachaway',
+  'perdón': 'Pampachaway',
   'si': 'Arí',
   'sí': 'Arí',
   'no': 'Mana',
+
+  // Afecto, amor y cariño
+  'te quiero': 'Munakuyki',
+  'te amo': 'Munakuyki',
+  'te adoro': 'Munakuyki',
+  'te quiero mucho': 'Anchatam munakuyki',
+  'te amo mucho': 'Anchatam munakuyki',
+  'te extrano': 'Watukuyki',
+  'te extraño': 'Watukuyki',
+  'mi amor': 'Wayllukusqay',
+  'mi corazon': 'Sonqoy',
+  'mi corazón': 'Sonqoy',
+  'corazon': 'Sonqo',
+  'corazón': 'Sonqo',
+  'carino': 'Sonqoy',
+  'cariño': 'Sonqoy',
+  'carino mio': 'Sonqoy',
+  'cariño mío': 'Sonqoy',
+  'amor': 'Munay',
+  'amar': 'Munay',
+  'querer': 'Munay',
+
+  // Leyes incaicas / Código moral andino
+  'ama sua': 'No seas ladrón',
+  'ama suwa': 'No seas ladrón',
+  'ama llulla': 'No seas mentiroso',
+  'ama qilla': 'No seas ocioso / No seas flojo',
+  'ama qhilla': 'No seas ocioso / No seas flojo',
+  'ama qella': 'No seas ocioso / No seas flojo',
+  'no seas ladron': 'Ama suwa',
+  'no seas ladrón': 'Ama suwa',
+  'no seas mentiroso': 'Ama llulla',
+  'no seas ocioso': 'Ama qilla',
+  'no seas flojo': 'Ama qilla',
+  'no seas perezoso': 'Ama qilla',
+  'no robes': 'Ama suwaychu',
+  'no mientas': 'Ama llullakuychu',
+  'no seas ladron no seas mentiroso no seas ocioso': 'Ama suwa, ama llulla, ama qilla',
+  'no seas ladrón no seas mentiroso no seas ocioso': 'Ama suwa, ama llulla, ama qilla',
+  'no seas ladron, no seas mentiroso, no seas ocioso': 'Ama suwa, ama llulla, ama qilla',
+  'no seas ladrón, no seas mentiroso, no seas ocioso': 'Ama suwa, ama llulla, ama qilla',
+  'no seas ladron no seas mentiroso no seas flojo': 'Ama suwa, ama llulla, ama qilla',
+  'no seas ladrón no seas mentiroso no seas flojo': 'Ama suwa, ama llulla, ama qilla',
+  'no seas ladron, no seas mentiroso, no seas flojo': 'Ama suwa, ama llulla, ama qilla',
+  'no seas ladrón, no seas mentiroso, no seas flojo': 'Ama suwa, ama llulla, ama qilla',
+  'no robes no mientas no seas ocioso': 'Ama suwa, ama llulla, ama qilla',
+  'no robes, no mientas, no seas ocioso': 'Ama suwa, ama llulla, ama qilla',
+  'trilogia inca': 'Ama suwa, ama llulla, ama qilla',
+  'trilogía inca': 'Ama suwa, ama llulla, ama qilla',
+  'leyes incas': 'Ama suwa, ama llulla, ama qilla',
+  'codigo inca': 'Ama suwa, ama llulla, ama qilla',
+  'código inca': 'Ama suwa, ama llulla, ama qilla',
+  'ladron': 'Suwa',
+  'ladrón': 'Suwa',
+  'mentiroso': 'Llulla',
+  'mentira': 'Llulla',
+  'ocioso': 'Qilla',
+  'flojo': 'Qilla',
+  'perezoso': 'Qilla',
+
+  // Filosofía y cosmovisión andina
+  'buen vivir': 'Sumaq Kawsay',
+  'el buen vivir': 'Sumaq Kawsay',
+  'madre tierra': 'Pachamama',
+  'tierra': 'Allpa',
+  'mundo': 'Pacha',
+  'cielo': 'Hanan pacha',
+  'mundo de arriba': 'Hanan pacha',
+  'mundo terrenal': 'Kay pacha',
+  'mundo de abajo': 'Uku pacha',
+  'reciprocidad': 'Ayni',
+  'ayuda mutua': 'Ayni',
+  'trabajo comunitario': 'Minka',
+  'montana sagrada': 'Apu',
+  'montaña sagrada': 'Apu',
+  'espiritu tutelar': 'Apu',
+  'cruz andina': 'Chakana',
+  'fiesta del sol': 'Inti Raymi',
+  'viva el quechua': 'Kawsachun Runasimi!',
+  'que viva el quechua': 'Kawsachun Runasimi!',
+  'viva': 'Kawsachun',
+  'fuerza': 'Kallpa',
+  'vida': 'Kawsay',
+
+  // Naturaleza y elementos
   'sol': 'Inti',
   'luna': 'Killa',
   'estrella': "Ch'aska",
   'rio': 'Mayu',
   'río': 'Mayu',
+  'lago': 'Qucha',
+  'laguna': 'Qucha',
   'agua': 'Yaku',
-  'casa': 'Wasi',
-  'hogar': 'Wasi',
-  'perro': 'Allqo',
-  'gato': 'Michi',
-  'paloma': 'Urpi',
-  'zorro': 'Atoq',
-  'condor': 'Kuntur',
-  'cóndor': 'Kuntur',
-  'llama': 'Llama',
-  'alpaca': 'Allpaqa',
-  'puma': 'Puma',
-  'serpiente': 'Amaru',
-  'padre': 'Yaya',
-  'papa': 'Yaya',
-  'papá': 'Yaya',
+  'fuego': 'Nina',
+  'viento': 'Wayra',
+  'lluvia': 'Para',
+  'nieve': 'Riti',
+  'nube': 'Phuyu',
+  'arcoiris': "K'uychi",
+  'arcoíris': "K'uychi",
+  'cerro': 'Urqu',
+  'montaña': 'Urqu',
+  'montana': 'Urqu',
+  'piedra': 'Rumi',
+  'arbol': "Sach'a",
+  'árbol': "Sach'a",
+  'flor': "T'ika",
+  'oro': 'Quri',
+  'plata': 'Qullqi',
+  'dinero': 'Qullqi',
+
+  // Familia (Ayllu)
+  'padre': 'Tayta',
+  'papá': 'Tayta',
+  'senor': 'Tayta',
+  'señor': 'Tayta',
   'madre': 'Mama',
   'mama': 'Mama',
   'mamá': 'Mama',
   'hijo': 'Churi',
   'hija': 'Ususi',
+  'bebe': 'Wawa',
+  'bebé': 'Wawa',
+  'abuela': 'Awicha',
+  'abuelo': 'Awichu',
+  'hermano': 'Tura',
+  'hermana': 'Pana',
   'familia': 'Ayllu',
+  'comunidad': 'Ayllu',
+  'amigo': 'Masi',
+  'amiga': 'Masi',
   'gente': 'Runa',
   'persona': 'Runa',
-  'amigo': 'Masi',
+  'profesor': 'Yachachiq',
+  'maestro': 'Yachachiq',
+  'alumno': 'Yachakuq',
+  'estudiante': 'Yachakuq',
+
+  // Animales (Uywakuna)
+  'perro': 'Allqu',
+  'gato': 'Michi',
+  'paloma': 'Urpi',
+  'zorro': 'Atoq',
+  'condor': 'Kuntur',
+  'cóndor': 'Kuntur',
+  'puma': 'Puma',
+  'serpiente': 'Amaru',
+  'llama': 'Llama',
+  'alpaca': 'Allpaqa',
+  'vicuna': "Wik'uña",
+  'vicuña': "Wik'uña",
+  'cerdo': 'Khuchi',
+  'chancho': 'Khuchi',
+  'cuy': 'Qhuy',
+  'pajaro': 'Pisqu',
+  'pájaro': 'Pisqu',
+  'ave': 'Pisqu',
+
+  // Alimentos y cultura
+  'comida': 'Mikhuna',
+  'maiz': 'Sara',
+  'maíz': 'Sara',
+  'papa': 'Papa',
+  'quinua': 'Kinwa',
+  'carne': 'Kanka',
+  'asado': 'Kanka',
+  'sopa': 'Lawa',
+  'dulce': 'Mishki',
+  'chicha': 'Aqha',
+  'pachamanca': 'Pachamanka',
+  'coca': 'Kuka',
+  'hoja de coca': 'Kuka',
+  'muna': 'Muña',
+  'muña': 'Muña',
+  'cantuta': 'Qantu',
+  'chullo': "Ch'ullu",
+  'gorro': "Ch'ullu",
+  'manta': 'Lliklla',
+  'faja': 'Chumpi',
+  'charango': 'Charango',
+  'quena': 'Qina',
+  'zampona': 'Siku',
+  'zampoña': 'Siku',
+
+  // Números
   'uno': 'Huk',
   '1': 'Huk',
   'dos': 'Iskay',
   '2': 'Iskay',
-  'tres': 'Kinsa',
-  '3': 'Kinsa',
+  'tres': 'Kimsa',
+  '3': 'Kimsa',
   'cuatro': 'Tawa',
   '4': 'Tawa',
   'cinco': 'Pichqa',
@@ -724,115 +1081,428 @@ const LOCAL_DICTIONARY_ES_QU: Record<string, string> = {
   '9': 'Isqon',
   'diez': 'Chunka',
   '10': 'Chunka',
+  'cien': 'Pachak',
+  '100': 'Pachak',
+  'mil': 'Waranqa',
+  '1000': 'Waranqa',
+
+  // Partes del cuerpo
+  'cabeza': 'Uma',
+  'ojo': 'Ñawi',
+  'ojos': 'Ñawi',
+  'nariz': 'Senqa',
+  'boca': 'Simi',
+  'lengua': 'Qallu',
+  'diente': 'Kiru',
+  'dientes': 'Kiru',
+  'oreja': 'Ninri',
+  'oido': 'Ninri',
+  'oído': 'Ninri',
+  'mano': 'Maki',
+  'manos': 'Maki',
+  'pie': 'Chaki',
+  'pies': 'Chaki',
+
+  // Colores
+  'blanco': 'Yuraq',
+  'negro': 'Yana',
+  'rojo': 'Puka',
+  'azul': 'Anqas',
+  'amarillo': "Q'illu",
+  'verde': "Q'omer",
+
+  // Adjetivos
   'hermoso': 'Sumaq',
   'lindo': 'Sumaq',
   'bonito': 'Sumaq',
   'delicioso': 'Sumaq',
-  'dulce': 'Mishki',
+  'rico': 'Sumaq',
   'grande': 'Hatun',
+  'pequeno': 'Uchuy',
   'pequeño': 'Uchuy',
+  'pequena': 'Uchuy',
   'pequeña': 'Uchuy',
-  'amar': 'Munay',
-  'querer': 'Munay',
+  'bueno': 'Allin',
+  'malo': 'Mana allin',
+  'nuevo': 'Musuq',
+  'viejo': "Mawk'a",
+
+  // Verbos comunes
   'aprender': 'Yachay',
   'saber': 'Yachay',
   'hablar': 'Rimay',
   'escuchar': 'Uyariy',
   'comer': 'Mikuy',
   'beber': 'Upyay',
+  'tomar': 'Upyay',
   'caminar': 'Puriy',
+  'andar': 'Puriy',
   'trabajar': "Llamk'ay",
-  'tierra': 'Pachamama',
-  'madre tierra': 'Pachamama',
-  'cerro': 'Urqu',
-  'montaña': 'Urqu',
-  'fuego': 'Nina',
-  'viento': 'Wayra',
-  'lluvia': 'Para',
-  'cielo': 'Hanaq pacha',
+  'dormir': 'Puñuy',
+  'cantar': 'Takiy',
+  'bailar': 'Tusuy',
+  'escribir': 'Qillqay',
+  'leer': 'Ñawinchay',
+  'mirar': 'Qhaway',
+  'ver': 'Qhaway',
+  'observar': 'Qhaway',
+  'dar': 'Qoy',
+  'recibir': 'Chaskiy',
+  'descansar': 'Samay',
+  'vivir': 'Kawsay',
+
+  // Pronombres y adverbios
+  'yo': 'Ñuqa',
+  'tu': 'Qan',
+  'tú': 'Qan',
+  'el': 'Pay',
+  'él': 'Pay',
+  'ella': 'Pay',
+  'nosotros': 'Ñuqanchik',
+  'ustedes': 'Qankuna',
+  'ellos': 'Paykuna',
+  'ellas': 'Paykuna',
+  'casa': 'Wasi',
+  'hogar': 'Wasi',
+  'pueblo': 'Llaqta',
+  'ciudad': 'Llaqta',
+  'camino': 'Ñan',
+  'puente': 'Chaka',
+  'hoy': 'Kunan',
+  'ahora': 'Kunan',
+  'mañana': 'Paqarin',
+  'manana': 'Paqarin',
+  'ayer': 'Qayna',
+  'aqui': 'Kaypi',
+  'aquí': 'Kaypi',
+  'alla': 'Chaypi',
+  'allá': 'Chaypi',
+  'siempre': 'Wiñay',
+  'nunca': "Mana hayk'aq",
 };
 
 const LOCAL_DICTIONARY_QU_ES: Record<string, string> = {
+  // Saludos, despedidas y fórmulas de cortesía
   'allinllachu': '¿Cómo estás? / Hola',
-  'allinmi': 'Estoy bien',
-  'añay': 'Gracias',
+  'allillanchu': '¿Cómo estás? / Hola',
+  'allinmi': 'Estoy bien / Muy bien',
+  'allillanmi': 'Estoy bien',
+  'allin': 'Bueno / Bien',
+  'añay': 'Muchas gracias',
   'sulpayki': 'Gracias',
+  'yupaychani': 'Muchas gracias / Te honro',
   'pachi': 'De nada',
   "allin p'unchaw": 'Buenos días',
   'allin punchaw': 'Buenos días',
+  'allin suka': 'Buenas tardes',
   'allin sukha': 'Buenas tardes',
   'allin tuta': 'Buenas noches',
-  'tupananchiskama': 'Hasta volver a vernos',
+  'tupananchiskama': 'Hasta volver a encontrarnos',
+  'paqarinkama': 'Hasta mañana',
   'arí': 'Sí',
   'ari': 'Sí',
   'mana': 'No',
+  'manan': 'No',
+  'allichu': 'Por favor',
+  'pampachaway': 'Perdóname / Disculpa',
+
+  // Afecto, amor y cariño
+  'munakuyki': 'Te quiero / Te amo',
+  'kuyayki': 'Te quiero / Te amo',
+  'waylluyki': 'Te amo profundamente',
+  'anchatam munakuyki': 'Te quiero mucho / Te amo mucho',
+  'sonqoy': 'Mi corazón / Cariño mío',
+  'sunqu': 'Corazón',
+  'sunquy': 'Mi corazón / Cariño mío',
+  'wayllukusqay': 'Mi amado / Mi amor',
+  'munay': 'Querer / Amar / Hermoso',
+  'kuyay': 'Amar / Querer con ternura',
+
+  // Leyes incaicas / Código moral andino
+  'ama sua': 'No seas ladrón',
+  'ama suwa': 'No seas ladrón',
+  'ama llulla': 'No seas mentiroso',
+  'ama qilla': 'No seas ocioso / No seas flojo',
+  'ama qhilla': 'No seas ocioso / No seas flojo',
+  'ama qella': 'No seas ocioso / No seas flojo',
+  'ama sua ama llulla ama qilla': 'No seas ladrón, no seas mentiroso, no seas ocioso',
+  'ama suwa ama llulla ama qilla': 'No seas ladrón, no seas mentiroso, no seas ocioso',
+  'ama sua, ama llulla, ama qilla': 'No seas ladrón, no seas mentiroso, no seas ocioso',
+  'ama suwa, ama llulla, ama qilla': 'No seas ladrón, no seas mentiroso, no seas ocioso',
+  'ama sua ama llulla ama qhilla': 'No seas ladrón, no seas mentiroso, no seas flojo',
+  'ama suwa ama llulla ama qhilla': 'No seas ladrón, no seas mentiroso, no seas flojo',
+  'ama sua, ama llulla, ama qhilla': 'No seas ladrón, no seas mentiroso, no seas flojo',
+  'ama suwa, ama llulla, ama qhilla': 'No seas ladrón, no seas mentiroso, no seas flojo',
+  'ama': 'No (imperativo prohibitivo)',
+  'sua': 'Ladrón / Que roba',
+  'suwa': 'Ladrón / Que roba',
+  'llulla': 'Mentiroso / Mentira',
+  'qilla': 'Flojo / Ocioso / Perezoso',
+  'qhilla': 'Flojo / Ocioso / Perezoso',
+  'qella': 'Flojo / Ocioso / Perezoso',
+  'ama suwaychu': 'No robes',
+  'ama llullakuychu': 'No mientas',
+
+  // Filosofía y cosmovisión
+  'sumaq kawsay': 'El Buen Vivir en armonía',
+  'ayni': 'Reciprocidad solidaria (Hoy por ti, mañana por mí)',
+  'minka': 'Trabajo colectivo comunitario',
+  'pachamama': 'Madre Tierra',
+  'allpa': 'Tierra / Suelo',
+  'pacha': 'Mundo / Espacio-tiempo',
+  'hanan pacha': 'Cielo / Mundo superior celestial',
+  'kay pacha': 'Mundo terrenal y presente',
+  'uku pacha': 'Mundo subterráneo e interior',
+  'apu': 'Montaña sagrada tutelar',
+  'chakana': 'Cruz andina escalonada',
+  'inti raymi': 'Fiesta sagrada del Sol',
+  'kawsachun runasimi': '¡Que viva el Quechua!',
+  'kawsachun': '¡Que viva! / ¡Viva!',
+  'kallpa': 'Fuerza / Energía vital',
+  'kawsay': 'Vida / Vivir',
+
+  // Naturaleza y elementos
   'inti': 'Sol',
-  'killa': 'Luna',
-  "ch'aska": 'Estrella',
-  'chaska': 'Estrella',
+  'killa': 'Luna / Mes',
+  "ch'aska": 'Estrella / Lucero',
+  'chaska': 'Estrella / Lucero',
   'mayu': 'Río',
+  'qucha': 'Laguna / Lago',
   'yaku': 'Agua',
-  'wasi': 'Casa',
+  'uno': 'Agua',
+  'nina': 'Fuego',
+  'wayra': 'Viento',
+  'para': 'Lluvia',
+  'riti': 'Nieve',
+  'phuyu': 'Nube',
+  "k'uychi": 'Arcoíris',
+  'kuychi': 'Arcoíris',
+  'urqu': 'Cerro / Montaña',
+  'orqo': 'Cerro / Montaña',
+  'rumi': 'Piedra',
+  "sach'a": 'Árbol / Bosque',
+  'sacha': 'Árbol / Bosque',
+  "t'ika": 'Flor',
+  'tika': 'Flor',
+  'quri': 'Oro',
+  'qullqi': 'Plata / Dinero',
+
+  // Familia (Ayllu)
+  'tayta': 'Padre / Papá / Señor',
+  'yaya': 'Padre',
+  'taita': 'Papá',
+  'mama': 'Madre / Mamá',
+  'churi': 'Hijo (de varón)',
+  'ususi': 'Hija (de varón)',
+  'wawa': 'Bebé / Hijo o hija de madre',
+  'awicha': 'Abuela',
+  'awichu': 'Abuelo',
+  'tura': 'Hermano (de mujer)',
+  'pana': 'Hermana (de varón)',
+  'wawqi': 'Hermano (de varón)',
+  'ñaña': 'Hermana (de mujer)',
+  'ayllu': 'Familia / Comunidad',
+  'masi': 'Amigo / Compañero',
+  'runa': 'Persona / Ser humano / Gente',
+  'yachachiq': 'Maestro / Profesor / Sabio',
+  'yachakuq': 'Estudiante / Alumno',
+
+  // Animales (Uywakuna)
+  'allqu': 'Perro',
   'allqo': 'Perro',
   'allko': 'Perro',
   'michi': 'Gato',
+  'misi': 'Gato',
   'urpi': 'Paloma',
   'atoq': 'Zorro',
-  'kuntur': 'Cóndor',
-  'llama': 'Llama',
+  'kuntur': 'Cóndor andino',
+  'puma': 'Puma andino',
+  'amaru': 'Serpiente sagrada',
+  'llama': 'Llama andina',
   'allpaqa': 'Alpaca',
-  'puma': 'Puma',
-  'amaru': 'Serpiente',
-  'yaya': 'Padre',
-  'taita': 'Papá',
-  'mama': 'Madre',
-  'churi': 'Hijo',
-  'ususi': 'Hija',
-  'ayllu': 'Familia / Comunidad',
-  'runa': 'Persona / Ser humano',
-  'masi': 'Amigo',
+  "wik'uña": 'Vicuña silvestre',
+  'khuchi': 'Cerdo / Chancho',
+  'kuchi': 'Cerdo / Chancho',
+  'qhuy': 'Cuy',
+  'qowi': 'Cuy',
+  'pisqu': 'Pájaro / Ave',
+
+  // Alimentos y cultura
+  'mikhuna': 'Comida',
+  'sara': 'Maíz sagrado',
+  'papa': 'Papa / Patata',
+  'kinwa': 'Quinua',
+  'kanka': 'Carne asada / Asado',
+  'lawa': 'Sopa andina / Crema de maíz',
+  'mishki': 'Dulce / Delicioso',
+  'aqha': 'Chicha de jora',
+  'pachamanka': 'Pachamanca',
+  'kankacho': 'Asado de cordero andino',
+  'kuka': 'Hoja de coca sagrada',
+  'muña': 'Hierba aromática muña',
+  'qantu': 'Flor de la Cantuta',
+  "ch'ullu": 'Gorro andino tradicional (chullo)',
+  'chullo': 'Gorro andino tradicional',
+  'lliklla': 'Manta tradicional andina',
+  'chumpi': 'Faja tejida con iconografía',
+  'charango': 'Charango andino',
+  'qina': 'Quena (flauta andina)',
+  'quena': 'Quena (flauta andina)',
+  'siku': 'Zampoña / Flauta de pan',
+
+  // Números
   'huk': 'Uno (1)',
   'iskay': 'Dos (2)',
+  'kimsa': 'Tres (3)',
   'kinsa': 'Tres (3)',
   'tawa': 'Cuatro (4)',
   'pichqa': 'Cinco (5)',
   'soqta': 'Seis (6)',
+  'suqta': 'Seis (6)',
   'qanchis': 'Siete (7)',
   'pusaq': 'Ocho (8)',
   'isqon': 'Nueve (9)',
+  'isqun': 'Nueve (9)',
   'chunka': 'Diez (10)',
-  'sumaq': 'Hermoso / Delicioso',
-  'mishki': 'Dulce / Delicioso',
-  'hatun': 'Grande',
+  'pachak': 'Cien (100)',
+  'waranqa': 'Mil (1000)',
+
+  // Partes del cuerpo
+  'uma': 'Cabeza',
+  'ñawi': 'Ojo / Ojos',
+  'senqa': 'Nariz',
+  'simi': 'Boca / Lengua / Idioma',
+  'qallu': 'Lengua',
+  'kiru': 'Diente / Dientes',
+  'ninri': 'Oreja / Oído',
+  'maki': 'Mano / Manos',
+  'chaki': 'Pie / Pies',
+
+  // Colores
+  'yuraq': 'Blanco',
+  'yana': 'Negro',
+  'puka': 'Rojo',
+  'anqas': 'Azul',
+  "q'illu": 'Amarillo',
+  "q'ellu": 'Amarillo',
+  "q'omer": 'Verde',
+  'qomer': 'Verde',
+
+  // Adjetivos
+  'sumaq': 'Hermoso / Lindo / Delicioso',
+  'hatun': 'Grande / Inmenso',
   'uchuy': 'Pequeño',
-  'munay': 'Querer / Amar',
-  'yachay': 'Saber / Aprender',
+  'musuq': 'Nuevo',
+  "mawk'a": 'Viejo / Antiguo',
+
+  // Verbos comunes
+  'yachay': 'Aprender / Saber / Sabiduría',
   'rimay': 'Hablar',
   'uyariy': 'Escuchar',
   'mikuy': 'Comer',
-  'upyay': 'Beber',
-  'puriy': 'Caminar',
+  'upyay': 'Beber / Tomar',
+  'puriy': 'Caminar / Andar',
   "llamk'ay": 'Trabajar',
-  'pachamama': 'Madre Tierra',
-  'urqu': 'Cerro / Montaña',
-  'nina': 'Fuego',
-  'wayra': 'Viento',
-  'para': 'Lluvia',
-  'hanaq pacha': 'Cielo / Mundo superior',
+  "llank'ay": 'Trabajar',
+  'puñuy': 'Dormir',
+  'takiy': 'Cantar',
+  'tusuy': 'Bailar',
+  'qillqay': 'Escribir',
+  'ñawinchay': 'Leer',
+  'qhaway': 'Mirar / Observar',
+  'qoy': 'Dar / Entregar',
+  'chaskiy': 'Recibir',
+  'samay': 'Descansar / Respirar',
+
+  // Pronombres y adverbios
+  'ñuqa': 'Yo',
+  'qan': 'Tú',
+  'pay': 'Él / Ella',
+  'ñuqanchik': 'Nosotros (inclusivo)',
+  'ñuqayku': 'Nosotros (exclusivo)',
+  'qankuna': 'Ustedes / Vosotros',
+  'paykuna': 'Ellos / Ellas',
+  'wasi': 'Casa / Hogar',
+  'llaqta': 'Pueblo / Ciudad',
+  'ñan': 'Camino / Sendero',
+  'chaka': 'Puente',
+  'kunan': 'Hoy / Ahora',
+  'paqarin': 'Mañana',
+  'qayna': 'Ayer',
+  'kaypi': 'Aquí / Acá',
+  'chaypi': 'Allí / Allá',
+  'wiñay': 'Siempre / Eterno',
 };
 
-// Mantiene el traductor alineado con el vocabulario editorial de las lecciones.
-// Así una palabra enseñada en el camino del saber también funciona en el
-// diccionario, sin tener que duplicarla manualmente en dos archivos.
+// ─── Indexación dinámica de todo el contenido curricular y cultural ───────────
+// Extrae automáticamente todo el vocabulario de las lecciones pedagógicas
 Object.values(LESSON_CONTENT_PACKS).forEach((pack) => {
   pack.vocabulary.forEach(({ quechua, spanish }) => {
-    const quechuaKey = normalizeText(quechua);
-    const spanishKey = normalizeText(spanish.split('/')[0]);
-    if (quechuaKey && !LOCAL_DICTIONARY_QU_ES[quechuaKey]) {
-      LOCAL_DICTIONARY_QU_ES[quechuaKey] = spanish;
+    // Si viene en formato "CH (Chaki)" o "A (Allqu)"
+    const parenMatch = quechua.match(/^(.+?)\s*\((.+?)\)/);
+    if (parenMatch) {
+      const term = parenMatch[2].trim();
+      const normTerm = normalizeText(term);
+      const esParen = spanish.match(/\((.+?)\)/);
+      const cleanEs = esParen ? esParen[1].trim() : spanish.split('—').pop()?.trim() || spanish;
+      if (normTerm && !LOCAL_DICTIONARY_QU_ES[normTerm]) {
+        LOCAL_DICTIONARY_QU_ES[normTerm] = cleanEs;
+      }
+      const normEs = normalizeText(cleanEs);
+      if (normEs && !LOCAL_DICTIONARY_ES_QU[normEs]) {
+        LOCAL_DICTIONARY_ES_QU[normEs] = term;
+      }
     }
-    if (spanishKey && !LOCAL_DICTIONARY_ES_QU[spanishKey]) {
-      LOCAL_DICTIONARY_ES_QU[spanishKey] = quechua;
+
+    // Registro estándar de la palabra quechua y sus traducciones en español
+    const cleanQu = quechua.replace(/\s*\([^)]*\)/g, '').trim();
+    const normQu = normalizeText(cleanQu);
+    if (normQu && !LOCAL_DICTIONARY_QU_ES[normQu]) {
+      LOCAL_DICTIONARY_QU_ES[normQu] = spanish;
+    }
+
+    // Si el significado en español tiene acepciones separadas por "/" (ej. "Padre / Papá / Señor")
+    spanish.split('/').forEach((part) => {
+      const cleanEs = part.replace(/\s*\([^)]*\)/g, '').trim();
+      const normEs = normalizeText(cleanEs);
+      if (normEs && cleanEs.length > 1 && !LOCAL_DICTIONARY_ES_QU[normEs]) {
+        LOCAL_DICTIONARY_ES_QU[normEs] = cleanQu || quechua;
+      }
+    });
+  });
+});
+
+// Indexación dinámica de la Biblioteca Cultural (Quechua cotidiano, código moral, naturaleza)
+LIBRARY_ITEMS.forEach((item) => {
+  const normQu = normalizeText(item.qu);
+  if (normQu && !LOCAL_DICTIONARY_QU_ES[normQu]) {
+    LOCAL_DICTIONARY_QU_ES[normQu] = item.es;
+  }
+  item.es.split('/').forEach((part) => {
+    const cleanEs = part.replace(/\s*\([^)]*\)/g, '').trim();
+    const normEs = normalizeText(cleanEs);
+    if (normEs && cleanEs.length > 1 && !LOCAL_DICTIONARY_ES_QU[normEs]) {
+      LOCAL_DICTIONARY_ES_QU[normEs] = item.qu;
+    }
+  });
+});
+
+// Indexación de frases clave del Modo Historia
+Object.values(STORIES).forEach((story) => {
+  story.turns.forEach((turn) => {
+    if ('quechua' in turn && turn.quechua && turn.spanish) {
+      if (turn.quechua.length < 60) {
+        const cleanQu = turn.quechua.replace(/^[¡¿]+|[!?]+$/g, '').trim();
+        const cleanEs = turn.spanish.replace(/^[¡¿]+|[!?]+$/g, '').trim();
+        const normQu = normalizeText(cleanQu);
+        if (normQu && !LOCAL_DICTIONARY_QU_ES[normQu]) {
+          LOCAL_DICTIONARY_QU_ES[normQu] = cleanEs;
+        }
+        const normEs = normalizeText(cleanEs);
+        if (normEs && !LOCAL_DICTIONARY_ES_QU[normEs]) {
+          LOCAL_DICTIONARY_ES_QU[normEs] = cleanQu;
+        }
+      }
     }
   });
 });
@@ -842,38 +1512,68 @@ function normalizeText(text: string): string {
     .toLowerCase()
     .trim()
     .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '');
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9ñáéíóúü\s']/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 function findLocalTranslation(text: string, sourceLang: Language): string | null {
-  const clean = text
-    .toLowerCase()
-    .trim()
-    .replace(/^[¿¡]+|[?!.;,]+$/g, '');
+  if (!text || !text.trim()) return null;
+
   const dict = sourceLang === 'es' ? LOCAL_DICTIONARY_ES_QU : LOCAL_DICTIONARY_QU_ES;
+  const normInput = normalizeText(text);
+  if (!normInput) return null;
 
-  if (dict[clean]) return dict[clean];
+  const rawLower = text.toLowerCase().trim();
+  if (dict[rawLower]) {
+    return dict[rawLower];
+  }
 
-  // Normalizado sin acentos
-  const normInput = normalizeText(clean);
+  // 1. Coincidencia normalizada directa
   for (const [key, val] of Object.entries(dict)) {
     if (normalizeText(key) === normInput) {
       return val;
     }
   }
 
-  // Traducción palabra por palabra para frases compuestas
-  const words = clean.split(/\s+/);
-  if (words.length > 1) {
-    const translatedWords = words.map((w) => {
-      const normW = normalizeText(w);
+  // 2. Si el texto en español incluye artículos comunes al inicio (ej. "el perro", "la casa", "un árbol")
+  if (sourceLang === 'es') {
+    const withoutArticle = normInput.replace(/^(el|la|los|las|un|una|unos|unas)\s+/, '');
+    if (withoutArticle !== normInput) {
       for (const [key, val] of Object.entries(dict)) {
-        if (normalizeText(key) === normW) return val;
+        if (normalizeText(key) === withoutArticle) {
+          return val;
+        }
       }
-      return w;
-    });
-    const result = translatedWords.join(' ');
-    if (result !== clean) return result;
+    }
+  }
+
+  // 3. Traducción compuesta palabra por palabra para frases no registradas directamente
+  const tokens = normInput.split(/\s+/).filter(Boolean);
+  if (tokens.length > 1) {
+    let matchedAny = false;
+    const translatedTokens = tokens
+      .map((token) => {
+        if (sourceLang === 'es' && ['el', 'la', 'los', 'las', 'un', 'una', 'de', 'del', 'y'].includes(token)) {
+          return '';
+        }
+        for (const [key, val] of Object.entries(dict)) {
+          if (normalizeText(key) === token) {
+            matchedAny = true;
+            return val.split('/')[0].trim();
+          }
+        }
+        return token;
+      })
+      .filter(Boolean);
+
+    if (matchedAny && translatedTokens.length > 0) {
+      const result = translatedTokens.join(' ');
+      if (normalizeText(result) !== normInput) {
+        return result;
+      }
+    }
   }
 
   return null;

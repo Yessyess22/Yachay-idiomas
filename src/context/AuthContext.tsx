@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Google from 'expo-auth-session/providers/google';
+import Constants, { AppOwnership } from 'expo-constants';
 import { GoogleAuthProvider } from 'firebase/auth';
 import { User as FirebaseUser } from 'firebase/auth';
 import { createContext, ReactNode, useContext, useEffect, useRef, useState } from 'react';
@@ -107,6 +108,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const res = await authService.signInWithGoogle();
       return { error: res.error };
     }
+
+    if (Constants.appOwnership === AppOwnership.Expo) {
+      return {
+        error:
+          'El inicio con Google está restringido por Google dentro de Expo Go (requiere el paquete nativo com.yachay.app). Para probar en Expo Go, ingresa con tu correo y contraseña, o pruébalo en la versión Web.',
+      };
+    }
+
     return new Promise((resolve) => {
       googleResolveRef.current = resolve;
       promptGoogleAsync();

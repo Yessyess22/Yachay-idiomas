@@ -10,13 +10,19 @@ jest.mock('@/src/services/supabase', () => ({
 
 }));
 jest.mock('expo-audio', () => ({
-  AudioModule: { AudioRecorder: jest.fn() },
+  AudioModule: { AudioRecorder: jest.fn(), AudioPlayer: jest.fn() },
   RecordingPresets: { HIGH_QUALITY: {} },
   requestRecordingPermissionsAsync: jest.fn().mockResolvedValue({ granted: true }),
   setAudioModeAsync: jest.fn().mockResolvedValue(undefined),
+  createAudioPlayer: jest.fn().mockReturnValue({
+    play: jest.fn(),
+    pause: jest.fn(),
+    remove: jest.fn(),
+    addListener: jest.fn().mockReturnValue({ remove: jest.fn() }),
+  }),
 }));
 
-import { evaluatePronunciation, translateText } from '@/src/services/voiceService';
+import { evaluatePronunciation, translateText, buildTeachingAudioText } from '@/src/services/voiceService';
 
 describe('voiceService - Evaluación de Pronunciación', () => {
   test('Evalúa coincidencia exacta con 100% de score', () => {
@@ -119,5 +125,92 @@ describe('voiceService - Traducción de Texto (Español ↔ Quechua)', () => {
     const result = await translateText({ source_lang: 'qu', target_lang: 'es', source_text: 'Allin.' });
     expect(result.translatedText.toLowerCase()).toContain('bueno');
     expect(result.error).toBeNull();
+  });
+
+  test('Traduce expresiones de afecto como "te quiero" y "te amo" bidireccionalmente', async () => {
+    const r1 = await translateText({ source_lang: 'es', target_lang: 'qu', source_text: 'te quiero' });
+    expect(r1.translatedText).toBe('Munakuyki');
+    expect(r1.error).toBeNull();
+
+    const r2 = await translateText({ source_lang: 'es', target_lang: 'qu', source_text: 'te amo' });
+    expect(r2.translatedText).toBe('Munakuyki');
+
+    const r3 = await translateText({ source_lang: 'qu', target_lang: 'es', source_text: 'Munakuyki' });
+    expect(r3.translatedText.toLowerCase()).toContain('te quiero');
+
+    const r4 = await translateText({ source_lang: 'es', target_lang: 'qu', source_text: 'te quiero mucho' });
+    expect(r4.translatedText).toBe('Anchatam munakuyki');
+  });
+
+  test('Traduce el código moral inca (Ama sua, ama llulla, ama qilla) en todas sus variantes', async () => {
+    // Con comas y puntuación
+    const r1 = await translateText({
+      source_lang: 'qu',
+      target_lang: 'es',
+      source_text: 'ama sua, ama llulla, ama qilla',
+    });
+    expect(r1.translatedText).toContain('No seas ladrón');
+    expect(r1.translatedText).toContain('mentiroso');
+    expect(r1.translatedText).toContain('ocioso');
+    expect(r1.error).toBeNull();
+
+    // Sin comas (como lo escribió el usuario)
+    const r2 = await translateText({
+      source_lang: 'qu',
+      target_lang: 'es',
+      source_text: 'ama sua ama llulla ama qilla',
+    });
+    expect(r2.translatedText).toContain('No seas ladrón');
+
+    // Variaciones ortográficas quechuas (suwa / qhilla)
+    const r3 = await translateText({
+      source_lang: 'qu',
+      target_lang: 'es',
+      source_text: 'ama suwa, ama llulla, ama qhilla',
+    });
+    expect(r3.translatedText).toContain('No seas ladrón');
+
+    // Preceptos individuales
+    const rSua = await translateText({ source_lang: 'qu', target_lang: 'es', source_text: 'ama sua' });
+    expect(rSua.translatedText.toLowerCase()).toContain('ladrón');
+
+    const rLlulla = await translateText({ source_lang: 'qu', target_lang: 'es', source_text: 'ama llulla' });
+    expect(rLlulla.translatedText.toLowerCase()).toContain('mentiroso');
+
+    const rQilla = await translateText({ source_lang: 'qu', target_lang: 'es', source_text: 'ama qilla' });
+    expect(rQilla.translatedText.toLowerCase()).toContain('ocioso');
+  });
+
+  test('Traduce con artículos en español eliminados ("el perro" -> "Allqu", "la casa" -> "Wasi")', async () => {
+    const rPerro = await translateText({ source_lang: 'es', target_lang: 'qu', source_text: 'el perro' });
+    expect(rPerro.translatedText).toBe('Allqu');
+
+    const rCasa = await translateText({ source_lang: 'es', target_lang: 'qu', source_text: 'la casa' });
+    expect(rCasa.translatedText).toBe('Wasi');
+  });
+
+  test('Distingue correctamente "papá" (padre) y "papa" (tubérculo)', async () => {
+    const rPapaConAcento = await translateText({ source_lang: 'es', target_lang: 'qu', source_text: 'papá' });
+    expect(rPapaConAcento.translatedText).toBe('Tayta');
+
+    const rPapaSinAcento = await translateText({ source_lang: 'es', target_lang: 'qu', source_text: 'papa' });
+    expect(rPapaSinAcento.translatedText).toBe('Papa');
+  });
+});
+
+describe('voiceService - Texto Fonético para Enseñanza Achahala', () => {
+  test('Aisla y pronuncia únicamente la letra en tarjetas con ejemplo entre paréntesis', () => {
+    expect(buildTeachingAudioText('CH (Chaki)')).toBe('cha');
+    expect(buildTeachingAudioText('A (Allqu)')).toBe('a');
+    expect(buildTeachingAudioText('H (Hatun)')).toBe('ha');
+    expect(buildTeachingAudioText('LL (Llaqta)')).toBe('lla');
+    expect(buildTeachingAudioText('Q (Quri)')).toBe('qa');
+    expect(buildTeachingAudioText("CH' (Ch'aska)")).toBe("ch'a");
+  });
+
+  test('Mantiene intacta la palabra cuando no hay paréntesis de ejemplo salvo corrección fonética', () => {
+    expect(buildTeachingAudioText('Allillanchu')).toBe('Allillanchu');
+    expect(buildTeachingAudioText('Tupananchiskama')).toBe('Tupananchiskama');
+    expect(buildTeachingAudioText('Inti')).toBe('intí');
   });
 });

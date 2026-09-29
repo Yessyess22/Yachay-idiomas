@@ -83,24 +83,24 @@ export default function TabLayout() {
           }}
         />
 
-        {/* Tab 4: Perfil */}
-        <Tabs.Screen
-          name="profile"
-          options={{
-            title: 'Perfil',
-            tabBarIcon: ({ focused }) => (
-              <NavIcon source={require('@/assets/images/nav_perfil.png')} focused={focused} />
-            ),
-          }}
-        />
-
-        {/* Tab 5: Duelos */}
+        {/* Tab 4: Duelos */}
         <Tabs.Screen
           name="duel"
           options={{
             title: 'Duelos',
             tabBarIcon: ({ focused }) => (
               <NavIconEmoji emoji="⚔️" focused={focused} />
+            ),
+          }}
+        />
+
+        {/* Tab 5: Perfil */}
+        <Tabs.Screen
+          name="profile"
+          options={{
+            title: 'Perfil',
+            tabBarIcon: ({ focused }) => (
+              <NavIcon source={require('@/assets/images/nav_perfil.png')} focused={focused} />
             ),
           }}
         />

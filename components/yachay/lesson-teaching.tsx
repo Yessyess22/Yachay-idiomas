@@ -166,8 +166,7 @@ export function LessonTeaching({
   }, [stepIndex, audioText]);
 
   function playNormal() {
-    if (!audioText || isPlaying) return;
-    playTapSound();
+    if (!audioText) return;
     setIsPlaying(true);
     playQuechuaAudio(audioText, { raw: true })
       .catch(() => {})
@@ -175,8 +174,7 @@ export function LessonTeaching({
   }
 
   function playSlow() {
-    if (!audioText || isPlaying) return;
-    playTapSound();
+    if (!audioText) return;
     setIsPlaying(true);
     playQuechuaAudio(audioText, { slow: true, raw: true })
       .catch(() => {})
