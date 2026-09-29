@@ -14,6 +14,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "44041238737-90mk82k676tdoo2a6u8pjeqoda81s4kk.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.yachay.app",
+            "certificate_hash": "40bf15d29250d7d71e0f9e0d8d50c2a76d8f35d1"
+          }
+        },
+        {
           "client_id": "44041238737-ppq4ns8gdnamckv1pisgfj1b90lgg9rq.apps.googleusercontent.com",
           "client_type": 3
         }
