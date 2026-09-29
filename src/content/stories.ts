@@ -88,7 +88,7 @@ export const STORIES: Record<string, Story> = {
           { text: 'Hasta luego', correct: false },
         ],
       },
-      { speaker: 'yachi', quechua: 'Allianchu?', spanish: '¿Cómo estás?' },
+      { speaker: 'yachi', quechua: 'Allillanchu?', spanish: '¿Cómo estás?' },
       {
         speaker: 'user',
         prompt: 'Responde "Estoy bien" en Quechua:',

@@ -14,6 +14,12 @@ jest.mock('expo-audio', () => ({
   RecordingPresets: { HIGH_QUALITY: {} },
   requestRecordingPermissionsAsync: jest.fn().mockResolvedValue({ granted: true }),
   setAudioModeAsync: jest.fn().mockResolvedValue(undefined),
+  createAudioPlayer: jest.fn().mockReturnValue({
+    play: jest.fn(),
+    seekTo: jest.fn(),
+    pause: jest.fn(),
+    playbackRate: 1.0,
+  }),
 }));
 
 import { evaluatePronunciation, translateText } from '@/src/services/voiceService';

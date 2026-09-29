@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
   ScrollView,
   StyleSheet,
@@ -7,7 +7,7 @@ import {
   View,
 } from 'react-native';
 import Animated, { FadeInRight } from 'react-native-reanimated';
-import { playQuechuaAudio, buildTeachingAudioText } from '@/src/services/voiceService';
+import { playQuechuaAudio } from '@/src/services/voiceService';
 import { playTapSound } from '@/src/services/soundService';
 import { LessonVocabularyEntry } from '@/src/content/lessonContent';
 
@@ -147,38 +147,24 @@ export function LessonTeaching({
   const illustration = currentEntry ? getIllustration(currentEntry) : null;
   const isLast = stepIndex >= vocabulary.length - 1;
 
-  // Texto de audio completo: "CH (Chaki)" → "cha Chaki" (fonema + palabra con la misma voz quechua)
-  const audioText = currentEntry ? buildTeachingAudioText(currentEntry.quechua) : '';
+  const isIntroCard = Boolean(
+    currentEntry?.quechua?.startsWith('📖') ||
+    currentEntry?.illustration === '📖' ||
+    currentEntry?.quechua?.toLowerCase().includes('alfabeto')
+  );
 
-  // Reproducir automáticamente el audio al cambiar de vocablo
-  useEffect(() => {
-    let active = true;
-    if (audioText) {
-      playQuechuaAudio(audioText, { raw: true })
-        .catch(() => {})
-        .finally(() => {
-          if (active) setIsPlaying(false);
-        });
-    }
-    return () => {
-      active = false;
-    };
-  }, [stepIndex, audioText]);
+  const parenMatch = currentEntry?.quechua?.match(/^([A-Za-zÑñ'\s]{1,6})\s*\((.+?)\)/);
+  const letterPart = parenMatch ? parenMatch[1].trim() : null;
+  const wordPart = parenMatch ? parenMatch[2].trim() : null;
 
-  function playNormal() {
-    if (!audioText || isPlaying) return;
+  // Palabra completa a reproducir (si tiene letra entre paréntesis, se extrae la palabra)
+  const completeWord = wordPart || (isIntroCard ? '' : (currentEntry?.quechua || ''));
+
+  function playCompleteWord() {
+    if (!completeWord || isIntroCard || isPlaying) return;
     playTapSound();
     setIsPlaying(true);
-    playQuechuaAudio(audioText, { raw: true })
-      .catch(() => {})
-      .finally(() => setIsPlaying(false));
-  }
-
-  function playSlow() {
-    if (!audioText || isPlaying) return;
-    playTapSound();
-    setIsPlaying(true);
-    playQuechuaAudio(audioText, { slow: true, raw: true })
+    playQuechuaAudio(completeWord, { raw: true })
       .catch(() => {})
       .finally(() => setIsPlaying(false));
   }
@@ -255,26 +241,61 @@ export function LessonTeaching({
             </View>
           </View>
 
-          {/* Botones de Audio: Normal y Lento (Tortuga) */}
-          <View style={styles.audioControlsRow}>
-            <TouchableOpacity
-              style={[styles.audioBtn, isPlaying && styles.audioBtnPlaying]}
-              onPress={playNormal}
-              activeOpacity={0.82}
-            >
-              <Text style={styles.audioBtnIcon}>🔊</Text>
-              <Text style={styles.audioBtnLabel}>Escuchar normal</Text>
-            </TouchableOpacity>
+          {/* Controles de Audio: se ocultan en tarjetas introductorias en español */}
+          {!isIntroCard ? (
+            <View style={styles.audioControlsSection}>
+              {/* Para entradas con letra y palabra: opciones directas e independientes */}
+              {letterPart && wordPart ? (
+                <View style={styles.individualAudioRow}>
+                  <TouchableOpacity
+                    style={[styles.partAudioChip, isPlaying && styles.audioBtnPlaying]}
+                    onPress={() => {
+                      if (isPlaying) return;
+                      playTapSound();
+                      setIsPlaying(true);
+                      playQuechuaAudio(letterPart, { raw: true })
+                        .catch(() => {})
+                        .finally(() => setIsPlaying(false));
+                    }}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.partAudioIcon}>🗣️</Text>
+                    <Text style={styles.partAudioText}>Letra "{letterPart}"</Text>
+                  </TouchableOpacity>
 
-            <TouchableOpacity
-              style={[styles.audioBtnSlow, isPlaying && styles.audioBtnPlaying]}
-              onPress={playSlow}
-              activeOpacity={0.82}
-            >
-              <Text style={styles.audioBtnIcon}>🐢</Text>
-              <Text style={styles.audioBtnLabel}>Escuchar lento</Text>
-            </TouchableOpacity>
-          </View>
+                  <TouchableOpacity
+                    style={[styles.partAudioChip, isPlaying && styles.audioBtnPlaying]}
+                    onPress={() => {
+                      if (isPlaying) return;
+                      playTapSound();
+                      setIsPlaying(true);
+                      playQuechuaAudio(wordPart, { raw: true })
+                        .catch(() => {})
+                        .finally(() => setIsPlaying(false));
+                    }}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.partAudioIcon}>🔊</Text>
+                    <Text style={styles.partAudioText}>Palabra "{wordPart}"</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <TouchableOpacity
+                  style={[styles.audioBtn, isPlaying && styles.audioBtnPlaying]}
+                  onPress={playCompleteWord}
+                  activeOpacity={0.82}
+                >
+                  <Text style={styles.audioBtnIcon}>🔊</Text>
+                  <Text style={styles.audioBtnLabel}>Escuchar palabra</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          ) : (
+            <View style={styles.introBadge}>
+              <Text style={styles.introBadgeIcon}>📖</Text>
+              <Text style={styles.introBadgeText}>Lectura introductoria — Sin audio</Text>
+            </View>
+          )}
 
           {/* Guía Fonética y Articulatoria */}
           {currentEntry.note && (
@@ -420,33 +441,70 @@ const styles = StyleSheet.create({
     color: '#B7791F',
     letterSpacing: 0.5,
   },
-  audioControlsRow: {
+  audioControlsSection: {
+    gap: 10,
+  },
+  individualAudioRow: {
     flexDirection: 'row',
     gap: 10,
   },
-  audioBtn: {
+  partAudioChip: {
     flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: '#E2D9CC',
+    borderRadius: 12,
+    paddingVertical: 9,
+    paddingHorizontal: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    shadowColor: '#000',
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 1,
+  },
+  partAudioIcon: {
+    fontSize: 14,
+  },
+  partAudioText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: '#3D3830',
+  },
+  introBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F3EFE6',
+    borderWidth: 1,
+    borderColor: '#E2D9CC',
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    gap: 8,
+  },
+  introBadgeIcon: {
+    fontSize: 16,
+  },
+  introBadgeText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#7A7265',
+  },
+  audioBtn: {
     backgroundColor: '#E8F5F5',
     borderWidth: 1.5,
     borderColor: '#BFE5E5',
     borderRadius: 14,
-    paddingVertical: 12,
+    paddingVertical: 13,
+    paddingHorizontal: 16,
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'center',
     gap: 8,
-  },
-  audioBtnSlow: {
-    flex: 1,
-    backgroundColor: '#FFF9E6',
-    borderWidth: 1.5,
-    borderColor: '#FCE7A6',
-    borderRadius: 14,
-    paddingVertical: 12,
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'center',
-    gap: 8,
+    width: '100%',
   },
   audioBtnPlaying: {
     opacity: 0.6,

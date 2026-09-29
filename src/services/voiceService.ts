@@ -2,11 +2,12 @@ import { Platform } from 'react-native';
 import * as Speech from 'expo-speech';
 import Constants from 'expo-constants';
 import { File as ExpoFile } from 'expo-file-system';
-import { AudioModule, RecordingPresets, requestRecordingPermissionsAsync, setAudioModeAsync } from 'expo-audio';
+import { AudioModule, RecordingPresets, requestRecordingPermissionsAsync, setAudioModeAsync, createAudioPlayer, AudioPlayer } from 'expo-audio';
 import { Language, TranslationRequest } from '@/src/types';
 import { supabase } from '@/src/services/supabase';
 import { extractCorePhoneme } from '@/src/utils/phoneticGuide';
 import { LESSON_CONTENT_PACKS } from '@/src/content/lessonContent';
+import { getPreRecordedQuechuaAudio } from '@/src/services/quechuaAudioAssets';
 
 export type RecognitionResult = {
   transcript: string;
@@ -36,6 +37,7 @@ const VOICE_SERVICE_URL = configuredVoiceServiceUrl.replace(/\/+$/, '');
 
 const audioCache = new Map<string, string>();
 let currentAudio: HTMLAudioElement | null = null;
+let activePreRecordedPlayer: AudioPlayer | null = null;
 
 /**
  * Mapa de fonemas a su pronunciación silábica auténtica en Quechua (Achahala).
@@ -43,11 +45,13 @@ let currentAudio: HTMLAudioElement | null = null;
  */
 const PHONEME_AUDIO_TEXT: Record<string, string> = {
   a: 'a', i: 'i', u: 'u',
-  k: 'ka', q: 'ka', p: 'pa', t: 'ta',
+  k: 'ka', kh: 'kha', "k'": 'ka',
+  q: 'qa', qh: 'qha', "q'": 'qa',
+  p: 'pa', ph: 'pha', "p'": 'pa',
+  t: 'ta', th: 'tha', "t'": 'ta',
   m: 'ma', n: 'na', 'ñ': 'ña', s: 'sa',
-  w: 'u', y: 'ya', r: 'ra', l: 'la',
-  ll: 'elle', ch: 'cha', sh: 'sha', h: 'ja', j: 'ja',
-  kh: 'kha', ph: 'pha', qh: 'qha', th: 'tha',
+  w: 'wa', y: 'ya', r: 'ra', l: 'la',
+  ll: 'elle', ch: 'cha', "ch'": 'cha', sh: 'sha', h: 'ja', j: 'ja',
 };
 
 /**
@@ -118,6 +122,38 @@ export async function playQuechuaAudio(text: string, options?: PlayQuechuaAudioO
     cleanText = core || text.trim().toLowerCase();
   }
 
+  const targetRate = options?.slow ? 0.58 : 0.75;
+  const applyPlayerRate = (player: any) => {
+    try {
+      player.playbackRate = targetRate;
+      if (player.media) {
+        player.media.playbackRate = targetRate;
+        player.media.defaultPlaybackRate = targetRate;
+        player.media.onplay = () => {
+          try { player.media.playbackRate = targetRate; } catch {}
+        };
+      }
+    } catch {}
+  };
+
+
+  // ── 1. Audio pregrabado con Meta MMS (offline / instantáneo) ───────────────
+  const preRecordedSource = getPreRecordedQuechuaAudio(text) || getPreRecordedQuechuaAudio(cleanText);
+  if (preRecordedSource) {
+    try {
+      if (activePreRecordedPlayer) {
+        try { activePreRecordedPlayer.pause(); } catch {}
+      }
+      activePreRecordedPlayer = createAudioPlayer(preRecordedSource);
+      applyPlayerRate(activePreRecordedPlayer);
+      activePreRecordedPlayer.seekTo(0);
+      activePreRecordedPlayer.play();
+      return;
+    } catch (err) {
+      console.warn('[voiceService] Fallo al reproducir pregrabado, usando fallback:', err);
+    }
+  }
+
   // ── Plataforma nativa: expo-speech ──────────────────────────────────────────
   if (Platform.OS !== 'web') {
     const audioWord = !options?.raw && cleanText.length <= 4
@@ -175,7 +211,7 @@ export async function playQuechuaAudio(text: string, options?: PlayQuechuaAudioO
     }
     return new Promise((resolve) => {
       const audio = new Audio(audioUrl);
-      audio.playbackRate = options?.slow ? 0.49 : 0.7;
+      audio.playbackRate = options?.slow ? 0.65 : 0.82;
       currentAudio = audio;
       audio.onended = () => resolve();
       audio.onerror = () => { speakSpanishFallback(cleanText); resolve(); };

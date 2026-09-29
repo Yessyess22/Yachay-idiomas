@@ -1,0 +1,555 @@
+{
+  "achahala": [
+    {
+      "type": "Vocal",
+      "letter": "A",
+      "name": "a",
+      "example": "Allpa (Tierra)",
+      "sound": "/a/"
+    },
+    {
+      "type": "Vocal",
+      "letter": "I",
+      "name": "i",
+      "example": "Inti (Sol)",
+      "sound": "/i/"
+    },
+    {
+      "type": "Vocal",
+      "letter": "U",
+      "name": "u",
+      "example": "Urqu (Cerro)",
+      "sound": "/u/"
+    },
+    {
+      "type": "Consonante",
+      "letter": "CH",
+      "name": "cha",
+      "example": "Chaki (Pie)",
+      "sound": "/tʃ/"
+    },
+    {
+      "type": "Consonante glotalizada",
+      "letter": "CH'",
+      "name": "ch'a",
+      "example": "Ch'aska (Estrella)",
+      "sound": "/tʃʼ/"
+    },
+    {
+      "type": "Consonante",
+      "letter": "H",
+      "name": "ha / ja",
+      "example": "Hampi (Medicina)",
+      "sound": "/h/"
+    },
+    {
+      "type": "Consonante",
+      "letter": "K",
+      "name": "ka",
+      "example": "Kachi (Sal)",
+      "sound": "/k/"
+    },
+    {
+      "type": "Consonante aspirada",
+      "letter": "KH",
+      "name": "kha",
+      "example": "Khuchi (Cerdo)",
+      "sound": "/kʰ/"
+    },
+    {
+      "type": "Consonante glotalizada",
+      "letter": "K'",
+      "name": "k'a",
+      "example": "K'uychi (Arcoíris)",
+      "sound": "/kʼ/"
+    },
+    {
+      "type": "Consonante",
+      "letter": "L",
+      "name": "la",
+      "example": "Lawa (Sopa)",
+      "sound": "/l/"
+    },
+    {
+      "type": "Consonante",
+      "letter": "LL",
+      "name": "lla",
+      "example": "Llaqta (Pueblo)",
+      "sound": "/ʎ/"
+    },
+    {
+      "type": "Consonante",
+      "letter": "M",
+      "name": "ma",
+      "example": "Mama (Madre)",
+      "sound": "/m/"
+    },
+    {
+      "type": "Consonante",
+      "letter": "N",
+      "name": "na",
+      "example": "Nina (Fuego)",
+      "sound": "/n/"
+    },
+    {
+      "type": "Consonante",
+      "letter": "Ñ",
+      "name": "ña",
+      "example": "Ñawi (Ojo)",
+      "sound": "/ɲ/"
+    },
+    {
+      "type": "Consonante",
+      "letter": "P",
+      "name": "pa",
+      "example": "Pampa (Suelo)",
+      "sound": "/p/"
+    },
+    {
+      "type": "Consonante aspirada",
+      "letter": "PH",
+      "name": "pha",
+      "example": "Phuyu (Nube)",
+      "sound": "/pʰ/"
+    },
+    {
+      "type": "Consonante glotalizada",
+      "letter": "P'",
+      "name": "p'a",
+      "example": "P'acha (Ropa)",
+      "sound": "/pʼ/"
+    },
+    {
+      "type": "Consonante uvular",
+      "letter": "Q",
+      "name": "qa",
+      "example": "Quri (Oro)",
+      "sound": "/q/"
+    },
+    {
+      "type": "Consonante uvular aspirada",
+      "letter": "QH",
+      "name": "qha",
+      "example": "Qhapaq (Poderoso/Rico)",
+      "sound": "/qʰ/"
+    },
+    {
+      "type": "Consonante uvular glotalizada",
+      "letter": "Q'",
+      "name": "q'a",
+      "example": "Q'omer (Verde)",
+      "sound": "/qʼ/"
+    },
+    {
+      "type": "Consonante",
+      "letter": "R",
+      "name": "ra",
+      "example": "Rumi (Piedra)",
+      "sound": "/ɾ/"
+    },
+    {
+      "type": "Consonante",
+      "letter": "S",
+      "name": "sa",
+      "example": "Sara (Maíz)",
+      "sound": "/s/"
+    },
+    {
+      "type": "Consonante",
+      "letter": "T",
+      "name": "ta",
+      "example": "Tanta (Pan)",
+      "sound": "/t/"
+    },
+    {
+      "type": "Consonante glotalizada",
+      "letter": "T'",
+      "name": "t'a",
+      "example": "T'ika (Flor)",
+      "sound": "/tʼ/"
+    },
+    {
+      "type": "Consonante semivocal",
+      "letter": "W",
+      "name": "wa",
+      "example": "Wasi (Casa)",
+      "sound": "/w/"
+    },
+    {
+      "type": "Consonante semivocal",
+      "letter": "Y",
+      "name": "ya",
+      "example": "Yaku (Agua)",
+      "sound": "/j/"
+    }
+  ],
+  "lessonCards": [],
+  "libEntries": [
+    {
+      "id": "cul-1",
+      "category": "cultura",
+      "subCategory": "Gastronomía Ancestral",
+      "qu": "Pachamanka",
+      "es": "Comida cocida bajo tierra",
+      "phonetic": "pah-chah-mahn-kah"
+    },
+    {
+      "id": "cul-2",
+      "category": "cultura",
+      "subCategory": "Gastronomía Ancestral",
+      "qu": "Kankacho",
+      "es": "Asado de cordero andino",
+      "phonetic": "kahn-kah-choh"
+    },
+    {
+      "id": "cul-3",
+      "category": "cultura",
+      "subCategory": "Gastronomía Ancestral",
+      "qu": "Kinwa",
+      "es": "Quinua sagrada",
+      "phonetic": "keen-wah"
+    },
+    {
+      "id": "cul-4",
+      "category": "cultura",
+      "subCategory": "Gastronomía Ancestral",
+      "qu": "Sara",
+      "es": "Maíz sagrado",
+      "phonetic": "sah-rah"
+    },
+    {
+      "id": "cul-6",
+      "category": "cultura",
+      "subCategory": "Vestimenta Tradicional",
+      "qu": "Lliklla",
+      "es": "Manta tradicional de hombro",
+      "phonetic": "yeek-lyah"
+    },
+    {
+      "id": "cul-7",
+      "category": "cultura",
+      "subCategory": "Vestimenta Tradicional",
+      "qu": "Chumpi",
+      "es": "Faja tejida con memoria",
+      "phonetic": "choom-pee"
+    },
+    {
+      "id": "cul-8",
+      "category": "cultura",
+      "subCategory": "Música & Danzas",
+      "qu": "Charango",
+      "es": "Instrumento de cuerda andino",
+      "phonetic": "chah-rahn-goh"
+    },
+    {
+      "id": "cul-9",
+      "category": "cultura",
+      "subCategory": "Música & Danzas",
+      "qu": "Qina",
+      "es": "Flauta andina milenaria",
+      "phonetic": "kee-nah"
+    },
+    {
+      "id": "cul-10",
+      "category": "cultura",
+      "subCategory": "Música & Danzas",
+      "qu": "Siku",
+      "es": "Zampoña / Flauta de pan",
+      "phonetic": "see-koo"
+    },
+    {
+      "id": "cul-11",
+      "category": "cultura",
+      "subCategory": "Lugares Sagrados & Principios",
+      "qu": "Apu",
+      "es": "Montaña tutelar protectora",
+      "phonetic": "ah-poo"
+    },
+    {
+      "id": "cul-12",
+      "category": "cultura",
+      "subCategory": "Lugares Sagrados & Principios",
+      "qu": "Ayni",
+      "es": "Reciprocidad solidaria",
+      "phonetic": "ahy-nee"
+    },
+    {
+      "id": "cul-13",
+      "category": "cultura",
+      "subCategory": "Lugares Sagrados & Principios",
+      "qu": "Minka",
+      "es": "Trabajo colectivo comunitario",
+      "phonetic": "meen-kah"
+    },
+    {
+      "id": "cot-2",
+      "category": "cotidiano",
+      "subCategory": "Saludos y Despedidas",
+      "qu": "Allin suka",
+      "es": "Buenas tardes",
+      "phonetic": "ah-yeen soo-kah"
+    },
+    {
+      "id": "cot-3",
+      "category": "cotidiano",
+      "subCategory": "Saludos y Despedidas",
+      "qu": "Allin tuta",
+      "es": "Buenas noches",
+      "phonetic": "ah-yeen too-tah"
+    },
+    {
+      "id": "cot-4",
+      "category": "cotidiano",
+      "subCategory": "Saludos y Despedidas",
+      "qu": "Tupananchiskama",
+      "es": "Hasta que volvamos a encontrarnos",
+      "phonetic": "too-pah-nahn-chees-kah-mah"
+    },
+    {
+      "id": "cot-5",
+      "category": "cotidiano",
+      "subCategory": "Saludos y Despedidas",
+      "qu": "Paqarinkama",
+      "es": "Hasta mañana",
+      "phonetic": "pah-qah-reen-kah-mah"
+    },
+    {
+      "id": "cot-6",
+      "category": "cotidiano",
+      "subCategory": "Cortesía & Afecto",
+      "qu": "Allillanchu?",
+      "es": "¿Cómo estás? / ¿Estás en paz?",
+      "phonetic": "ah-yeel-yahn-choo"
+    },
+    {
+      "id": "cot-7",
+      "category": "cotidiano",
+      "subCategory": "Cortesía & Afecto",
+      "qu": "Allillanmi",
+      "es": "Estoy bien / Todo en armonía",
+      "phonetic": "ah-yeel-yahn-mee"
+    },
+    {
+      "id": "cot-8",
+      "category": "cotidiano",
+      "subCategory": "Cortesía & Afecto",
+      "qu": "Añay",
+      "es": "Muchas gracias / Te agradezco",
+      "phonetic": "ah-nyahy"
+    },
+    {
+      "id": "cot-9",
+      "category": "cotidiano",
+      "subCategory": "Cortesía & Afecto",
+      "qu": "Munakuyki",
+      "es": "Te quiero / Te amo",
+      "phonetic": "moo-nah-kooy-kee"
+    },
+    {
+      "id": "cot-10",
+      "category": "cotidiano",
+      "subCategory": "Cortesía & Afecto",
+      "qu": "Sonqoy",
+      "es": "Mi corazón / Cariño mío",
+      "phonetic": "sohn-qohy"
+    },
+    {
+      "id": "cot-11",
+      "category": "cotidiano",
+      "subCategory": "Código Moral Incaico",
+      "qu": "Ama Suwa",
+      "es": "No seas ladrón",
+      "phonetic": "ah-mah soo-wah"
+    },
+    {
+      "id": "cot-12",
+      "category": "cotidiano",
+      "subCategory": "Código Moral Incaico",
+      "qu": "Ama Llulla",
+      "es": "No seas mentiroso",
+      "phonetic": "ah-mah lyool-lyah"
+    },
+    {
+      "id": "cot-13",
+      "category": "cotidiano",
+      "subCategory": "Código Moral Incaico",
+      "qu": "Ama Qilla",
+      "es": "No seas perezoso",
+      "phonetic": "ah-mah qeel-lyah"
+    },
+    {
+      "id": "nat-1",
+      "category": "naturaleza",
+      "subCategory": "Fauna Sagrada",
+      "qu": "Kuntur",
+      "es": "Cóndor andino",
+      "phonetic": "koon-toor"
+    },
+    {
+      "id": "nat-2",
+      "category": "naturaleza",
+      "subCategory": "Fauna Sagrada",
+      "qu": "Puma",
+      "es": "Puma andino",
+      "phonetic": "poo-mah"
+    },
+    {
+      "id": "nat-3",
+      "category": "naturaleza",
+      "subCategory": "Fauna Sagrada",
+      "qu": "Amaru",
+      "es": "Serpiente sagrada",
+      "phonetic": "ah-mah-roo"
+    },
+    {
+      "id": "nat-5",
+      "category": "naturaleza",
+      "subCategory": "Flora Medicinal & Sagrada",
+      "qu": "Kuka",
+      "es": "Hoja de coca sagrada",
+      "phonetic": "koo-kah"
+    },
+    {
+      "id": "nat-6",
+      "category": "naturaleza",
+      "subCategory": "Flora Medicinal & Sagrada",
+      "qu": "Muña",
+      "es": "Hierba aromática de altura",
+      "phonetic": "moo-nyah"
+    },
+    {
+      "id": "nat-7",
+      "category": "naturaleza",
+      "subCategory": "Flora Medicinal & Sagrada",
+      "qu": "Chachakuma",
+      "es": "Planta medicinal de puna",
+      "phonetic": "chah-chah-koo-mah"
+    },
+    {
+      "id": "nat-8",
+      "category": "naturaleza",
+      "subCategory": "Flora Medicinal & Sagrada",
+      "qu": "Qantu",
+      "es": "Flor de la Cantuta",
+      "phonetic": "qahn-too"
+    },
+    {
+      "id": "cur-1",
+      "category": "curiosidades",
+      "subCategory": "Fonética Achahala",
+      "qu": "Achahala (A - I - U)",
+      "es": "El sistema trivocálico",
+      "phonetic": "ah-chah-hah-lah"
+    },
+    {
+      "id": "cur-4",
+      "category": "curiosidades",
+      "subCategory": "Afecto Lingüístico",
+      "qu": "Sufijo -cha",
+      "es": "El diminutivo del cariño",
+      "phonetic": "chah"
+    }
+  ],
+  "storyTurns": [
+    {
+      "speaker": "yachi",
+      "quechua": "Huk, iskay, kimsa!",
+      "spanish": "¡Uno, dos, tres!"
+    },
+    {
+      "speaker": "yachi",
+      "quechua": "Tawa, pichqa!",
+      "spanish": "¡Cuatro, cinco!"
+    },
+    {
+      "speaker": "yachi",
+      "quechua": "Allinmi!",
+      "spanish": "¡Muy bien!"
+    },
+    {
+      "speaker": "yachi",
+      "quechua": "Wasi!",
+      "spanish": "¡Casa!"
+    },
+    {
+      "speaker": "yachi",
+      "quechua": "Mishki!",
+      "spanish": "¡Dulce!"
+    },
+    {
+      "speaker": "yachi",
+      "quechua": "Allinmi!",
+      "spanish": "¡Muy bien!"
+    },
+    {
+      "speaker": "yachi",
+      "quechua": "Allillanchu?",
+      "spanish": "¿Cómo estás?"
+    },
+    {
+      "speaker": "yachi",
+      "quechua": "Yupaychani!",
+      "spanish": "¡Gracias!"
+    },
+    {
+      "speaker": "yachi",
+      "quechua": "Tupananchiskama!",
+      "spanish": "¡Hasta que nos volvamos a ver!"
+    },
+    {
+      "speaker": "yachi",
+      "quechua": "Atoqqa Kunturwan hanan pachaman rirqan.",
+      "spanish": "El zorro fue con el cóndor al mundo celestial."
+    },
+    {
+      "speaker": "yachi",
+      "quechua": "Hanan pachapi mikhuymanta sarata mikhurqan!",
+      "spanish": "¡En las alturas comió el maíz sagrado!"
+    },
+    {
+      "speaker": "yachi",
+      "quechua": "Chayrayku kay allpaman mikhuykuna chayamurqan!",
+      "spanish": "¡Por eso las semillas llegaron a la tierra!"
+    },
+    {
+      "speaker": "yachi",
+      "quechua": "Allillamanta yachanchis! Añay!",
+      "spanish": "¡Poco a poco aprendemos! ¡Gracias!"
+    },
+    {
+      "speaker": "yachi",
+      "quechua": "Inti taytanchismi runakunata yanapanapaq kachamurqan.",
+      "spanish": "El padre Sol los envió para ayudar y enseñar al pueblo."
+    },
+    {
+      "speaker": "yachi",
+      "quechua": "Titiqaqa quchamanta lluqsimurqanku.",
+      "spanish": "Emergieron del sagrado lago Titicaca."
+    },
+    {
+      "speaker": "yachi",
+      "quechua": "Chaypi hatun Tawantinsuyu paqarirqan!",
+      "spanish": "¡Allí nació el gran Tawantinsuyu!"
+    },
+    {
+      "speaker": "yachi",
+      "quechua": "Sumaq Kawsayqa Pachamamawan allin kawsaymi.",
+      "spanish": "El Buen Vivir es convivir en armonía con la Madre Tierra."
+    },
+    {
+      "speaker": "yachi",
+      "quechua": "Ayni: Paqarin qanpaq, mincha ñuqaqpaw.",
+      "spanish": "Ayni: Hoy por ti, mañana por mí."
+    },
+    {
+      "speaker": "yachi",
+      "quechua": "Ama suwa, ama llulla, ama qilla: allin runa kay!",
+      "spanish": "¡No seas ladrón, ni mentiroso, ni ocioso: sé una persona honorable!"
+    },
+    {
+      "speaker": "yachi",
+      "quechua": "Kawsachun Runasimi! Tupananchiskama!",
+      "spanish": "¡Que viva el Quechua! ¡Hasta volver a vernos!"
+    }
+  ]
+}
