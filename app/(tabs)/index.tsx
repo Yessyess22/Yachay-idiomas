@@ -392,28 +392,6 @@ export default function HomeScreen() {
           </ImageBackground>
         </View>
 
-        {/* Banner Acceso Directo: Duelo Tinkuy 1 vs 1 */}
-        <TouchableOpacity
-          style={styles.tinkuyQuickBanner}
-          onPress={() => router.push('/duel' as any)}
-          activeOpacity={0.88}
-        >
-          <View style={styles.tinkuyQuickLeft}>
-            <View style={styles.tinkuyTagRow}>
-              <Text style={styles.tinkuyQuickTag}>⚔️ TINKUY · 1 VS 1</Text>
-              <Text style={styles.tinkuyLiveDot}>● EN VIVO</Text>
-            </View>
-            <Text style={styles.tinkuyQuickTitle}>Duelo de Saberes Andinos</Text>
-            <Text style={styles.tinkuyQuickSub}>
-              Compite con amigos en carreras de llamitas y gana +50 XP.
-            </Text>
-          </View>
-          <View style={styles.tinkuyQuickBtn}>
-            <Text style={styles.tinkuyQuickBtnText}>¡Duelo!</Text>
-            <Text style={styles.tinkuyQuickBtnArrow}>›</Text>
-          </View>
-        </TouchableOpacity>
-
         {/* Caminito Serpentino — Fondo Valle Andino Ilustrado */}
         <View style={styles.pathContainer}>
           {/* Fondo panorámico del sendero andino que cubre el 100% del caminito */}
@@ -822,81 +800,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#F4D03F',
     fontWeight: '800',
-  },
-
-  tinkuyQuickBanner: {
-    maxWidth: 480,
-    width: '100%',
-    alignSelf: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    marginTop: 10,
-    marginBottom: 4,
-    backgroundColor: '#0F172A',
-    borderRadius: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderWidth: 2,
-    borderColor: '#FFB300',
-    shadowColor: '#FFB300',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  tinkuyQuickLeft: {
-    flex: 1,
-    marginRight: 12,
-  },
-  tinkuyTagRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 3,
-  },
-  tinkuyQuickTag: {
-    fontSize: 10,
-    fontWeight: '900',
-    color: '#FFB300',
-    letterSpacing: 1,
-  },
-  tinkuyLiveDot: {
-    fontSize: 9,
-    fontWeight: '900',
-    color: '#00C853',
-    letterSpacing: 0.8,
-  },
-  tinkuyQuickTitle: {
-    fontSize: 15,
-    fontWeight: '900',
-    color: '#FFFFFF',
-    marginBottom: 2,
-  },
-  tinkuyQuickSub: {
-    fontSize: 11.5,
-    color: '#94A3B8',
-    lineHeight: 15,
-  },
-  tinkuyQuickBtn: {
-    backgroundColor: '#FFB300',
-    paddingVertical: 9,
-    paddingHorizontal: 13,
-    borderRadius: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-  },
-  tinkuyQuickBtnText: {
-    fontSize: 13,
-    fontWeight: '900',
-    color: '#0F172A',
-  },
-  tinkuyQuickBtnArrow: {
-    fontSize: 16,
-    fontWeight: '900',
-    color: '#0F172A',
-    marginTop: -2,
   },
 
   // ── CAMINITO Y SECCIONES ───────────────────────────────────

@@ -257,30 +257,6 @@ export default function ExploreScreen() {
           </View>
         )}
 
-        {/* Banner Tinkuy 1 vs 1 */}
-        {selectedFilter === 'all' && searchQuery.trim().length === 0 && (
-          <TouchableOpacity
-            style={styles.tinkuyExploreCard}
-            onPress={() => router.push('/duel' as any)}
-            activeOpacity={0.88}
-          >
-            <View style={styles.tinkuyExploreLeft}>
-              <View style={styles.tinkuyExploreTagRow}>
-                <Text style={styles.tinkuyExploreTag}>⚔️ TINKUY · 1 VS 1</Text>
-                <Text style={styles.tinkuyExploreLive}>● EN VIVO</Text>
-              </View>
-              <Text style={styles.tinkuyExploreTitle}>Duelo de Saberes Andinos</Text>
-              <Text style={styles.tinkuyExploreDesc}>
-                ¿Crees saber más Quechua que tus amigos? Desafíalos en carreras de llamitas a 5 preguntas.
-              </Text>
-            </View>
-            <View style={styles.tinkuyExploreBtn}>
-              <Text style={styles.tinkuyExploreBtnText}>Entrar al Duelo</Text>
-              <Text style={styles.tinkuyExploreBtnArrow}>›</Text>
-            </View>
-          </TouchableOpacity>
-        )}
-
         {/* ── SECCIÓN 1: CUENTOS DEL AYLLU (Historias Ancestrales) ── */}
         {showStories && filteredStories.length > 0 && (
           <View style={styles.sectionBlock}>
@@ -790,78 +766,6 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingBottom: 40,
-  },
-
-  /* Banner Tinkuy Duelo 1 vs 1 */
-  tinkuyExploreCard: {
-    backgroundColor: '#0F172A',
-    borderRadius: 20,
-    marginHorizontal: 16,
-    marginBottom: 20,
-    padding: 18,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    borderWidth: 2,
-    borderColor: '#FFB300',
-    shadowColor: '#FFB300',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 3,
-  },
-  tinkuyExploreLeft: {
-    flex: 1,
-    marginRight: 12,
-  },
-  tinkuyExploreTagRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 4,
-  },
-  tinkuyExploreTag: {
-    fontSize: 10,
-    fontWeight: '900',
-    color: '#FFB300',
-    letterSpacing: 1,
-  },
-  tinkuyExploreLive: {
-    fontSize: 9,
-    fontWeight: '900',
-    color: '#00C853',
-    letterSpacing: 0.8,
-  },
-  tinkuyExploreTitle: {
-    fontSize: 16,
-    fontWeight: '900',
-    color: '#FFFFFF',
-    marginBottom: 3,
-  },
-  tinkuyExploreDesc: {
-    fontSize: 12,
-    color: '#94A3B8',
-    lineHeight: 16,
-  },
-  tinkuyExploreBtn: {
-    backgroundColor: '#FFB300',
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    borderRadius: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  tinkuyExploreBtnText: {
-    fontSize: 13,
-    fontWeight: '900',
-    color: '#0F172A',
-  },
-  tinkuyExploreBtnArrow: {
-    fontSize: 16,
-    fontWeight: '900',
-    color: '#0F172A',
-    marginTop: -2,
   },
 
   /* Hero Banner */

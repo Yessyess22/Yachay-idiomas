@@ -98,7 +98,7 @@ export default function LevelExamScreen() {
   useEffect(() => {
     if ((phase === 'exam' || phase === 'reinforcement') && currentQuestion?.question_type === 'listening' && currentQuestion.audioWord) {
       setIsPlayingAudio(true);
-      playQuechuaAudio(currentQuestion.audioWord)
+      playQuechuaAudio(currentQuestion.audioWord, { raw: true })
         .catch(() => {})
         .finally(() => setIsPlayingAudio(false));
     }
@@ -108,7 +108,7 @@ export default function LevelExamScreen() {
     if (!currentQuestion?.audioWord || isPlayingAudio) return;
     playTapSound();
     setIsPlayingAudio(true);
-    playQuechuaAudio(currentQuestion.audioWord, { slow })
+    playQuechuaAudio(currentQuestion.audioWord, { slow, raw: true })
       .catch(() => {})
       .finally(() => setIsPlayingAudio(false));
   }

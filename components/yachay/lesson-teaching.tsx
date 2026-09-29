@@ -7,7 +7,7 @@ import {
   View,
 } from 'react-native';
 import Animated, { FadeInRight } from 'react-native-reanimated';
-import { playQuechuaAudio } from '@/src/services/voiceService';
+import { playQuechuaAudio, buildTeachingAudioText } from '@/src/services/voiceService';
 import { playTapSound } from '@/src/services/soundService';
 import { LessonVocabularyEntry } from '@/src/content/lessonContent';
 
@@ -147,11 +147,14 @@ export function LessonTeaching({
   const illustration = currentEntry ? getIllustration(currentEntry) : null;
   const isLast = stepIndex >= vocabulary.length - 1;
 
+  // Texto de audio completo: "CH (Chaki)" → "cha Chaki" (fonema + palabra con la misma voz quechua)
+  const audioText = currentEntry ? buildTeachingAudioText(currentEntry.quechua) : '';
+
   // Reproducir automáticamente el audio al cambiar de vocablo
   useEffect(() => {
     let active = true;
-    if (currentEntry?.quechua) {
-      playQuechuaAudio(currentEntry.quechua)
+    if (audioText) {
+      playQuechuaAudio(audioText, { raw: true })
         .catch(() => {})
         .finally(() => {
           if (active) setIsPlaying(false);
@@ -160,22 +163,22 @@ export function LessonTeaching({
     return () => {
       active = false;
     };
-  }, [stepIndex, currentEntry]);
+  }, [stepIndex, audioText]);
 
   function playNormal() {
-    if (!currentEntry?.quechua || isPlaying) return;
+    if (!audioText || isPlaying) return;
     playTapSound();
     setIsPlaying(true);
-    playQuechuaAudio(currentEntry.quechua)
+    playQuechuaAudio(audioText, { raw: true })
       .catch(() => {})
       .finally(() => setIsPlaying(false));
   }
 
   function playSlow() {
-    if (!currentEntry?.quechua || isPlaying) return;
+    if (!audioText || isPlaying) return;
     playTapSound();
     setIsPlaying(true);
-    playQuechuaAudio(currentEntry.quechua, { slow: true })
+    playQuechuaAudio(audioText, { slow: true, raw: true })
       .catch(() => {})
       .finally(() => setIsPlaying(false));
   }

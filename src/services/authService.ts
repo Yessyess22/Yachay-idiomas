@@ -2,7 +2,9 @@ import {
   createUserWithEmailAndPassword,
   GoogleAuthProvider,
   onAuthStateChanged,
+  OAuthCredential,
   sendEmailVerification,
+  signInWithCredential,
   signInWithEmailAndPassword,
   signInWithPopup,
   signOut as firebaseSignOut,
@@ -128,52 +130,56 @@ export const authService = {
     }
   },
 
+  async _handleGoogleUser(user: User): Promise<{ user: User; error: null }> {
+    await syncSupabaseSession(user);
+
+    const { data: existingProfile } = await supabase
+      .from('profiles')
+      .select('firebase_uid')
+      .eq('firebase_uid', user.uid)
+      .maybeSingle();
+
+    if (!existingProfile) {
+      const finalUsername = user.displayName || user.email?.split('@')[0] || 'Yachachiq';
+      await supabase.from('profiles').insert({
+        firebase_uid: user.uid,
+        username: finalUsername,
+        avatar_url: user.photoURL || null,
+        total_xp: 0,
+        streak_count: 1,
+        gems: 0,
+        lives: 5,
+      });
+      try {
+        await supabase.from('leaderboard_weekly').upsert({
+          firebase_uid: user.uid,
+          weekly_xp: 0,
+          league_tier: 'bronze',
+          updated_at: new Date().toISOString(),
+        });
+      } catch {}
+    }
+
+    return { user, error: null };
+  },
+
+  async signInWithGoogleCredential(
+    credential: OAuthCredential
+  ): Promise<{ user: User | null; error: string | null }> {
+    try {
+      const { user } = await signInWithCredential(auth, credential);
+      return authService._handleGoogleUser(user);
+    } catch (e: any) {
+      return { user: null, error: translateFirebaseError(e.code) || e.message };
+    }
+  },
+
   async signInWithGoogle(): Promise<{ user: User | null; error: string | null }> {
     try {
-      if (Platform.OS !== 'web') {
-        return {
-          user: null,
-          error: 'El inicio rápido con Google requiere configuración de credenciales SHA-1 en Firebase Console. Por favor ingresa con tu correo y contraseña.',
-        };
-      }
-
       const provider = new GoogleAuthProvider();
       provider.setCustomParameters({ prompt: 'select_account' });
-
       const result = await signInWithPopup(auth, provider);
-      const user = result.user;
-      await syncSupabaseSession(user);
-
-      // Comprobar si ya existe perfil del usuario en Supabase
-      const { data: existingProfile } = await supabase
-        .from('profiles')
-        .select('firebase_uid')
-        .eq('firebase_uid', user.uid)
-        .maybeSingle();
-
-      if (!existingProfile) {
-        const finalUsername = user.displayName || user.email?.split('@')[0] || 'Yachachiq';
-        await supabase.from('profiles').insert({
-          firebase_uid: user.uid,
-          username: finalUsername,
-          avatar_url: user.photoURL || null,
-          total_xp: 0,
-          streak_count: 1,
-          gems: 0,
-          lives: 5,
-        });
-
-        try {
-          await supabase.from('leaderboard_weekly').upsert({
-            firebase_uid: user.uid,
-            weekly_xp: 0,
-            league_tier: 'bronze',
-            updated_at: new Date().toISOString(),
-          });
-        } catch {}
-      }
-
-      return { user, error: null };
+      return authService._handleGoogleUser(result.user);
     } catch (e: any) {
       if (
         e.code === 'auth/popup-closed-by-user' ||

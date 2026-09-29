@@ -720,13 +720,16 @@ export const questionService = {
     }
 
     try {
-      const { error } = await supabase.from('lesson_progress').upsert({
-        firebase_uid: userId,
-        lesson_id: lessonId,
-        completed: true,
-        xp_earned: xpEarned,
-        completed_at: completedAt,
-      });
+      const { error } = await supabase.from('lesson_progress').upsert(
+        {
+          firebase_uid: userId,
+          lesson_id: lessonId,
+          completed: true,
+          xp_earned: xpEarned,
+          completed_at: completedAt,
+        },
+        { onConflict: 'firebase_uid,lesson_id' }
+      );
       if (error) {
         await queuePendingLessonProgress(userId, { lessonId, xpEarned, completedAt });
       }
@@ -743,13 +746,16 @@ export const questionService = {
       if (pending.length === 0) return;
 
       for (const item of pending) {
-        const { error } = await supabase.from('lesson_progress').upsert({
-          firebase_uid: userId,
-          lesson_id: item.lessonId,
-          completed: true,
-          xp_earned: item.xpEarned,
-          completed_at: item.completedAt,
-        });
+        const { error } = await supabase.from('lesson_progress').upsert(
+          {
+            firebase_uid: userId,
+            lesson_id: item.lessonId,
+            completed: true,
+            xp_earned: item.xpEarned,
+            completed_at: item.completedAt,
+          },
+          { onConflict: 'firebase_uid,lesson_id' }
+        );
         if (error) {
           // Si falla, detener y mantener la cola restante
           return;
@@ -762,9 +768,6 @@ export const questionService = {
   },
 
   async getCompletedLessonIds(userId: string): Promise<number[]> {
-    // Intentar sincronizar progreso pendiente primero
-    this.syncPendingProgress(userId).catch(() => {});
-
     const storageKey = `@yachay_completed_lessons_${userId}`;
 
     try {
@@ -776,16 +779,41 @@ export const questionService = {
 
       if (!error && data !== null) {
         const serverIds = data.map((row) => row.lesson_id);
-        // Incluir items que aún estén en la cola local de sincronización pendiente
-        try {
-          const pending = await getPendingLessonProgress(userId);
-          const pendingIds = pending.map((p) => p.lessonId);
-          pendingIds.forEach((id) => {
-            if (!serverIds.includes(id)) serverIds.push(id);
-          });
-        } catch {}
 
-        // Sincronizar el caché local con la verdad del servidor
+        // Incluir items locales pendientes de sincronización y subirlos al servidor
+        const pending = await getPendingLessonProgress(userId).catch(
+          () => [] as { lessonId: number; xpEarned: number; completedAt: string }[]
+        );
+        const pendingToSync = pending.filter((p) => !serverIds.includes(p.lessonId));
+
+        // Siempre incluir los pendientes en el resultado inmediato (offline-first)
+        pendingToSync.forEach((p) => {
+          if (!serverIds.includes(p.lessonId)) serverIds.push(p.lessonId);
+        });
+
+        if (pendingToSync.length > 0) {
+          // Subir al servidor en segundo plano; solo limpiar la cola si TODOS tienen éxito
+          Promise.all(
+            pendingToSync.map((item) =>
+              supabase.from('lesson_progress').upsert(
+                {
+                  firebase_uid: userId,
+                  lesson_id: item.lessonId,
+                  completed: true,
+                  xp_earned: item.xpEarned,
+                  completed_at: item.completedAt,
+                },
+                { onConflict: 'firebase_uid,lesson_id' }
+              )
+            )
+          )
+            .then((results) => {
+              const allOk = results.every((r) => !r.error);
+              if (allOk) clearPendingLessonProgress(userId).catch(() => {});
+            })
+            .catch(() => {});
+        }
+
         await AsyncStorage.setItem(storageKey, JSON.stringify(serverIds));
         return serverIds;
       }
@@ -793,12 +821,15 @@ export const questionService = {
       console.warn('[questionService] Supabase fetch error, usando almacenamiento local:', e);
     }
 
-    // Fallback offline a AsyncStorage si no hubo respuesta del servidor
+    // Fallback offline: usar AsyncStorage + cola pendiente
     try {
       const localData = await AsyncStorage.getItem(storageKey);
-      if (localData) {
-        return JSON.parse(localData);
-      }
+      const localIds: number[] = localData ? JSON.parse(localData) : [];
+      const pending = await getPendingLessonProgress(userId);
+      pending.forEach((p) => {
+        if (!localIds.includes(p.lessonId)) localIds.push(p.lessonId);
+      });
+      return localIds;
     } catch {}
 
     return [];

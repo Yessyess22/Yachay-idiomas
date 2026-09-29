@@ -3,7 +3,7 @@ import { Illustrations } from '@/constants/illustrations';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
 export default function SignupScreen() {
@@ -49,7 +49,8 @@ export default function SignupScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
       <Image source={Illustrations.appIconCircularMontana} style={styles.brandImage} contentFit="contain" />
       <Text style={styles.title}>Crear cuenta</Text>
       <Text style={styles.subtitle}>Empieza a aprender quechua en Yachay</Text>
@@ -111,12 +112,13 @@ export default function SignupScreen() {
       <TouchableOpacity onPress={() => router.push('/(auth)/login')}>
         <Text style={styles.link}>¿Ya tienes cuenta? Inicia sesión</Text>
       </TouchableOpacity>
-    </View>
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, justifyContent: 'center', padding: 24, backgroundColor: '#fff' },
+  container: { flexGrow: 1, justifyContent: 'center', padding: 24, backgroundColor: '#fff' },
   brandImage: { width: 100, height: 100, alignSelf: 'center', marginBottom: 4 },
   title: { fontSize: 28, fontWeight: '900', color: '#000', textAlign: 'center' },
   subtitle: { fontSize: 14, color: '#666', textAlign: 'center', marginBottom: 20 },

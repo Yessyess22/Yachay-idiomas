@@ -68,10 +68,10 @@ const GOLD_DARK = '#C67C00';
 const ORANGE = '#FF6D00';
 const RED = '#EF4444';
 const BLUE = '#00B0FF';
-const DARK_BG = '#0F172A';
-const CARD_BG = '#1E293B';
+const DARK_BG = '#FAF7F0';
+const CARD_BG = '#FFFFFF';
 const CREAM = '#FAF7F2';
-const TEXT_MUTED = '#94A3B8';
+const TEXT_MUTED = '#6B7280';
 
 type DuelPhase = 'lobby' | 'waiting_guest' | 'battle' | 'results';
 
@@ -514,7 +514,7 @@ export default function DuelScreen() {
           <View style={styles.lobbyWrap}>
             {/* Banner épico de bienvenida al Tinkuy */}
             <View style={styles.tinkuyHeroCard}>
-              <Text style={styles.tinkuyHeroEmoji}>⚔️🦙</Text>
+              <Image source={require('@/assets/images/llama_guerra.jpeg')} style={styles.tinkuyHeroImage} resizeMode="contain" />
               <Text style={styles.tinkuyHeroBadge}>MODO COMPETITIVO ANDINO</Text>
               <Text style={styles.tinkuyHeroTitle}>Duelo de Saberes 1 vs 1</Text>
               <Text style={styles.tinkuyHeroDesc}>
@@ -665,7 +665,7 @@ export default function DuelScreen() {
                 </View>
                 <View style={styles.laneTrack}>
                   <Animated.View style={[styles.llamaRunner, llamaMeTrackStyle]}>
-                    <Text style={styles.llamaRunnerIcon}>🦙</Text>
+                    <Image source={require('@/assets/images/llama_guerra.jpeg')} style={styles.llamaRunnerImage} resizeMode="contain" />
                   </Animated.View>
                   <View style={styles.finishLine}>
                     <Text style={styles.finishFlag}>🏁</Text>
@@ -684,7 +684,7 @@ export default function DuelScreen() {
                 </View>
                 <View style={styles.laneTrack}>
                   <Animated.View style={[styles.llamaRunner, llamaRivalTrackStyle]}>
-                    <Text style={styles.llamaRunnerIcon}>🦙</Text>
+                    <Image source={require('@/assets/images/llama_guerra.jpeg')} style={styles.llamaRunnerImage} resizeMode="contain" />
                   </Animated.View>
                   <View style={styles.finishLine}>
                     <Text style={styles.finishFlag}>🏁</Text>
@@ -913,7 +913,7 @@ const styles = StyleSheet.create({
   },
   backButtonIcon: {
     fontSize: 26,
-    color: '#FFF',
+    color: '#1F2937',
     fontWeight: '700',
     marginTop: -3,
   },
@@ -929,7 +929,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 16,
     fontWeight: '900',
-    color: '#FFF',
+    color: '#1F2937',
   },
   headerPointsPill: {
     backgroundColor: CARD_BG,
@@ -937,7 +937,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#E5E7EB',
   },
   headerPointsText: {
     fontSize: 12,
@@ -961,11 +961,12 @@ const styles = StyleSheet.create({
     padding: 24,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#E5E7EB',
     marginBottom: 20,
   },
-  tinkuyHeroEmoji: {
-    fontSize: 54,
+  tinkuyHeroImage: {
+    width: 120,
+    height: 120,
     marginBottom: 8,
   },
   tinkuyHeroBadge: {
@@ -978,7 +979,7 @@ const styles = StyleSheet.create({
   tinkuyHeroTitle: {
     fontSize: 24,
     fontWeight: '900',
-    color: '#FFF',
+    color: '#1F2937',
     marginBottom: 8,
     textAlign: 'center',
   },
@@ -990,7 +991,7 @@ const styles = StyleSheet.create({
   },
 
   quickDuelCard: {
-    backgroundColor: '#1E293B',
+    backgroundColor: '#F3F4F6',
     borderRadius: 20,
     padding: 18,
     borderWidth: 2,
@@ -1034,7 +1035,7 @@ const styles = StyleSheet.create({
   quickDuelTitle: {
     fontSize: 16,
     fontWeight: '800',
-    color: '#FFF',
+    color: '#1F2937',
     marginBottom: 3,
   },
   quickDuelSub: {
@@ -1055,7 +1056,7 @@ const styles = StyleSheet.create({
   separatorLine: {
     flex: 1,
     height: 1,
-    backgroundColor: '#334155',
+    backgroundColor: '#E5E7EB',
   },
   separatorText: {
     fontSize: 11,
@@ -1072,7 +1073,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#E5E7EB',
     marginBottom: 16,
   },
   actionIconWrap: {
@@ -1093,7 +1094,7 @@ const styles = StyleSheet.create({
   actionTitle: {
     fontSize: 15,
     fontWeight: '800',
-    color: '#FFF',
+    color: '#1F2937',
     marginBottom: 2,
   },
   actionSub: {
@@ -1111,12 +1112,12 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     padding: 18,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#E5E7EB',
   },
   joinBoxLabel: {
     fontSize: 13,
     fontWeight: '700',
-    color: '#FFF',
+    color: '#1F2937',
     marginBottom: 12,
   },
   joinInputRow: {
@@ -1125,16 +1126,16 @@ const styles = StyleSheet.create({
   },
   joinInput: {
     flex: 1,
-    backgroundColor: '#0F172A',
+    backgroundColor: '#F3F4F6',
     borderRadius: 14,
     paddingHorizontal: 16,
     paddingVertical: 12,
-    color: '#FFF',
+    color: '#1F2937',
     fontSize: 15,
     fontWeight: '800',
     letterSpacing: 1.5,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#E5E7EB',
   },
   joinSubmitBtn: {
     backgroundColor: TEAL,
@@ -1146,7 +1147,7 @@ const styles = StyleSheet.create({
   joinSubmitBtnText: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#FFF',
+    color: '#1F2937',
   },
 
   // ── SALA DE ESPERA ──
@@ -1162,7 +1163,7 @@ const styles = StyleSheet.create({
     padding: 26,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#E5E7EB',
   },
   waitingBadge: {
     fontSize: 11,
@@ -1174,7 +1175,7 @@ const styles = StyleSheet.create({
   waitingTitle: {
     fontSize: 22,
     fontWeight: '900',
-    color: '#FFF',
+    color: '#1F2937',
     marginBottom: 8,
   },
   waitingSub: {
@@ -1184,7 +1185,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   roomCodeBox: {
-    backgroundColor: '#0F172A',
+    backgroundColor: '#F3F4F6',
     paddingHorizontal: 28,
     paddingVertical: 16,
     borderRadius: 18,
@@ -1219,7 +1220,7 @@ const styles = StyleSheet.create({
   },
   fallbackBotBtn: {
     borderTopWidth: 1,
-    borderTopColor: '#334155',
+    borderTopColor: '#E5E7EB',
     paddingTop: 16,
     width: '100%',
     alignItems: 'center',
@@ -1241,7 +1242,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#E5E7EB',
     marginBottom: 16,
   },
   raceTrackHeader: {
@@ -1278,7 +1279,7 @@ const styles = StyleSheet.create({
   laneName: {
     fontSize: 11,
     fontWeight: '700',
-    color: '#FFF',
+    color: '#1F2937',
     maxWidth: 45,
   },
   laneScore: {
@@ -1290,20 +1291,21 @@ const styles = StyleSheet.create({
   laneTrack: {
     flex: 1,
     height: 28,
-    backgroundColor: '#0F172A',
+    backgroundColor: '#F3F4F6',
     borderRadius: 14,
     position: 'relative',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#E5E7EB',
   },
   llamaRunner: {
     position: 'absolute',
     top: 2,
     zIndex: 2,
   },
-  llamaRunnerIcon: {
-    fontSize: 18,
+  llamaRunnerImage: {
+    width: 24,
+    height: 24,
   },
   finishLine: {
     position: 'absolute',
@@ -1336,7 +1338,7 @@ const styles = StyleSheet.create({
   },
   timerBarTrack: {
     height: 6,
-    backgroundColor: '#1E293B',
+    backgroundColor: '#F3F4F6',
     borderRadius: 3,
     overflow: 'hidden',
   },
@@ -1352,16 +1354,16 @@ const styles = StyleSheet.create({
     padding: 20,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#E5E7EB',
     marginBottom: 16,
   },
   categoryPill: {
-    backgroundColor: '#0F172A',
+    backgroundColor: '#F3F4F6',
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#E5E7EB',
     marginBottom: 10,
   },
   categoryPillText: {
@@ -1380,7 +1382,7 @@ const styles = StyleSheet.create({
   questionPrompt: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#FFF',
+    color: '#1F2937',
     textAlign: 'center',
     lineHeight: 22,
   },
@@ -1397,7 +1399,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1.5,
-    borderColor: '#334155',
+    borderColor: '#E5E7EB',
   },
   optionBtnSuccess: {
     backgroundColor: 'rgba(0, 200, 83, 0.2)',
@@ -1411,7 +1413,7 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: '#0F172A',
+    backgroundColor: '#F3F4F6',
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
@@ -1425,7 +1427,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 15,
     fontWeight: '700',
-    color: '#FFF',
+    color: '#1F2937',
   },
   optionTextSuccess: {
     color: '#86EFAC',
@@ -1436,7 +1438,7 @@ const styles = StyleSheet.create({
   resultIcon: {
     fontSize: 18,
     fontWeight: '900',
-    color: '#FFF',
+    color: '#1F2937',
   },
 
   feedbackBanner: {
@@ -1455,7 +1457,7 @@ const styles = StyleSheet.create({
   feedbackTitle: {
     fontSize: 14,
     fontWeight: '800',
-    color: '#FFF',
+    color: '#1F2937',
     marginBottom: 2,
   },
   feedbackDesc: {
@@ -1475,7 +1477,7 @@ const styles = StyleSheet.create({
     padding: 26,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#E5E7EB',
   },
   victoryEmoji: {
     fontSize: 52,
@@ -1491,7 +1493,7 @@ const styles = StyleSheet.create({
   victoryTitle: {
     fontSize: 24,
     fontWeight: '900',
-    color: '#FFF',
+    color: '#1F2937',
     marginBottom: 6,
     textAlign: 'center',
   },
@@ -1512,12 +1514,12 @@ const styles = StyleSheet.create({
   },
   playerScoreCard: {
     flex: 1,
-    backgroundColor: '#0F172A',
+    backgroundColor: '#F3F4F6',
     borderRadius: 18,
     padding: 16,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#E5E7EB',
   },
   playerScoreCardWinner: {
     borderColor: GOLD,
@@ -1530,7 +1532,7 @@ const styles = StyleSheet.create({
   playerCardName: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#FFF',
+    color: '#1F2937',
     marginBottom: 4,
   },
   playerCardScore: {
@@ -1550,12 +1552,12 @@ const styles = StyleSheet.create({
   },
   rewardBox: {
     width: '100%',
-    backgroundColor: '#0F172A',
+    backgroundColor: '#F3F4F6',
     borderRadius: 16,
     padding: 16,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#E5E7EB',
     marginBottom: 20,
   },
   rewardBoxTitle: {
@@ -1577,7 +1579,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#334155',
+    borderColor: '#E5E7EB',
     gap: 6,
   },
   rewardBadgeIcon: {
@@ -1586,7 +1588,7 @@ const styles = StyleSheet.create({
   rewardBadgeText: {
     fontSize: 13,
     fontWeight: '800',
-    color: '#FFF',
+    color: '#1F2937',
   },
   rematchBtn: {
     width: '100%',

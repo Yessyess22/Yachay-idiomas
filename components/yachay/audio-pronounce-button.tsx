@@ -41,7 +41,7 @@ export function AudioPronounceButton({
     // Feedback táctil suave al tocar el botón
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
     try {
-      await playQuechuaAudio(text, { slow });
+      await playQuechuaAudio(text, { slow, raw: true });
     } finally {
       setTimeout(() => {
         setIsPlaying(false);

@@ -79,26 +79,48 @@ const PHONEME_VARIANTS: Record<string, string[]> = {
 export type PlayQuechuaAudioOptions = {
   /** Reproduce a velocidad reducida, útil para practicar pronunciación difícil. */
   slow?: boolean;
+  /** Salta extractCorePhoneme y envía el texto tal cual al servidor MMS-TTS. */
+  raw?: boolean;
 };
+
+/**
+ * Construye el texto de audio para pantallas de enseñanza.
+ * "CH (Chaki)" → "cha Chaki" (fonema pronunciable + palabra ejemplo).
+ * Así el MMS-TTS quechua lee ambas partes con la misma voz.
+ */
+export function buildTeachingAudioText(quechua: string): string {
+  const parenMatch = quechua.match(/^(.{1,5})\s*\((.+?)\)/);
+  if (parenMatch) {
+    const phoneme = parenMatch[1].trim().toLowerCase();
+    const word = parenMatch[2].trim();
+    const phonemeAudio = PHONEME_AUDIO_TEXT[phoneme] ?? phoneme;
+    return `${phonemeAudio} ${word}`;
+  }
+  return quechua;
+}
 
 /**
  * Reproduce audio del fonema o palabra quechua.
  * - En plataformas nativas (Android/iOS): usa expo-speech.
- * - En web: usa window.speechSynthesis con fallback al servidor MMS-TTS local.
- * - Fonemas (≤4 chars): pronuncia la sílaba fonética quechua exacta.
- * - Palabras completas en web: intenta servidor MMS-TTS, luego fallback nativo.
+ * - En web: usa el servidor MMS-TTS Quechua para voz consistente.
+ * - Fonemas (≤4 chars) sin raw: usa speechSynthesis solo como fallback de fonema aislado.
+ * - Con raw=true: envía el texto tal cual al MMS-TTS (sin extractCorePhoneme).
  */
 export async function playQuechuaAudio(text: string, options?: PlayQuechuaAudioOptions): Promise<void> {
   if (!text.trim()) return;
-  const rate = options?.slow ? 0.35 : 0.6;
+  const rate = options?.slow ? 0.25 : 0.42;
 
-  // Extraer el fonema/palabra pura (evita leer 'Consonante k' o 'Letra ch')
-  const core = extractCorePhoneme(text).toLowerCase().trim();
-  const cleanText = core || text.trim().toLowerCase();
+  let cleanText: string;
+  if (options?.raw) {
+    cleanText = text.trim().toLowerCase();
+  } else {
+    const core = extractCorePhoneme(text).toLowerCase().trim();
+    cleanText = core || text.trim().toLowerCase();
+  }
 
   // ── Plataforma nativa: expo-speech ──────────────────────────────────────────
   if (Platform.OS !== 'web') {
-    const audioWord = cleanText.length <= 4
+    const audioWord = !options?.raw && cleanText.length <= 4
       ? (PHONEME_AUDIO_TEXT[cleanText] ?? cleanText)
       : cleanText;
     return new Promise<void>((resolve) => {
@@ -113,11 +135,10 @@ export async function playQuechuaAudio(text: string, options?: PlayQuechuaAudioO
     });
   }
 
-  // ── Web: window.speechSynthesis ─────────────────────────────────────────────
+  // ── Web: speechSynthesis solo para fonemas aislados sin raw ─────────────────
   if (typeof window === 'undefined') return;
 
-  if (cleanText.length <= 4) {
-    // Caso especial 'sh': en-US pronuncia [ʃa] auténtico
+  if (!options?.raw && cleanText.length <= 4) {
     const lang = cleanText === 'sh' ? 'en-US' : 'es-PE';
     const audioWord = PHONEME_AUDIO_TEXT[cleanText] ?? cleanText;
     return new Promise<void>((resolve) => {
@@ -154,7 +175,7 @@ export async function playQuechuaAudio(text: string, options?: PlayQuechuaAudioO
     }
     return new Promise((resolve) => {
       const audio = new Audio(audioUrl);
-      audio.playbackRate = options?.slow ? 0.7 : 1.0;
+      audio.playbackRate = options?.slow ? 0.49 : 0.7;
       currentAudio = audio;
       audio.onended = () => resolve();
       audio.onerror = () => { speakSpanishFallback(cleanText); resolve(); };
@@ -557,15 +578,17 @@ export async function startVoiceRecognition(
   expectedWord?: string,
   options?: { isPhrase?: boolean }
 ): Promise<RecognitionResult> {
-  // 1. Si Web Speech API está disponible en el entorno web (Chrome, Edge, Safari):
-  if (Platform.OS === 'web' && typeof window !== 'undefined') {
+  // 1. Web Speech API solo para ESPAÑOL: el motor del navegador no soporta Quechua
+  //    y falla con error 'network' al intentar conectarse a speech.googleapis.com.
+  //    Para Quechua siempre se usa el modelo ASR propio (record + /stt).
+  if (Platform.OS === 'web' && lang !== 'qu' && typeof window !== 'undefined') {
     const SpeechRecognitionImpl = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (SpeechRecognitionImpl) {
       return recognizeWithWebSpeechAPI(expectedWord, lang);
     }
   }
 
-  // 2. En dispositivos móviles (Android/iOS nativo) o navegadores sin WebSpeech:
+  // 2. Quechua (web o nativo) y español nativo: graba con expo-audio + /stt:
   const coreExpected = expectedWord
     ? (options?.isPhrase ? expectedWord : extractCorePhoneme(expectedWord)).toLowerCase().trim()
     : '';
@@ -591,7 +614,7 @@ export async function startVoiceRecognition(
  */
 export function speakText(text: string, _lang: Language): void {
   if (Platform.OS !== 'web') {
-    Speech.speak(text, { language: 'es-ES', rate: 0.7 });
+    Speech.speak(text, { language: 'es-ES', rate: 0.49 });
     return;
   }
   if (typeof window === 'undefined') return;
@@ -602,7 +625,7 @@ export function speakText(text: string, _lang: Language): void {
   if (!SpeechSynthesisUtteranceImpl) return;
   const utter = new SpeechSynthesisUtteranceImpl(text);
   utter.lang = 'es-ES';
-  utter.rate = 0.7;
+  utter.rate = 0.49;
   synth.speak(utter);
 }
 
@@ -612,7 +635,7 @@ export function speakText(text: string, _lang: Language): void {
  */
 export function speakSpanishFallback(text: string): void {
   if (Platform.OS !== 'web') {
-    Speech.speak(text, { language: 'es-PE', rate: 0.6, pitch: 1.0 });
+    Speech.speak(text, { language: 'es-PE', rate: 0.42, pitch: 1.0 });
     return;
   }
   if (typeof window === 'undefined') return;
@@ -623,7 +646,7 @@ export function speakSpanishFallback(text: string): void {
   if (!Utterance) return;
   const utter = new Utterance(text);
   utter.lang = 'es-ES';
-  utter.rate = 0.6;
+  utter.rate = 0.42;
   utter.pitch = 1.0;
   synth.speak(utter);
 }

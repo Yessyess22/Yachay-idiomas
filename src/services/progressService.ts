@@ -39,13 +39,16 @@ export const progressService = {
     }
 
     try {
-      const { error } = await supabase.from('level_progress').upsert({
-        firebase_uid: userId,
-        level_id: levelId,
-        unlocked: true,
-        exam_score: score,
-        passed_at: passed ? new Date().toISOString() : null,
-      });
+      const { error } = await supabase.from('level_progress').upsert(
+        {
+          firebase_uid: userId,
+          level_id: levelId,
+          unlocked: true,
+          exam_score: score,
+          passed_at: passed ? new Date().toISOString() : null,
+        },
+        { onConflict: 'firebase_uid,level_id' }
+      );
 
       if (error) return { passed, error: error.message };
     } catch {}
@@ -68,13 +71,16 @@ export const progressService = {
     } catch {}
 
     try {
-      const { error } = await supabase.from('level_progress').upsert({
-        firebase_uid: userId,
-        level_id: nextLevelId,
-        unlocked: true,
-        exam_score: null,
-        passed_at: null,
-      });
+      const { error } = await supabase.from('level_progress').upsert(
+        {
+          firebase_uid: userId,
+          level_id: nextLevelId,
+          unlocked: true,
+          exam_score: null,
+          passed_at: null,
+        },
+        { onConflict: 'firebase_uid,level_id' }
+      );
       return { error: error?.message ?? null };
     } catch {
       return { error: null };
