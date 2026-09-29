@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "44041238737",
+    "project_id": "yachay-idiomas",
+    "storage_bucket": "yachay-idiomas.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:44041238737:android:fe73393ac11e6dbfbeedf0",
+        "android_client_info": {
+          "package_name": "com.yachay.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "44041238737-ppq4ns8gdnamckv1pisgfj1b90lgg9rq.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCwMRb870I-WtqHZU4P6LYSrremFJGTmRo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "44041238737-ppq4ns8gdnamckv1pisgfj1b90lgg9rq.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
