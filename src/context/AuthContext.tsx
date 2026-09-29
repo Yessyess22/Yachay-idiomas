@@ -34,8 +34,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [emailVerificationDismissed, setEmailVerificationDismissed] = useState(false);
 
   const [, googleResponse, promptGoogleAsync] = Google.useAuthRequest({
+    clientId: ANDROID_CLIENT_ID,
     androidClientId: ANDROID_CLIENT_ID,
-    webClientId: ANDROID_CLIENT_ID, // web usa signInWithPopup; este campo solo evita el error de validación del hook
+    iosClientId: ANDROID_CLIENT_ID,
+    webClientId: ANDROID_CLIENT_ID,
     scopes: ['profile', 'email'],
   });
   const googleResolveRef = useRef<((v: { error: string | null }) => void) | null>(null);
