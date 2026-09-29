@@ -1,9 +1,12 @@
+import * as WebBrowser from 'expo-web-browser';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router/react-navigation';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useRef } from 'react';
 import 'react-native-reanimated';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+
+WebBrowser.maybeCompleteAuthSession();
 
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import { GameProvider, useGame } from '@/src/context/GameContext';

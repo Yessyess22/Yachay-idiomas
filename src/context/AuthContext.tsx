@@ -34,7 +34,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [emailVerificationDismissed, setEmailVerificationDismissed] = useState(false);
 
-  const [, googleResponse, promptGoogleAsync] = Google.useAuthRequest({
+  const [, googleResponse, promptGoogleAsync] = Google.useIdTokenAuthRequest({
     clientId: ANDROID_CLIENT_ID,
     androidClientId: ANDROID_CLIENT_ID,
     iosClientId: ANDROID_CLIENT_ID,
@@ -46,22 +46,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!googleResponse) return;
     if (googleResponse.type === 'success') {
-      const { accessToken, idToken } = googleResponse.authentication ?? {};
-      if (!accessToken && !idToken) {
-        googleResolveRef.current?.({ error: 'No se pudo obtener token de Google.' });
+      const idToken =
+        googleResponse.params?.id_token ||
+        (googleResponse as any).authentication?.idToken;
+      const accessToken = (googleResponse as any).authentication?.accessToken;
+
+      if (!idToken && !accessToken) {
+        googleResolveRef.current?.({ error: 'No se pudo obtener el token de autenticación de Google.' });
         googleResolveRef.current = null;
         return;
       }
-      const credential = GoogleAuthProvider.credential(idToken ?? null, accessToken);
+      const credential = GoogleAuthProvider.credential(idToken ?? null, accessToken ?? null);
       authService.signInWithGoogleCredential(credential)
         .then((res) => googleResolveRef.current?.({ error: res.error }))
-        .catch(() => googleResolveRef.current?.({ error: 'Error al autenticar con Google.' }))
+        .catch((err) => googleResolveRef.current?.({ error: err?.message || 'Error al autenticar con Google en Firebase.' }))
         .finally(() => { googleResolveRef.current = null; });
     } else if (googleResponse.type === 'dismiss' || googleResponse.type === 'cancel') {
       googleResolveRef.current?.({ error: null });
       googleResolveRef.current = null;
     } else if (googleResponse.type === 'error') {
-      googleResolveRef.current?.({ error: 'Error al iniciar sesión con Google.' });
+      const errorMsg =
+        (googleResponse.params as any)?.error_description ||
+        googleResponse.error?.message ||
+        'Error al iniciar sesión con Google.';
+      googleResolveRef.current?.({ error: errorMsg });
       googleResolveRef.current = null;
     }
   }, [googleResponse]);
@@ -118,7 +126,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     return new Promise((resolve) => {
       googleResolveRef.current = resolve;
-      promptGoogleAsync();
+      promptGoogleAsync().catch((err) => {
+        resolve({ error: err?.message || 'Error al abrir ventana de Google.' });
+        googleResolveRef.current = null;
+      });
     });
   }
 
