@@ -87,6 +87,7 @@ export default function SignupScreen() {
         {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.buttonText}>Registrarme</Text>}
       </TouchableOpacity>
 
+      {/* Botón Google temporalmente oculto
       <View style={styles.dividerRow}>
         <View style={styles.dividerLine} />
         <Text style={styles.dividerText}>o bien</Text>
@@ -108,6 +109,7 @@ export default function SignupScreen() {
           </View>
         )}
       </TouchableOpacity>
+      */}
 
       <TouchableOpacity onPress={() => router.push('/(auth)/login')}>
         <Text style={styles.link}>¿Ya tienes cuenta? Inicia sesión</Text>
