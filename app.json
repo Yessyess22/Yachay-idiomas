@@ -17,13 +17,6 @@
     "android": {
       "package": "com.yachay.app",
       "googleServicesFile": "./google-services.json",
-      "intentFilters": [
-        {
-          "action": "VIEW",
-          "data": [{ "scheme": "com.googleusercontent.apps.44041238737-90mk82k676tdoo2a6u8pjeqoda81s4kk" }],
-          "category": ["BROWSABLE", "DEFAULT"]
-        }
-      ],
       "adaptiveIcon": {
         "backgroundColor": "#FDF8F2",
         "foregroundImage": "./assets/images/android-icon-foreground.png"
@@ -59,6 +52,7 @@
       "expo-image",
       "expo-status-bar",
       "expo-web-browser",
+      "@react-native-google-signin/google-signin",
       "expo-asset",
       [
         "expo-audio",

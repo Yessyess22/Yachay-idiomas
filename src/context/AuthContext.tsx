@@ -1,17 +1,15 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as Google from 'expo-auth-session/providers/google';
-import Constants, { AppOwnership } from 'expo-constants';
-import { Platform } from 'react-native';
+import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
 import { GoogleAuthProvider } from 'firebase/auth';
 import { User as FirebaseUser } from 'firebase/auth';
-import { createContext, ReactNode, useContext, useEffect, useRef, useState } from 'react';
-
+import { createContext, ReactNode, useContext, useEffect, useState } from 'react';
 
 import { authService } from '@/src/services/authService';
 import { Profile } from '@/src/types';
 
-const ANDROID_CLIENT_ID = '44041238737-90mk82k676tdoo2a6u8pjeqoda81s4kk.apps.googleusercontent.com';
 const WEB_CLIENT_ID = '44041238737-ppq4ns8gdnamckv1pisgfj1b90lgg9rq.apps.googleusercontent.com';
+
+GoogleSignin.configure({ webClientId: WEB_CLIENT_ID, offlineAccess: false });
 
 type AuthContextType = {
   user: FirebaseUser | null;
@@ -35,47 +33,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
   const [emailVerificationDismissed, setEmailVerificationDismissed] = useState(false);
-
-  const [, googleResponse, promptGoogleAsync] = Google.useIdTokenAuthRequest({
-    androidClientId: ANDROID_CLIENT_ID,
-    webClientId: WEB_CLIENT_ID,
-    scopes: ['profile', 'email'],
-    redirectUri: Platform.OS === 'android'
-      ? 'com.googleusercontent.apps.44041238737-90mk82k676tdoo2a6u8pjeqoda81s4kk:/oauth2redirect/google'
-      : undefined,
-  });
-  const googleResolveRef = useRef<((v: { error: string | null }) => void) | null>(null);
-
-  useEffect(() => {
-    if (!googleResponse) return;
-    if (googleResponse.type === 'success') {
-      const idToken =
-        googleResponse.params?.id_token ||
-        (googleResponse as any).authentication?.idToken;
-      const accessToken = (googleResponse as any).authentication?.accessToken;
-
-      if (!idToken && !accessToken) {
-        googleResolveRef.current?.({ error: 'No se pudo obtener el token de autenticación de Google.' });
-        googleResolveRef.current = null;
-        return;
-      }
-      const credential = GoogleAuthProvider.credential(idToken ?? null, accessToken ?? null);
-      authService.signInWithGoogleCredential(credential)
-        .then((res) => googleResolveRef.current?.({ error: res.error }))
-        .catch((err) => googleResolveRef.current?.({ error: err?.message || 'Error al autenticar con Google en Firebase.' }))
-        .finally(() => { googleResolveRef.current = null; });
-    } else if (googleResponse.type === 'dismiss' || googleResponse.type === 'cancel') {
-      googleResolveRef.current?.({ error: null });
-      googleResolveRef.current = null;
-    } else if (googleResponse.type === 'error') {
-      const errorMsg =
-        (googleResponse.params as any)?.error_description ||
-        googleResponse.error?.message ||
-        'Error al iniciar sesión con Google.';
-      googleResolveRef.current?.({ error: errorMsg });
-      googleResolveRef.current = null;
-    }
-  }, [googleResponse]);
 
   useEffect(() => {
     const unsubscribe = authService.onAuthStateChange(async (firebaseUser) => {
@@ -120,20 +77,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { error: res.error };
     }
 
-    if (Constants.appOwnership === AppOwnership.Expo) {
-      return {
-        error:
-          'El inicio con Google está restringido por Google dentro de Expo Go (requiere el paquete nativo com.yachay.app). Para probar en Expo Go, ingresa con tu correo y contraseña, o pruébalo en la versión Web.',
-      };
+    try {
+      await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+      const response = await GoogleSignin.signIn();
+      const idToken = response.data?.idToken;
+      if (!idToken) return { error: 'No se pudo obtener el token de Google.' };
+      const credential = GoogleAuthProvider.credential(idToken);
+      const res = await authService.signInWithGoogleCredential(credential);
+      return { error: res.error };
+    } catch (e: any) {
+      if (e.code === statusCodes.SIGN_IN_CANCELLED) return { error: null };
+      if (e.code === statusCodes.IN_PROGRESS) return { error: null };
+      if (e.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
+        return { error: 'Google Play Services no disponible en este dispositivo.' };
+      }
+      return { error: e.message || 'Error al iniciar sesión con Google.' };
     }
-
-    return new Promise((resolve) => {
-      googleResolveRef.current = resolve;
-      promptGoogleAsync().catch((err) => {
-        resolve({ error: err?.message || 'Error al abrir ventana de Google.' });
-        googleResolveRef.current = null;
-      });
-    });
   }
 
   async function signOut() {
