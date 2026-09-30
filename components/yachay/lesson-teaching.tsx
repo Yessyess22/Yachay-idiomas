@@ -151,7 +151,6 @@ export function LessonTeaching({
 
   const audioText = currentEntry && !disableAudio ? buildTeachingAudioText(currentEntry.quechua) : '';
 
-  // Reproducir automáticamente el audio al cambiar de vocablo (solo si audio habilitado)
   useEffect(() => {
     if (disableAudio || !audioText) return;
     let active = true;
