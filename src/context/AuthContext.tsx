@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Google from 'expo-auth-session/providers/google';
 import Constants, { AppOwnership } from 'expo-constants';
+import { Platform } from 'react-native';
 import { GoogleAuthProvider } from 'firebase/auth';
 import { User as FirebaseUser } from 'firebase/auth';
 import { createContext, ReactNode, useContext, useEffect, useRef, useState } from 'react';
@@ -39,6 +40,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     androidClientId: ANDROID_CLIENT_ID,
     webClientId: WEB_CLIENT_ID,
     scopes: ['profile', 'email'],
+    redirectUri: Platform.OS === 'android'
+      ? 'com.googleusercontent.apps.44041238737-90mk82k676tdoo2a6u8pjeqoda81s4kk:/oauth2redirect/google'
+      : undefined,
   });
   const googleResolveRef = useRef<((v: { error: string | null }) => void) | null>(null);
 
