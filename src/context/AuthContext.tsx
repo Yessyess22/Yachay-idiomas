@@ -1,15 +1,27 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { GoogleSignin, statusCodes } from '@react-native-google-signin/google-signin';
 import { GoogleAuthProvider } from 'firebase/auth';
 import { User as FirebaseUser } from 'firebase/auth';
 import { createContext, ReactNode, useContext, useEffect, useState } from 'react';
+import { Platform } from 'react-native';
 
 import { authService } from '@/src/services/authService';
 import { Profile } from '@/src/types';
 
 const WEB_CLIENT_ID = '44041238737-ppq4ns8gdnamckv1pisgfj1b90lgg9rq.apps.googleusercontent.com';
 
-GoogleSignin.configure({ webClientId: WEB_CLIENT_ID, offlineAccess: false });
+// GoogleSignin is a native module — only available in standalone builds, not Expo Go
+let GoogleSignin: any = null;
+let statusCodes: any = {};
+if (Platform.OS !== 'web') {
+  try {
+    const mod = require('@react-native-google-signin/google-signin');
+    GoogleSignin = mod.GoogleSignin;
+    statusCodes = mod.statusCodes;
+    GoogleSignin.configure({ webClientId: WEB_CLIENT_ID, offlineAccess: false });
+  } catch {
+    // Expo Go: native module not available
+  }
+}
 
 type AuthContextType = {
   user: FirebaseUser | null;
@@ -75,6 +87,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (typeof document !== 'undefined') {
       const res = await authService.signInWithGoogle();
       return { error: res.error };
+    }
+
+    if (!GoogleSignin) {
+      return { error: 'El inicio con Google requiere la app instalada (APK). En Expo Go, usa correo y contraseña.' };
     }
 
     try {

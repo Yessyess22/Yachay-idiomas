@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   ScrollView,
   StyleSheet,
@@ -7,6 +7,7 @@ import {
   View,
 } from 'react-native';
 import Animated, { FadeInRight } from 'react-native-reanimated';
+import { playQuechuaAudio, buildTeachingAudioText } from '@/src/services/voiceService';
 import { playTapSound } from '@/src/services/soundService';
 import { LessonVocabularyEntry } from '@/src/content/lessonContent';
 
@@ -130,6 +131,7 @@ interface LessonTeachingProps {
   vocabulary: LessonVocabularyEntry[];
   onComplete: () => void;
   onBack?: () => void;
+  disableAudio?: boolean;
 }
 
 export function LessonTeaching({
@@ -138,12 +140,42 @@ export function LessonTeaching({
   vocabulary,
   onComplete,
   onBack,
+  disableAudio = false,
 }: LessonTeachingProps) {
   const [stepIndex, setStepIndex] = useState(0);
+  const [isPlaying, setIsPlaying] = useState(false);
 
   const currentEntry = vocabulary[stepIndex];
   const illustration = currentEntry ? getIllustration(currentEntry) : null;
   const isLast = stepIndex >= vocabulary.length - 1;
+
+  const audioText = currentEntry && !disableAudio ? buildTeachingAudioText(currentEntry.quechua) : '';
+
+  // Reproducir automáticamente el audio al cambiar de vocablo (solo si audio habilitado)
+  useEffect(() => {
+    if (disableAudio || !audioText) return;
+    let active = true;
+    playQuechuaAudio(audioText, { raw: true })
+      .catch(() => {})
+      .finally(() => { if (active) setIsPlaying(false); });
+    return () => { active = false; };
+  }, [stepIndex, audioText, disableAudio]);
+
+  function playNormal() {
+    if (!audioText) return;
+    setIsPlaying(true);
+    playQuechuaAudio(audioText, { raw: true })
+      .catch(() => {})
+      .finally(() => setIsPlaying(false));
+  }
+
+  function playSlow() {
+    if (!audioText) return;
+    setIsPlaying(true);
+    playQuechuaAudio(audioText, { slow: true, raw: true })
+      .catch(() => {})
+      .finally(() => setIsPlaying(false));
+  }
 
   function handleNext() {
     playTapSound();
@@ -216,6 +248,29 @@ export function LessonTeaching({
               </Text>
             </View>
           </View>
+
+          {/* Botones de Audio: Normal y Lento (solo si audio habilitado) */}
+          {!disableAudio && (
+            <View style={styles.audioControlsRow}>
+              <TouchableOpacity
+                style={[styles.audioBtn, isPlaying && styles.audioBtnPlaying]}
+                onPress={playNormal}
+                activeOpacity={0.82}
+              >
+                <Text style={styles.audioBtnIcon}>🔊</Text>
+                <Text style={styles.audioBtnLabel}>Escuchar normal</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.audioBtnSlow, isPlaying && styles.audioBtnPlaying]}
+                onPress={playSlow}
+                activeOpacity={0.82}
+              >
+                <Text style={styles.audioBtnIcon}>🐢</Text>
+                <Text style={styles.audioBtnLabel}>Escuchar lento</Text>
+              </TouchableOpacity>
+            </View>
+          )}
 
           {/* Guía Fonética y Articulatoria */}
           {currentEntry.note && (

@@ -88,6 +88,8 @@ const PHONEME_AUDIO_TEXT: Record<string, string> = {
 
   // Correcciones fonéticas para palabras aisladas donde el modelo VITS produce artefactos
   inti: 'intí',
+  quri: 'qurí',
+  mishki: 'míshki',
 };
 
 /**

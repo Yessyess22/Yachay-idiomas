@@ -1086,6 +1086,7 @@ export default function LessonScreen() {
         title={teachingPack.title}
         focus={teachingPack.focus}
         vocabulary={teachingPack.vocabulary}
+        disableAudio={lessonId === 7}
         onComplete={() => {
           setCurrentIndex(0);
           setLessonPhase('practice');
