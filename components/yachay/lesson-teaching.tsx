@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import {
   ScrollView,
   StyleSheet,
@@ -7,7 +7,6 @@ import {
   View,
 } from 'react-native';
 import Animated, { FadeInRight } from 'react-native-reanimated';
-import { playQuechuaAudio, buildTeachingAudioText } from '@/src/services/voiceService';
 import { playTapSound } from '@/src/services/soundService';
 import { LessonVocabularyEntry } from '@/src/content/lessonContent';
 
@@ -141,45 +140,10 @@ export function LessonTeaching({
   onBack,
 }: LessonTeachingProps) {
   const [stepIndex, setStepIndex] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(false);
 
   const currentEntry = vocabulary[stepIndex];
   const illustration = currentEntry ? getIllustration(currentEntry) : null;
   const isLast = stepIndex >= vocabulary.length - 1;
-
-  // Texto de audio completo: "CH (Chaki)" → "cha Chaki" (fonema + palabra con la misma voz quechua)
-  const audioText = currentEntry ? buildTeachingAudioText(currentEntry.quechua) : '';
-
-  // Reproducir automáticamente el audio al cambiar de vocablo
-  useEffect(() => {
-    let active = true;
-    if (audioText) {
-      playQuechuaAudio(audioText, { raw: true })
-        .catch(() => {})
-        .finally(() => {
-          if (active) setIsPlaying(false);
-        });
-    }
-    return () => {
-      active = false;
-    };
-  }, [stepIndex, audioText]);
-
-  function playNormal() {
-    if (!audioText) return;
-    setIsPlaying(true);
-    playQuechuaAudio(audioText, { raw: true })
-      .catch(() => {})
-      .finally(() => setIsPlaying(false));
-  }
-
-  function playSlow() {
-    if (!audioText) return;
-    setIsPlaying(true);
-    playQuechuaAudio(audioText, { slow: true, raw: true })
-      .catch(() => {})
-      .finally(() => setIsPlaying(false));
-  }
 
   function handleNext() {
     playTapSound();
@@ -251,27 +215,6 @@ export function LessonTeaching({
                 {currentEntry.spanish.toUpperCase()}
               </Text>
             </View>
-          </View>
-
-          {/* Botones de Audio: Normal y Lento (Tortuga) */}
-          <View style={styles.audioControlsRow}>
-            <TouchableOpacity
-              style={[styles.audioBtn, isPlaying && styles.audioBtnPlaying]}
-              onPress={playNormal}
-              activeOpacity={0.82}
-            >
-              <Text style={styles.audioBtnIcon}>🔊</Text>
-              <Text style={styles.audioBtnLabel}>Escuchar normal</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.audioBtnSlow, isPlaying && styles.audioBtnPlaying]}
-              onPress={playSlow}
-              activeOpacity={0.82}
-            >
-              <Text style={styles.audioBtnIcon}>🐢</Text>
-              <Text style={styles.audioBtnLabel}>Escuchar lento</Text>
-            </TouchableOpacity>
           </View>
 
           {/* Guía Fonética y Articulatoria */}
